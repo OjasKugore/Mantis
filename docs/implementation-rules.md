@@ -81,13 +81,22 @@
   * Prominent **live countdown clock** rendered client-side from timestamp.
   * Enforces that embargoed security tickets are hidden from unprivileged users.
 
-### Phase 3: High-Value Polish (Day 3, In ROI Order)
-* **Goal**: Maximize User Experience (15 pts) and Developer Ergonomics before the deadline.
+### Phase 3: High-Value Polish & The "95+ Score Levers" (Day 3)
+* **Goal**: Maximize User Experience (15 pts), Technical Architecture (15 pts), and Innovation (20 pts) to push overall evaluation into the **95+ Championship Bracket**.
 * **Order of Execution**:
   1. **Command Palette (`⌘K`)**: `cmdk` modal allowing keyboard navigation, instant ticket jump (`#104`), and zero-mouse actions (`assign:me`, `status:resolved`).
   2. **PostgreSQL Full-Text Search**: Generated `tsvector` column on `bugs(summary, description)` indexed with GIN. Fast search bar supporting word stems without external search daemons.
   3. **Kanban Status Board**: `@dnd-kit` multi-column board mapping to Bugzilla workflow columns, calling the Phase 1 transition endpoint on drag-drop.
-  4. **Lightweight Live Updates**: 5-second polling or simple WebSocket broadcast refreshing ticket views on remote updates.
+  4. **1-Click "✨ AI Triage Assistant" Endpoint (The AI Shield)**:
+     - 45-minute zero-infra endpoint (`POST /api/v1/bugs/:id/ai-triage`) calling `gpt-4o-mini` with a 2s timeout.
+     - Distills bug thread into: (a) 2-sentence Root Cause Summary, (b) Suggested Priority & Component with rationale, (c) Action Items.
+     - Silences evaluator "AI bias" without requiring complex vector infrastructure or background queues.
+  5. **Interactive Swagger / OpenAPI 3.1 UI at `/docs`**:
+     - Fastify `@fastify/swagger` + `@fastify/swagger-ui` mounted at `http://localhost:3001/docs`.
+     - Provides an interactive, live API explorer with schemas and "Try It Out" buttons, proving enterprise architecture rigor.
+  6. **"Linear Polish" Power Ergonomics (`j`/`k` list navigation)**:
+     - In the bug table, pressing `j` moves down, `k` moves up, and `Enter` opens ticket. Pressing `?` displays shortcut cheat sheet.
+  7. **Lightweight Live Updates**: 5-second polling or simple WebSocket broadcast refreshing ticket views on remote updates.
 
 ### Phase 4: Future Roadmap (Documented Only)
 * Fully documented in architectural specs as Phase 4 future work: CRDT multiplayer with Yjs/y-redis, Code Navigation with Monaco/Git, AI vector triage via pgvector, multi-tenant XML migration, and full PWA offline mode. Listing them proves deep architectural forethought without burning implementation runway.
@@ -192,6 +201,14 @@ Every feature implemented across Phases 1–3 **must include automated tests**. 
     - Moving card from `CONFIRMED` to `IN_PROGRESS` returns HTTP 200 with updated status and audit record.
     - Illegal drag (e.g. `UNCONFIRMED` to `CLOSED`) returns HTTP 422; frontend rolls card back to original column.
 
+#### 4. AI Triage Assistant & Swagger Documentation
+* **Unit / Mock Tests (`test/unit/ai_triage.test.ts`)**:
+  - Validates prompt assembly contains bug title, description, and comment corpus.
+  - Verifies structured JSON response parsing (summary, suggested priority, action items).
+  - Graceful fallback: If LLM service times out or API key is absent, returns clean `{ error: "AI_SERVICE_UNAVAILABLE", fallback: true }` without crashing the page.
+* **Integration Tests (`test/integration/swagger.test.ts`)**:
+  - `GET /docs`: Returns HTTP 200 with Swagger UI HTML and valid OpenAPI 3.1 JSON schema.
+
 ---
 
 ## 5. What Was Deliberately Cut, and Why
@@ -225,14 +242,15 @@ When documenting or implementing any feature from Phases 1–3, adhere strictly 
 
 ## 7. Rubric Alignment Matrix (100-Point Authoritative Scorecard)
 
-| Rubric Criterion | Weight | Deliverable Proving It in this 72-Hour Scope |
-|---|:---:|---|
-| **Problem Understanding & Core Functionality** | **20 pts** | Sequential numeric Bug IDs, append-only `bugs_activity` audit trail, three-state flags (`review?`), and enforced server state machine (Phase 1). |
-| **Innovation & Meaningful Differentiation** | **20 pts** | Interactive React Flow DAG with real-time pulsing red Critical Path; built-in CVSS v4.0 calculator & 90-day embargo countdown clock (Phase 2). |
-| **Performance & Reliability** | **20 pts** | Recursive CTE cycle rejection; server-enforced state machine rejecting illegal moves; comprehensive automated test suite (Phases 1–3). |
-| **User Experience & Accessibility** | **15 pts** | Sub-10ms `⌘K` Command Palette, system-adaptive dark mode (CSS variables), drag-and-drop Kanban board, inline semantic HTML focus states. |
-| **Technical Implementation & Architecture** | **15 pts** | Single clean TypeScript/Fastify runtime, PostgreSQL relational schema with recursive CTEs and full-text search, zero-bloat architecture. |
-| **Documentation & Engineering Rigor** | **10 pts** | Complete DDL schemas, comprehensive automated test suites, and explicit documentation explaining deliberate scope tradeoffs. |
+| Rubric Criterion | Weight | Deliverable Proving It in this 72-Hour Scope | Target Score |
+|---|:---:|---|:---:|
+| **Problem Understanding & Core Functionality** | **20 pts** | Sequential numeric Bug IDs, append-only `bugs_activity` audit trail, three-state flags (`review?`), and enforced server state machine (Phase 1). | **19 / 20** |
+| **Innovation & Meaningful Differentiation** | **20 pts** | Interactive React Flow DAG with real-time pulsing red Critical Path; built-in CVSS v4.0 calculator & 90-day embargo countdown clock (Phase 2) + **1-Click AI Triage Assistant** (Phase 3). | **19 / 20** |
+| **Performance & Reliability** | **20 pts** | Recursive CTE cycle rejection; server-enforced state machine rejecting illegal moves; 20+ automated tests + **1-Command Docker Compose (`docker compose up`)** (Phases 1–3). | **20 / 20** |
+| **User Experience & Accessibility** | **15 pts** | Sub-10ms `⌘K` Command Palette, system-adaptive dark mode (CSS variables), drag-and-drop Kanban board, **`j`/`k` keyboard shortcuts + 30 seeded realistic bugs**. | **15 / 15** |
+| **Technical Implementation & Architecture** | **15 pts** | Single clean TypeScript/Fastify runtime, PostgreSQL relational schema with recursive CTEs and FTS, **interactive Swagger UI at `/docs`**. | **15 / 15** |
+| **Documentation & Engineering Rigor** | **10 pts** | Complete DDL schemas, comprehensive automated test suites, and explicit documentation explaining deliberate scope tradeoffs. | **10 / 10** |
+| **TOTAL PROJECTED SCORE** | **100 pts** | **CHAMPIONSHIP / PODIUM BRACKET** | **98 / 100** |
 
 ---
 
@@ -253,9 +271,13 @@ When documenting or implementing any feature from Phases 1–3, adhere strictly 
   * [ ] `⌘K` Command Palette working.
   * [ ] Postgres FTS search bar working.
   * [ ] Drag-and-drop Kanban board working.
+  * [ ] 1-Click AI Triage Assistant endpoint working with fallback.
+  * [ ] Fastify Swagger UI accessible at `/docs`.
+  * [ ] `seed.ts` populating 30 realistic bugs with avatars and flags.
   * [ ] Phase 3 test suite passing.
 * **Checkpoint 4 (Final Freeze — Aug 30, 8:00 PM to 11:59 PM)**:
   * [ ] **HARD FEATURE FREEZE**: No new features started.
+  * [ ] Verify `docker compose up` starts Postgres, API, and Next.js cleanly with auto-seeding on fresh clone.
   * [ ] Run full test suite (`npm test`).
   * [ ] Execute manual end-to-end smoke test script.
   * [ ] Final git commit, clean README, push to repository.

@@ -1,650 +1,399 @@
-# Additional Features — Beyond Bugzilla's Scope (Comprehensive Engineering Specification)
+# Additional Features Specification — Beyond Bugzilla's Scope
+## Architecture & Implementation Blueprint: Active Build Targets vs. Extended Enterprise Roadmap
 
-> **Purpose**: This document provides an exhaustive, production-grade architectural specification for 17 *net-new* capabilities designed to transform Bugzilla into an industry-leading issue tracker. Each feature is fleshed out with **data schemas, API contracts, algorithmic specifications, and UI workflows** to directly inform subsequent implementation plans.
-> 
-> Features are ranked strictly by **Evaluator Impact, "WOW" Factor, and Official Evaluation Rubrics**:
-> 
-> * **Problem Understanding & Core Functionality (20 pts)** — Decisively overhauls Bugzilla's legacy bottlenecks (Mid-Air Collisions, static Graphviz images, manual triage, unmathematical security flags).
-> * **Innovation & Meaningful Differentiation (20 pts)** — Leapfrogging modern incumbents (Linear, Jira, GitHub Issues) with capabilities none of them natively provide.
-> * **Performance & Reliability (20 pts)** — Sub-100ms response times, optimistic updates, Yjs CRDT conflict-free concurrency, and resilient PostgreSQL DAG traversals.
-> * **User Experience & Visual Aesthetics (15 pts)** — Rich interactive SVG/Canvas graphs, live multiplayer presence, keyboard-first power ergonomics, and glassmorphic micro-animations.
-> * **Technical Implementation & Architecture (15 pts)** — Relational recursive DAGs, dense vector embedding search, and real-time WebSocket state machines.
-> * **Documentation & Engineering Rigor (10 pts)** — Concrete specifications, schema designs, mathematical scoring models, and verified tradeoffs.
+> **Purpose**: This document defines the *net-new* capabilities that transform Bugzilla from a legacy Perl tracker into a state-of-the-art developer platform.
+>
+> In strict accordance with [`docs/implementation-rules.md`](./implementation-rules.md), this document is partitioned into two distinct architectural sections:
+> 1. **PART I: ACTIVE 72-HOUR BUILD TARGETS (Phases 2 & 3 — Live Demo Scope)**: The concrete, self-contained features being implemented and verified before **August 30 at 11:59 PM**. Each includes complete PostgreSQL DDL schemas, REST API contracts, algorithms, UI components, and unit/integration test specifications.
+> 2. **PART II: EXTENDED ENTERPRISE ROADMAP (Phase 4 — Documented Architecture)**: The long-term enterprise vision (CRDT multiplayer, Monaco code navigation, AI vector triage, PWA, plugin sandboxes) preserved in complete architectural detail to demonstrate technical rigor and future extensibility to evaluators.
 
 ---
 
-## Evaluation Tier Hierarchy
+# PART I: ACTIVE 72-HOUR BUILD TARGETS (Live Demo Scope)
 
-| Tier | Label | Rubric Strategic Focus | Description |
-|---|---|---|---|
-| 🌟 | **Tier 1: Showstoppers & Core Moats** | Innovation (20 pts) + Visual Wow (15 pts) + Tech Arch (15 pts) | Immediate jaw-dropping demo moments that blow judges away within the first 60 seconds. |
-| 🚀 | **Tier 2: High-Value Technical Differentiators** | Core Func (20 pts) + Performance (20 pts) + DevEx (15 pts) | Deep engineering systems bridging issue tracking with live code repos, telemetry, and release pipelines. |
-| 🛡️ | **Tier 3: Enterprise-Grade Completeness** | Reliability (20 pts) + Problem Understanding (20 pts) | Industrial-strength security compliance, automation, and multi-channel communication required by serious engineering orgs. |
-| 💎 | **Tier 4: Polish, Inclusivity & Extensibility** | Accessibility (15 pts) + Architecture (15 pts) | Universal accessibility, global i18n, third-party ecosystem extensibility, and modern aesthetic customization. |
+The following six features constitute the live functional demo deliverables for Phases 2 and 3.
 
 ---
 
-## 1. 🕸️ Interactive Dependency Graphing & Release Risk Engine 🌟
+## 1. 🕸️ Interactive Dependency Graph & Critical Path Engine (Phase 2 Moat)
 
-**Judge Wow Factor**: ⭐⭐⭐⭐⭐ (Maximum Visual Spectacle + Deep Algorithmic Intelligence)  
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), UX & Aesthetics (15 pts), Problem Understanding (20 pts), Tech Arch (15 pts)  
-**Bugzilla Gap Addressed**: Directly overhauls `showdependencygraph.cgi` and `showdependencytree.cgi`. Legacy Bugzilla shelled out to Graphviz `dot` to render blurry, static `.png` image maps from 2002. This replaces it with an interactive, living release engineering cockpit.
+**Target Rubric Areas**: Innovation & Differentiation (20 pts), UX & Aesthetics (15 pts), Performance & Reliability (20 pts)  
+**Bugzilla Gap Addressed**: Overhauls `showdependencygraph.cgi`. Legacy Bugzilla shelled out to Graphviz `dot` in 2002 to generate static, blurry `.png` image maps. This replaces it with an interactive, live-calculated DAG cockpit.
 
-### 1.1 Data Schema & Indexing
+### 1.1 Data Schema & Integrity Constraints
 ```sql
--- Relational Directed Acyclic Graph (DAG) Storage
 CREATE TABLE bug_dependencies (
-    blocking_bug_id INTEGER NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    blocked_bug_id  INTEGER NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    dependency_type VARCHAR(32) NOT NULL DEFAULT 'blocks', -- 'blocks', 'parent_of', 'relates_to'
+    blocking_bug_id BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
+    blocked_bug_id  BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by      UUID NOT NULL REFERENCES users(id),
     PRIMARY KEY (blocking_bug_id, blocked_bug_id),
-    CHECK (blocking_bug_id <> blocked_bug_id)
+    CONSTRAINT chk_no_self_dependency CHECK (blocking_bug_id <> blocked_bug_id)
 );
 
 CREATE INDEX idx_bug_dep_blocked ON bug_dependencies(blocked_bug_id, blocking_bug_id);
 CREATE INDEX idx_bug_dep_blocking ON bug_dependencies(blocking_bug_id, blocked_bug_id);
 ```
 
-### 1.2 Algorithmic Core: Critical Path Method (CPM) & Bottleneck Scoring
-1. **Critical Path Calculation (Forward & Backward Pass)**:
-   * **Forward Pass**: Compute Early Start ($ES$) and Early Finish ($EF$) for all nodes in milestone $M$:
-     $$ES_i = \max_{(j, i) \in E} (EF_j), \quad EF_i = ES_i + \text{estimated\_hours}_i$$
-   * **Backward Pass**: From milestone delivery deadline $T_{max}$, compute Late Finish ($LF$) and Late Start ($LS$):
-     $$LF_i = \min_{(i, k) \in E} (LS_k), \quad LS_i = LF_i - \text{estimated\_hours}_i$$
-   * **Total Slack (Float)**: $\text{Float}_i = LF_i - EF_i = LS_i - ES_i$.
-   * **Critical Path Identification**: The subset of unresolved nodes where $\text{Float}_i = 0$. Rendered with pulsing amber-red halo (`animation: pulse 1.5s infinite`).
-2. **Bottleneck Heatmap (In-Degree Volume)**:
-   * Score = Total count of distinct downstream nodes blocked by issue $X$ across transitive closure.
-   * Node border width scales from $1\text{px} \rightarrow 5\text{px}$; background gradient shifts from neutral slate to deep crimson (`#EF4444`).
-3. **Dual-Layer Cycle Prevention**:
-   * *Client-Side*: On drag-edge drop, `Graphology.hasCycle()` evaluates the proposed DAG. If cycle detected, connection is aborted with an elastic edge-snap animation and toast error: *"Circular Dependency: #101 → #104 → #101"*.
-   * *Backend Guarantee*: PostgreSQL execution lock with a recursive query checking for path existence before insert:
+### 1.2 Algorithmic Core: Critical Path Method (CPM) & Server-Side Cycle Rejection
+1. **Critical Path Method (CPM)**:
+   * Computed across the sub-DAG of unresolved issues targeting a milestone or focal ticket.
+   * Path duration is determined by estimated task hours (or hop-count if estimates are absent).
+   * The longest unresolved sequential chain of blockers is identified as the **Critical Path** and rendered with pulsing high-contrast red edges (`#EF4444`).
+2. **Server-Side Recursive CTE Cycle Detection**:
+   * Before committing a new dependency edge, the server executes a recursive path search within the transaction. If a path already exists from `blocked_bug_id` to `blocking_bug_id`, the insertion is aborted with HTTP 422:
      ```sql
      WITH RECURSIVE check_cycle AS (
          SELECT blocking_bug_id, blocked_bug_id FROM bug_dependencies WHERE blocking_bug_id = :new_blocked_id
          UNION ALL
          SELECT d.blocking_bug_id, d.blocked_bug_id 
-         FROM bug_dependencies d JOIN check_cycle c ON d.blocking_bug_id = c.blocked_bug_id
+         FROM bug_dependencies d 
+         JOIN check_cycle c ON d.blocking_bug_id = c.blocked_bug_id
      )
      SELECT 1 FROM check_cycle WHERE blocked_bug_id = :new_blocking_id LIMIT 1;
      ```
 
-### 1.3 Viewport Virtualization & Layout Engine
-- **Layout Compiler**: `@elkjs/generator` with configuration:
-  `'elk.algorithm': 'layered', 'elk.direction': 'RIGHT', 'elk.layered.spacing.nodeNodeBetweenLayers': 80`.
-- **Large-Scale Viewport Virtualization**: When node count $> 150$, React DOM nodes are pruned; nodes outside the visible bounding box are culled, and panning switches to an HTML5 `<canvas>` rendering pipeline to sustain 60 FPS.
-- **Anti-Hairball Subgraph Scoping**:
-  * Default focal view anchors on target bug with depth limit $\pm 2$.
-  * Interactive expand badges `(+) [N more]` load upstream/downstream sub-trees dynamically via WebSocket query.
+### 1.3 UI & Canvas Architecture
+- **Rendering Engine**: `@xyflow/react` (React Flow) paired with `dagre` for fast, synchronous, deterministic hierarchical layout.
+- **Node Interaction**: Hovering a node highlights immediate upstream blockers and downstream dependents.
+- **Quick-Edit Slide-Over Drawer**: Clicking any node slides open a detailed drawer from the right, allowing triage leads to reassign, change status, or inspect comments without losing spatial canvas context.
 
-### 1.4 API & WebSocket Contracts
-- `GET /api/v1/graphs/subgraph?bug_id=104&depth=2`
-  * Response: `{ nodes: [...], edges: [...], criticalPathIds: [101, 104, 109], bottleneckScores: { "101": 8 } }`
-- WebSocket Delta:
-  * Event: `dependency:added` $\rightarrow$ `{ blockingId: 101, blockedId: 104, actor: "Jane" }`
-  * Event: `dependency:resolved` $\rightarrow$ Animates edge from solid to dashed green line with checkmark icon.
+### 1.4 API Endpoints
+- `POST /api/v1/bugs/:id/dependencies`: Body `{ blocked_bug_id: 104 }`. Inserts edge if no cycle detected; returns HTTP 201 or HTTP 422 `{ error: "CYCLIC_DEPENDENCY_DETECTED" }`.
+- `DELETE /api/v1/bugs/:id/dependencies/:blocked_id`: Removes dependency edge.
+- `GET /api/v1/bugs/:id/graph`: Returns `{ nodes: [...], edges: [...], criticalPathIds: [101, 104, 109] }`.
+
+### 1.5 Automated Test Specifications
+* **Unit Tests (`test/unit/graph_cpm.test.ts`)**:
+  - Validates CPM calculation on standard DAG: `A(2h) -> B(4h) -> D(1h)` vs `A(2h) -> C(1h) -> D(1h)` correctly flags `[A, B, D]` as critical.
+  - Validates graceful handling of single-node and disconnected subgraphs.
+* **Integration Tests (`test/integration/dependencies.test.ts`)**:
+  - Asserts self-linking `101 -> 101` rejects with HTTP 400 (`chk_no_self_dependency`).
+  - Asserts direct cycle `101 -> 102` then `102 -> 101` rejects with HTTP 422 and rolls back.
+  - Asserts multi-hop cycle `101 -> 102 -> 103` then `103 -> 101` rejects with HTTP 422.
 
 ---
 
-## 2. 🔍 Code Navigation & Fault Localization 🌟
+## 2. 🛡️ Enterprise Vulnerability Disclosure: CVSS v4.0 & Embargo Countdown (Phase 2 Moat)
 
-**Judge Wow Factor**: ⭐⭐⭐⭐⭐ (The "Holy Grail" Demo: Bug Description → Exact Code Line)  
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), Technical Implementation (15 pts), Problem Understanding (20 pts)  
-**Bugzilla Gap Addressed**: Bugzilla has zero codebase awareness. Developers must manually copy stack traces, switch to their IDE, and search files. This bridges the bug tracker directly to the source code.
+**Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts), Performance & Reliability (20 pts)  
+**Bugzilla Gap Addressed**: Bugzilla is historically the world's primary zero-day vulnerability tracker (Mozilla, Red Hat, Linux Kernel). Yet it relied on arbitrary text flags with zero mathematical severity calculation and no automated disclosure clocks.
 
 ### 2.1 Data Schema
 ```sql
-CREATE TABLE project_repositories (
-    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id     INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    provider       VARCHAR(32) NOT NULL, -- 'github', 'gitlab', 'bitbucket'
-    repo_owner     VARCHAR(128) NOT NULL,
-    repo_name      VARCHAR(128) NOT NULL,
-    default_branch VARCHAR(64) NOT NULL DEFAULT 'main',
-    access_token   TEXT NOT NULL, -- Encrypted via AES-GCM-256
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+ALTER TABLE bugs ADD COLUMN is_embargoed BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE bugs ADD COLUMN embargo_until TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE bugs ADD COLUMN cvss_version VARCHAR(8) DEFAULT '4.0';
+ALTER TABLE bugs ADD COLUMN cvss_vector VARCHAR(128) DEFAULT NULL;
+ALTER TABLE bugs ADD COLUMN cvss_score DECIMAL(3,1) DEFAULT NULL;
+ALTER TABLE bugs ADD COLUMN cvss_severity VARCHAR(16) DEFAULT NULL; -- 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
 
-CREATE TABLE bug_code_locations (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bug_id      INTEGER NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    file_path   TEXT NOT NULL,
-    start_line  INTEGER NOT NULL,
-    end_line    INTEGER NOT NULL,
-    source_type VARCHAR(32) NOT NULL, -- 'stacktrace', 'ai_embedding', 'manual'
-    confidence  DECIMAL(4,3) NOT NULL, -- 0.000 to 1.000
-    is_pinned   BOOLEAN NOT NULL DEFAULT FALSE,
-    is_resolved BOOLEAN NOT NULL DEFAULT FALSE,
-    fix_commit  VARCHAR(64),
-    created_by  UUID REFERENCES users(id),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_code_loc_bug ON bug_code_locations(bug_id);
+CREATE INDEX idx_bugs_embargo ON bugs(is_embargoed, embargo_until);
 ```
 
-### 2.2 Three-Tier Fault Localization Pipeline
-```
-[ Bug Report: "NullPointerException in user_service.py:142" ]
-                          │
-            ┌─────────────▼─────────────┐
-            │ Layer 1: StackTrace Regex │
-            │ Match Found?              │
-            └─────────────┬─────────────┘
-                  YES ───►├─► Extract file & line (100% confidence)
-                   NO     │
-            ┌─────────────▼─────────────┐
-            │ Layer 2: Vector Embedding │
-            │ Cosine Search on AST Code │
-            └─────────────┬─────────────┘
-                  YES ───►├─► Predict top 3 suspect files/methods (>70% confidence)
-                   NO     │
-            ┌─────────────▼─────────────┐
-            │ Layer 3: Manual Linking   │
-            │ File Tree Picker in UI    │
-            └───────────────────────────┘
-```
+### 2.2 Algorithmic Core: CVSS v4.0 Math & Client Countdown
+1. **Interactive CVSS v4.0 Calculator**:
+   * Evaluates metrics across MacroVectors:
+     * $EQ1$: Exploitability (Attack Vector, Complexity, Attack Requirements, Privileges, User Interaction).
+     * $EQ2$: Vulnerable System Impact (Confidentiality, Integrity, Availability: None/Low/High).
+     * $EQ3$: Subsequent System Impact (SC, SI, SA: None/Low/High).
+   * Implements FIRST.org published vector equations in TypeScript, generating score `0.0–10.0` and vector string (e.g. `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N`).
+2. **Embargo Countdown & Group Isolation**:
+   * Client renders active countdown clock (`Days:Hours:Mins:Secs`) derived from `embargo_until`.
+   * Unauthenticated or non-security-group requests to `/api/v1/bugs/:id` return HTTP 404 when `is_embargoed = true`.
 
-1. **Stack Trace Extraction**:
-   * Evaluates text against multi-language regex patterns:
-     * Python: `File "(.+?)", line (\d+), in (\w+)`
-     * Node/V8: `at (?:(.+?)\s+\()?(?:(.+?):(\d+):(\d+))\)?`
-     * Java: `at ([a-zA-Z0-9_$.]+)\(([a-zA-Z0-9_]+\.java):(\d+)\)`
-     * Go: `([a-zA-Z0-9_./]+):(\d+) \+0x[0-9a-f]+`
-2. **AI Semantic Code Localization**:
-   * Codebase source files chunked by syntax-aware tree-sitter AST parser into method-level chunks.
-   * Chunks embedded via OpenAI `text-embedding-3-small` / open-source `bge-base-en-v1.5` and stored with file/line bounds.
-   * Ticket title and description embedded $\rightarrow$ Cosine distance query returns top suspect chunks.
-3. **Embedded Monaco Code Viewer**:
-   * Integrated `@monaco-editor/react` configured as `readOnly: true`.
-   * Renders the raw source file directly fetched via repository API at HEAD.
-   * Invokes `editor.deltaDecorations()` to highlight culprit lines with custom CSS class `bg-amber-500/20 border-l-4 border-amber-500`.
-   * Displays floating header with breadcrumb and **"Open in GitHub ↗"** direct permalink button (`https://github.com/:owner/:repo/blob/:branch/:file#L:line`).
+### 2.3 UI & Workflow Architecture
+- **Vulnerability Badge**: Security tickets display an interactive CVSS score pill (e.g. `9.3 CRITICAL` in crimson).
+- **Embedded Scoring Modal**: Clicking the badge opens the interactive metric picker. Selecting values dynamically recomputes the score in real time.
+- **Embargo Banner**: High-visibility header banner with real-time countdown timer warning team members of the public disclosure date.
+
+### 2.4 Automated Test Specifications
+* **Unit Tests (`test/unit/cvss4.test.ts`)**:
+  - Verifies score calculation against official FIRST.org benchmark test vectors:
+    - `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N` $\rightarrow$ `9.3 (CRITICAL)`
+    - `CVSS:4.0/AV:L/AC:H/AT:P/PR:L/UI:P/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N` $\rightarrow$ `1.8 (LOW)`
+* **Integration Tests (`test/integration/security_bugs.test.ts`)**:
+  - Verifies unauthorized user GET on embargoed bug returns HTTP 404.
+  - Verifies authorized security member GET returns full bug details with `is_embargoed: true` and `embargo_until`.
 
 ---
 
-## 3. 👥 Real-Time Collaboration & CRDT Multiplayer Layer 🌟
+## 3. ⌨️ Sub-10ms Command Palette (`Cmd+K` / `Ctrl+K`) (Phase 3 Polish)
 
-**Judge Wow Factor**: ⭐⭐⭐⭐⭐ (Eliminates Bugzilla's Mid-Air Collisions with Google Docs-Style Multiplayer)  
-**Target Rubric Areas**: Problem Understanding (20 pts), Performance & Reliability (20 pts), User Experience (15 pts), Technical Implementation (15 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla famously threw a fatal error: *"Mid-air collision detected! Someone modified this bug while you were editing it,"* wiping out all unsaved text. This feature replaces legacy optimistic lock failures with mathematical conflict-free multiplayer editing.
+**Target Rubric Areas**: User Experience & Accessibility (15 pts), Innovation (20 pts)  
+**Bugzilla Gap Addressed**: Legacy Bugzilla required dozens of mouse clicks across multiple form pages. This brings Linear/VS Code keyboard ergonomics to the bug tracker.
 
-### 3.1 CRDT State Model & Sync Pipeline
-- **Engine**: **Yjs** (high-performance CRDT framework) paired with a custom WebSocket provider over Fastify.
-- **Data Persistence**:
+### 3.1 Technical Architecture
+- **Component**: Built using `cmdk` (shadcn CommandDialog).
+- **In-Memory Fuzzy Cache**: Client preloads recent tickets, projects, and allowed status actions.
+- **Instant Shortcuts**:
+  * `assign:me` $\rightarrow$ Instantly reassigns the active bug.
+  * `status:resolved` / `status:in_progress` $\rightarrow$ Triggers state machine transition.
+  * `copy:branch` $\rightarrow$ Copies formatted Git branch name (`fix/104-auth-timeout`) to clipboard.
+  * `104` $\rightarrow$ Instant navigation jump to Bug #104.
+
+### 3.2 Automated Test Specifications
+* **Unit Tests (`test/unit/command_palette.test.ts`)**:
+  - Verifies typing `res` matches action `status:resolved`.
+  - Verifies numeric string `104` triggers direct URL push `/bugs/104`.
+
+---
+
+## 4. 🔍 PostgreSQL Full-Text Search (`tsvector` & GIN) (Phase 3 Polish)
+
+**Target Rubric Areas**: Performance & Reliability (20 pts), Core Functionality (20 pts)  
+**Bugzilla Gap Addressed**: Replaces slow SQL `LIKE '%query%'` table scans with high-performance native PostgreSQL lexical full-text search.
+
+### 4.1 Data Schema & GIN Index
+```sql
+ALTER TABLE bugs ADD COLUMN search_vector tsvector 
+GENERATED ALWAYS AS (
+    to_tsvector('english', coalesce(summary, '') || ' ' || coalesce(description, ''))
+) STORED;
+
+CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
+```
+
+### 4.2 Query Execution & API
+- **Endpoint**: `GET /api/v1/bugs/search?q=crash`
+- **Query**:
   ```sql
-  CREATE TABLE issue_collaborative_documents (
-      issue_id       INTEGER PRIMARY KEY REFERENCES bugs(id) ON DELETE CASCADE,
-      state_vector   BYTEA NOT NULL, -- Compressed Yjs binary state vector
-      text_snapshot  TEXT NOT NULL,  -- Searchable raw markdown text snapshot
-      last_writer_id UUID REFERENCES users(id),
-      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  );
+  SELECT id, summary, status, priority, ts_rank(search_vector, websearch_to_tsquery('english', :q)) AS rank
+  FROM bugs
+  WHERE search_vector @@ websearch_to_tsquery('english', :q)
+    AND (is_embargoed = FALSE OR :user_id IN (SELECT user_id FROM user_group_map WHERE group_name = 'security'))
+  ORDER BY rank DESC
+  LIMIT 25;
   ```
-- **Sync Protocol**:
-  1. Client connects via WebSocket (`/ws/issues/:id/collab`).
-  2. Server sends `SyncStep1` (current state vector).
-  3. Client computes diff using `Y.encodeStateAsUpdate()` and streams missing delta operations.
-  4. Redis Pub/Sub cluster fans out updates across distributed application instances.
-  5. Every 30 seconds or on client disconnect, the merged Yjs doc is debounced and persisted to PostgreSQL `state_vector` and `text_snapshot`.
 
-### 3.2 Live Presence & Remote Awareness
-- Protocol tracks remote cursor indices, active selection ranges, and client focus.
-- Remote peers render floating labeled caret flags with distinct user colors:
-  ```html
-  <span class="y-cursor" style="border-color: #3B82F6">
-      <span class="y-cursor-label">Alex Rivera</span>
-  </span>
-  ```
-- Active viewers avatar stack in page header indicates current readers (`viewing`) and active writers (`typing...`).
-
-### 3.3 Rich Block Editor & Embedded Screen Recorder
-- **TipTap Core Extensions**:
-  * `TaskList`, `TaskItem` (interactive checklist items rendered as `- [ ]` markdown).
-  * `CodeBlockLowlight` (syntactically colorized code blocks with language auto-detect).
-  * `ImagePaste` (clipboard image drops uploaded asynchronously to S3 with signed URL preview).
-- **Embedded Browser Video Recorder**:
-  * Utilizes HTML5 `navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })`.
-  * Encodes directly via `MediaRecorder` into `video/webm; codecs=vp9`.
-  * Uploads to S3 bucket with inline video playback player embedded in ticket comments.
+### 4.3 Automated Test Specifications
+* **Integration Tests (`test/integration/search.test.ts`)**:
+  - Verifies English word stemming matches: querying `parse` successfully matches a bug containing `parsing`.
+  - Verifies security isolation: an unprivileged search query never returns an embargoed bug matching the search term.
 
 ---
 
-## 4. 🤖 AI-Powered Triage Assistant & Semantic Duplicate Engine 🌟
+## 5. 📋 Drag-and-Drop Kanban Status Board (Phase 3 Polish)
 
-**Judge Wow Factor**: ⭐⭐⭐⭐⭐ (Instant AI Intelligence Applied to Legacy Pain Points)  
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts), Technical Implementation (15 pts)  
-**Bugzilla Gap Addressed**: Bugzilla's UNCONFIRMED triage queue is entirely manual, and keyword-based duplicate detection fails whenever two reporters use different synonyms for the same crash.
+**Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
+**Bugzilla Gap Addressed**: Legacy Bugzilla offered no visual board views. Modern agile teams require visual Kanban workflows without losing state-machine rigor.
 
-### 4.1 Real-Time Vector Duplicate Search
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
+### 5.1 Architecture & Workflow
+- **Component**: Built using `@dnd-kit/core`.
+- **Columns**: Mapped directly to Bugzilla status columns (`UNCONFIRMED`, `CONFIRMED`, `IN_PROGRESS`, `RESOLVED`, `VERIFIED`, `CLOSED`).
+- **State Machine Enforcement**: Dropping a card calls `PATCH /api/v1/bugs/:id/status`.
+  * If valid move $\rightarrow$ Card drops into column; updates `bugs_activity` audit trail.
+  * If invalid move (e.g. `UNCONFIRMED` $\rightarrow$ `CLOSED`) $\rightarrow$ Server returns HTTP 422; frontend smoothly animates card back to source column with error toast.
 
-CREATE TABLE bug_embeddings (
-    bug_id     INTEGER PRIMARY KEY REFERENCES bugs(id) ON DELETE CASCADE,
-    embedding  vector(1536) NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_bug_embed_cosine ON bug_embeddings 
-USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
-```
-
-- **Query Algorithm**:
-  * As the reporter types the bug summary, a debounced (300ms) client hook dispatches a vector similarity search:
-    ```sql
-    SELECT b.id, b.summary, b.status, 
-           1 - (e.embedding <=> :draft_vector) AS similarity_score
-    FROM bug_embeddings e
-    JOIN bugs b ON e.bug_id = b.id
-    WHERE b.product_id = :product_id 
-      AND b.status NOT IN ('CLOSED', 'VERIFIED')
-      AND (1 - (e.embedding <=> :draft_vector)) >= 0.78
-    ORDER BY similarity_score DESC
-    LIMIT 5;
-    ```
-  * If `similarity_score > 0.85`, an alert banner highlights: *"Potential duplicate of Bug #4512 (88% semantic match). View issue before submitting."*
-
-### 4.2 Git Blame & Commit Graph Assignee Routing
-Instead of assigning to a hard-coded component default, the triage engine queries the linked repository's Git history:
-1. Identify suspect files (from stack trace or code localization).
-2. Fetch `git log --pretty=format:"%an|%ae|%ad" -n 50 -- <file_path>` via Git provider API.
-3. Compute Author Recency & Frequency Score ($ARF$):
-   $$ARF_u = \sum_{c \in \text{commits}_u} e^{-\lambda (t_{now} - t_c)}$$
-   where $\lambda = \frac{\ln(2)}{60\text{ days}}$ (exponential half-life decay).
-4. Cross-reference top authors with active Bugzilla profiles and open ticket workloads to recommend the optimal assignee with reasoning displayed in the triage card.
-
-### 4.3 1-Click Thread Summarization Engine
-- Triggered by button in tickets with $> 15$ comments.
-- Assembles comment corpus and executes prompt using `gpt-4o-mini` / `claude-3-5-haiku`:
-  ```
-  SYSTEM: You are a senior QA triage engineer. Distill this Bugzilla discussion into:
-  1. Core Root Cause Identified (1-2 sentences)
-  2. Key Architectural Decisions / Workarounds Agreed
-  3. Remaining Blockers & Next Action Items (bullet points with assignees)
-  ```
-- Output cached in Redis key `summary:bug:{id}` with invalidation trigger on new comment creation.
+### 5.2 Automated Test Specifications
+* **Integration Tests (`test/integration/kanban.test.ts`)**:
+  - Verifies card drop from `CONFIRMED` to `IN_PROGRESS` returns HTTP 200 and logs activity.
+  - Verifies illegal card drop returns HTTP 422 without modifying database state.
 
 ---
 
-## 5. 🛡️ Vulnerability Disclosure Engine: CVSS v4.0 & Automated Embargoes 🌟
+## 6. ✨ 1-Click AI Triage Assistant (Phase 3 Polish — The AI Shield)
 
-**Judge Wow Factor**: ⭐⭐⭐⭐⭐ (Enterprise Security Powerhouse & Historic Mozilla Homage)  
-**Target Rubric Areas**: Problem Understanding (20 pts), Innovation & Differentiation (20 pts), Technical Implementation (15 pts)  
-**Bugzilla Gap Addressed**: Bugzilla has historically been the primary global vault for zero-day browser/OS security vulnerabilities (Mozilla, Red Hat, Linux Kernel, Apache). Yet it relied on subjective text flags (`sec-critical`) with zero mathematical severity calculation and no automated coordinated disclosure clocks.
+**Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts)  
+**Bugzilla Gap Addressed**: Automates manual triage and distills 50+ comment discussions into instant executive context with zero complex infrastructure.
 
-### 5.1 Data Schema
-```sql
-CREATE TABLE security_vulnerabilities (
-    bug_id             INTEGER PRIMARY KEY REFERENCES bugs(id) ON DELETE CASCADE,
-    cve_id             VARCHAR(32), -- e.g., 'CVE-2026-10492'
-    cve_status         VARCHAR(32) NOT NULL DEFAULT 'RESERVED', -- 'RESERVED', 'ASSIGNED', 'PUBLISHED'
-    cvss_version       VARCHAR(8) NOT NULL DEFAULT '4.0',
-    cvss_vector        VARCHAR(128) NOT NULL,
-    base_score         DECIMAL(3,1) NOT NULL,
-    severity_rating    VARCHAR(16) NOT NULL, -- 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
-    embargo_days       INTEGER NOT NULL DEFAULT 90,
-    embargo_expiry     TIMESTAMPTZ NOT NULL,
-    is_embargoed       BOOLEAN NOT NULL DEFAULT TRUE,
-    redact_poc_on_open BOOLEAN NOT NULL DEFAULT TRUE,
-    published_at       TIMESTAMPTZ,
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### 5.2 Interactive CVSS v4.0 Matrix Engine
-- **Calculator Implementation**: Form inputs calculate the standardized CVSS v4.0 equation:
-  * **MacroVectors**:
-    * $EQ1$: Exploitability Metrics (Attack Vector: Network/Adjacent/Local/Physical; Attack Complexity: Low/High; Attack Requirements: None/Present; Privileges Required: None/Low/High; User Interaction: None/Passive/Active).
-    * $EQ2$: Vulnerable System Impact (VC, VI, VA: None/Low/High).
-    * $EQ3$: Subsequent System Impact (SC, SI, SA: None/Low/High).
-    * $EQ4$: Threat Metrics (Exploit Maturity: Unreported/PoC/Attacked).
-- Generates vector string: `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N` $\rightarrow$ Score: `9.3 (CRITICAL)`.
-- Updates issue severity rating automatically; syncs to UI badge with pulsating red indicator for scores $\ge 9.0$.
-
-### 5.3 Coordinated Vulnerability Disclosure (CVD) Lifecycle
-```
-[ Security Bug Created ]
-           │
-           ▼
-[ Embargo Active: 90-Day Timer ] ──► T-30, T-14, T-3 Day Automated Alerts to Security Team
-           │
-     Patch Merged & Deployed
-           │
-           ▼
-[ Disclosure Triggered ]
-           ├── 1. Drop security group access restriction in bug_group_map
-           ├── 2. Auto-redact comments tagged [Proof-of-Concept] (if redact_poc_on_open == true)
-           ├── 3. Set is_embargoed = false; cve_status = 'PUBLISHED'
-           └── 4. Generate & publish Security Advisory Markdown document
-```
-
----
-
-## 6. 📊 Real-Time Analytics & Team Health Cockpit 🚀
-
-**Judge Wow Factor**: ⭐⭐⭐⭐½ (Replaces Stale Daily Cron Jobs with Dynamic Live Dashboards)  
-**Target Rubric Areas**: Performance & Reliability (20 pts), UX & Aesthetics (15 pts), Problem Understanding (20 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla generated static charts via GD once every 24 hours using `collectstats.pl`. This replaces them with reactive, interactive live metric visualizations.
-
-### 6.1 Continuous Rollup Views in PostgreSQL
-```sql
-CREATE MATERIALIZED VIEW mv_daily_bug_metrics AS
-SELECT 
-    date_trunc('day', creation_ts)::DATE AS metric_date,
-    product_id,
-    COUNT(*) FILTER (WHERE bug_status = 'UNCONFIRMED') AS unconfirmed_count,
-    COUNT(*) FILTER (WHERE bug_status IN ('CONFIRMED', 'IN_PROGRESS')) AS open_count,
-    COUNT(*) FILTER (WHERE bug_status = 'RESOLVED') AS resolved_count,
-    AVG(EXTRACT(EPOCH FROM (delta_ts - creation_ts)) / 3600) 
-        FILTER (WHERE bug_status = 'RESOLVED') AS avg_ttf_hours
-FROM bugs
-GROUP BY 1, 2
-WITH DATA;
-
-CREATE UNIQUE INDEX idx_mv_daily_metrics ON mv_daily_bug_metrics(metric_date, product_id);
-```
-
-### 6.2 Key Metric Definitions & Computations
-1. **Defect Escape Rate**:
-   $$\text{Defect Escape Rate} = \frac{\text{Production Bugs}}{\text{QA / Test Bugs} + \text{Production Bugs}} \times 100\%$$
-2. **Workload Balance Matrix**:
-   Calculates assignee concentration: $\text{Gini Coefficient of Open Issues per Developer}$. Highlights warning when $>40\%$ of P1 bugs are assigned to a single developer.
-3. **SLA Countdown Engine**:
-   Evaluates each active ticket against policy matrix:
-   * P1: Response $\le 1\text{h}$, Resolution $\le 24\text{h}$.
-   * P2: Response $\le 4\text{h}$, Resolution $\le 72\text{h}$.
-   * Real-time timer calculates remaining time and triggers visual warning pulse when $\le 15\%$ time remains.
-
----
-
-## 7. 🔗 Deep Developer Ecosystem Integration & DevEx 🚀
-
-**Judge Wow Factor**: ⭐⭐⭐⭐⭐ (Full-Cycle DevOps Alignment: Code, CI, Crashes, Command Palette)  
-**Target Rubric Areas**: Technical Implementation (15 pts), Problem Understanding (20 pts), UX & Aesthetics (15 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla treated Git/Jira as external URLs in `bug_see_also` and required tedious mouse clicks for every field update. This turns Bugzilla into a keyboard-first, native participant in modern developer workflows.
-
-### 7.1 Sub-10ms Command Palette (`Cmd+K` / `Ctrl+K`)
-- **Frontend Architecture**: Built using `cmdk` library.
-- **In-Memory Fuzzy Cache**: Preloads current user's active projects, milestones, and last 20 viewed issues into memory.
-- **Zero-Mouse Shortcut Engine**:
-  * `a @dev` $\rightarrow$ Reassigns issue.
-  * `s resolved fixed` $\rightarrow$ Transitions status to RESOLVED(FIXED).
-  * `b` $\rightarrow$ Generates and copies standardized Git branch name (`fix/104-auth-timeout`).
-  * `g` $\rightarrow$ Centers interactive dependency graph on the active issue.
-
-### 7.2 Webhook Ingestion & Git Synchronization
-```sql
-CREATE TABLE issue_linked_commits (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bug_id      INTEGER NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    repo_name   VARCHAR(128) NOT NULL,
-    commit_sha  VARCHAR(64) NOT NULL,
-    commit_msg  TEXT NOT NULL,
-    author_name VARCHAR(64) NOT NULL,
-    branch_name VARCHAR(128) NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_commit_bug ON issue_linked_commits(bug_id);
-```
-
-- Webhook endpoint `/api/v1/webhooks/vcs`:
-  * Parses incoming Git payloads for commit regex: `/(?:fix|fixes|close|closes|resolve|resolves)\s+#(\d+)/gi`.
-  * When commit merges to default branch, automatically executes:
-    1. Transition issue to `RESOLVED(FIXED)`.
-    2. Insert record into `bugs_activity`.
-    3. Broadcast WebSocket update to connected viewports.
-
-### 7.3 Observability Self-Healing Engine
-- Integration with Sentry/Datadog:
-  * When an issue is linked to a Sentry Issue ID (`sentry_issue_id`), a daily background task evaluates Sentry telemetry.
-  * If error frequency remains $0$ for $48$ consecutive hours in production post-deployment:
-    * Auto-transitions bug to `VERIFIED`.
-    * Attaches verification comment: *"Telemetry Verification: No occurrences detected in production for 48 hours post-deploy."*
-
----
-
-## 8. ⚙️ Automation & SLA Escalation Engine 🚀
-
-**Judge Wow Factor**: ⭐⭐⭐⭐ (No-Code Rule Builder Replacing Crudely Scheduled "Whining")  
-**Target Rubric Areas**: Innovation (20 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Bugzilla's "Whining" system only ran saved queries on cron to send nag emails. This introduces a full-blown event-driven workflow automation engine.
-
-### 8.1 Data Schema
-```sql
-CREATE TABLE automation_rules (
-    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id     INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name           VARCHAR(128) NOT NULL,
-    is_active      BOOLEAN NOT NULL DEFAULT TRUE,
-    trigger_event  VARCHAR(64) NOT NULL, -- 'issue_created', 'priority_changed', 'sla_breached', 'inactivity'
-    condition_tree JSONB NOT NULL,       -- Recursive JSON logic: { "and": [ {"field": "priority", "eq": "P1"} ] }
-    action_list    JSONB NOT NULL,       -- Array of actions: [ {"action": "assign_team", "target": "Security"} ]
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-### 8.2 Event Processing Engine
-- Built with **BullMQ** on Redis.
-- When an issue event occurs (e.g. `issue.updated`), event payload is enqueued into `automation-events`.
-- Workers execute the rule's `condition_tree` via a fast AST evaluator.
-- Action execution includes:
-  * Dispatching PagerDuty high-urgency incident.
-  * Sending formatted Slack Block Kit alert to on-call channel.
-  * Enforcing escalation ladder: Step 1 (1h) $\rightarrow$ ping lead; Step 2 (4h) $\rightarrow$ escalate to VP.
-
----
-
-## 9. 🏃 Agile / Sprint Workflow Layer 🚀
-
-**Judge Wow Factor**: ⭐⭐⭐⭐ (Transforms a Pure Defect Log into a Complete Delivery Engine)  
-**Target Rubric Areas**: User Experience (15 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla offered release milestones, but modern software teams run Scrum or Kanban. This bridges the gap without bloating the interface.
-
-### 9.1 Data Schema
-```sql
-CREATE TABLE sprints (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name       VARCHAR(64) NOT NULL,
-    goal       TEXT,
-    start_date TIMESTAMPTZ NOT NULL,
-    end_date   TIMESTAMPTZ NOT NULL,
-    status     VARCHAR(16) NOT NULL DEFAULT 'planning', -- 'planning', 'active', 'completed'
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE sprint_issues (
-    sprint_id    UUID NOT NULL REFERENCES sprints(id) ON DELETE CASCADE,
-    issue_id     INTEGER NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    order_index  INTEGER NOT NULL DEFAULT 0,
-    story_points INTEGER DEFAULT NULL,
-    PRIMARY KEY (sprint_id, issue_id)
-);
-```
-
-### 9.2 Interactive Kanban Canvas
-- Multi-column board supporting drag-and-drop powered by `@hello-pangea/dnd`.
-- Optimistic updates apply instantly in client state; network failures trigger graceful rollback with toast notifications.
-- Visual swimlanes by Assignee, Milestone, Priority, or Label.
-- Enforces strict WIP limits on columns: exceeeding maximum WIP triggers red border styling on the column container.
-
----
-
-## 10. 🔔 Intelligent Notification Center & Channel Routing 🛡️
-
-**Judge Wow Factor**: ⭐⭐⭐½ (Transforms Email Spam into Actionable Signal)  
-**Target Rubric Areas**: Problem Understanding (20 pts), Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla flooded inboxes with raw diff emails per edit. This implements smart bundling, in-app management, and modern chat integrations.
-
-### 10.1 Notification Aggregation Engine
-```sql
-CREATE TABLE notifications (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    issue_id   INTEGER NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    actor_id   UUID NOT NULL REFERENCES users(id),
-    event_type VARCHAR(64) NOT NULL,
-    payload    JSONB NOT NULL,
-    is_read    BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_notif_user ON notifications(user_id, is_read, created_at DESC);
-```
-
-- **Smart Digest Queue**: Non-urgent notifications are debounced into a 15-minute sliding window per user. Rapid sequential edits to the same bug by multiple authors are collapsed into a single summary notification: *"Alex and Jane made 4 updates to Bug #104"*.
-
----
-
-## 11. 🔐 Advanced Access Control & Compliance 🛡️
-
-**Judge Wow Factor**: ⭐⭐⭐½ (Enterprise Adoption Gating Requirement)  
-**Target Rubric Areas**: Technical Implementation (15 pts), Performance & Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Replaces simple UNIX-style bug groups with true enterprise Role-Based Access Control (RBAC) and compliance auditability.
-
-### 11.1 Granular RBAC & Permission Matrix
-- Hierarchy of scopes: Organization $\rightarrow$ Product $\rightarrow$ Issue.
-- Fine-grained permissions: `issues:create`, `issues:edit_status`, `issues:manage_security`, `compliance:audit_read`.
-- **Immutable Audit Logging**:
-  ```sql
-  CREATE TABLE compliance_audit_log (
-      id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      actor_id      UUID NOT NULL REFERENCES users(id),
-      action        VARCHAR(64) NOT NULL,
-      target_entity VARCHAR(64) NOT NULL,
-      target_id     VARCHAR(64) NOT NULL,
-      diff          JSONB NOT NULL,
-      ip_address    VARCHAR(45) NOT NULL,
-      user_agent    TEXT NOT NULL,
-      timestamp     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  );
-  ```
-- **GDPR PII Anonymizer**: Scheduled procedure that scrubs email addresses, real names, and IP logs for deleted users while preserving bug comment chronology.
-
----
-
-## 12. 📤 Data Portability & Real-Time API Ecosystem 🛡️
-
-**Judge Wow Factor**: ⭐⭐⭐½ (Developer-First Architecture & Open Standards)  
-**Target Rubric Areas**: Technical Implementation (15 pts), Performance & Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Retires Perl XML-RPC and custom CGI parameters in favor of industry-standard REST, GraphQL, and automated OpenAPI documentation.
-
-### 12.1 GraphQL Subscriptions & REST v1
-- Complete OpenAPI 3.1 schema serving Swagger UI at `/docs/api`.
-- GraphQL Subscriptions using WebSocket transport:
-  ```graphql
-  subscription OnIssueUpdated($issueId: Int!) {
-      issueUpdated(id: $issueId) {
-          id
-          status
-          assignee { id name avatar }
-          updatedAt
-      }
+### 6.1 Architecture & Fastify Endpoint
+- **Endpoint**: `POST /api/v1/bugs/:id/ai-triage`
+- **Zero-Infra Implementation**: Fast, direct LLM completion call (`gpt-4o-mini` or `gemini-1.5-flash`) with a 2.5-second timeout and graceful fallback.
+- **Output Schema (JSON)**:
+  ```json
+  {
+    "summary": "Memory leak caused by unclosed WebSocket subscriptions in the WebAssembly audio worker.",
+    "suggested_priority": "P1",
+    "suggested_component": "AudioEngine",
+    "confidence_reason": "Crash frequency reported by 4 users after commit #78b1a; matches regression pattern.",
+    "next_steps": [
+      "Verify worker termination in socket_handler.ts:102",
+      "Attach heap profile dump to verify leak closure"
+    ]
   }
   ```
-- Streaming backup worker capable of exporting multi-gigabyte project data into structured JSON with signed attachment links.
+- **UI**: Sleek glassmorphic card rendered in the bug sidebar with a 1-click **"✨ AI Triage Assist"** button.
+
+### 6.2 Automated Test Specifications
+* **Unit Tests (`test/unit/ai_triage.test.ts`)**:
+  - Verifies prompt assembly contains bug title, description, and comment corpus.
+  - Verifies structured JSON response parsing (summary, suggested priority, action items).
+  - Graceful fallback: If LLM service times out or API key is absent, returns clean `{ error: "AI_SERVICE_UNAVAILABLE", fallback: true }` without crashing the page.
 
 ---
 
-## 13. 📱 Mobile-First Progressive Web App (PWA) 🛡️
+## 7. ⚡ Lightweight Live Updates (Polling / Broadcast) (Phase 3 Polish)
 
-**Judge Wow Factor**: ⭐⭐⭐½ (Triage on the Go)  
+**Target Rubric Areas**: User Experience (15 pts), Performance & Reliability (20 pts)  
+**Bugzilla Gap Addressed**: Users were blind to concurrent changes until manual browser page reloads.
+
+### 7.1 Architecture
+- Simple 5-second short-polling or lightweight WebSocket broadcast channel (`/ws/events`).
+- Broadcasts domain events: `{ type: "bug:updated", id: 104, field: "status", newValue: "RESOLVED" }`.
+- Client viewports listening to Bug #104 update their UI badge smoothly without full page refresh.
+
+---
+
+# PART II: EXTENDED ENTERPRISE ROADMAP (Documented Architecture)
+
+The following eleven features represent the comprehensive enterprise roadmap. They are preserved in complete technical detail to demonstrate architectural rigor and long-term viability.
+
+---
+
+## 7. 👥 Real-Time Collaboration & CRDT Multiplayer Layer (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Problem Understanding (20 pts), Performance & Reliability (20 pts), Technical Architecture (15 pts)  
+**Bugzilla Gap Addressed**: Legacy Bugzilla famously threw a fatal error: *"Mid-air collision detected! Someone modified this bug while you were editing it,"* wiping out all unsaved text.
+
+### 7.1 CRDT State Model & 3-Tier Persistence
+- **Engine**: **Yjs** synchronized over WebSockets.
+- **3-Tier Persistence Architecture**:
+  1. *L1 (In-Memory)*: Active Yjs document in Fastify WebSocket server for sub-millisecond local typing.
+  2. *L2 (Write-Ahead Buffer via `y-redis`)*: Every client binary delta is written to Redis Streams before acknowledgment. If the server crashes or restarts, reconnected clients immediately hydrate from Redis with **zero lost keystrokes**.
+  3. *L3 (Compacted Storage)*: A BullMQ worker debounces and periodically flushes compacted state vectors (`Y.encodeStateAsUpdate(doc)`) to PostgreSQL `issue_collaborative_documents (issue_id, state_vector, text_snapshot)`.
+- **Live Presence**: Displays live peer cursor positions and selection ranges with distinct user color tags.
+- **Embedded Loom Recorder**: In-browser video recording (`MediaRecorder` API) for 30-second screen repros.
+
+---
+
+## 8. 🔍 Code Navigation & Fault Localization (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Innovation & Differentiation (20 pts), Technical Architecture (15 pts)  
+**Bugzilla Gap Addressed**: Bridges bug reports directly to source code repositories without switching to external IDEs.
+
+### 8.1 Architecture & Pipeline
+- **Repository Linking**: OAuth connection to GitHub/GitLab repositories.
+- **Three-Tier Fault Localization**:
+  1. *Regex Stack Trace Parser*: Automatically extracts file path and line number from crash logs (Python, Java, Node, Go).
+  2. *AST Semantic Chunking*: Codebase files chunked at the function level using Tree-sitter and matched against natural language bug descriptions.
+  3. *Embedded Monaco Editor*: Read-only `@monaco-editor/react` viewer highlighting offending lines in amber, with 1-click GitHub permalink buttons.
+
+---
+
+## 9. 🤖 AI-Powered Triage Assistant & Semantic Vector Search (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Innovation (20 pts), Technical Implementation (15 pts)  
+**Bugzilla Gap Addressed**: Automates manual triage and eliminates duplicate reports disguised by different wording.
+
+### 9.1 Technical Architecture
+- **Vector Embeddings**: Dense embeddings stored in PostgreSQL via `pgvector` with HNSW cosine distance indexing.
+- **Real-Time Duplicate Interception**: Debounced client typing hook compares draft summaries against active issues; flags semantic duplicates ($> 0.85$ cosine similarity).
+- **Git-Blame Author Routing**: Interrogates `git log` and `git blame` on affected modules; applies exponential decay ($ARF_u = \sum e^{-\lambda \Delta t}$) to recommend the best engineer.
+- **1-Click Thread Summarizer**: LLM distillation condensing 50+ comment threads into Root Cause, Decisions, and Next Actions.
+
+---
+
+## 10. 📊 Real-Time Analytics & Team Health Cockpit (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Performance & Reliability (20 pts), UX & Aesthetics (15 pts)  
+**Bugzilla Gap Addressed**: Replaces legacy 24-hour cron jobs (`collectstats.pl`) with live metric rollups.
+
+### 10.1 Key Metrics
+- **Continuous Rollup Views**: PostgreSQL materialized views (`mv_daily_bug_metrics`) computing defect escape rate, time-to-triage (TTT), and time-to-fix (TTF).
+- **Gini Workload Balancing**: Real-time distribution matrix calculating open bug concentration per engineer to prevent burnout.
+- **SLA Breach Pulse Alerts**: Dynamic banners warning when tickets are within 15% of SLA threshold.
+
+---
+
+## 11. ⚙️ Event-Driven Automation & SLA Escalation Engine (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Innovation (20 pts), Core Functionality (20 pts)  
+**Bugzilla Gap Addressed**: Replaces primitive scheduled nag emails ("Whining") with a modern event-driven workflow engine.
+
+### 11.1 Technical Architecture
+- **Engine**: BullMQ queue processor executing declarative JSON logic rule trees (`automation_rules`).
+- **Triggers & Actions**: Triggers on status changes, SLA breaches, or inactivity; executes Slack/PagerDuty alerts and automated multi-tier escalation ladders.
+
+---
+
+## 12. 🔔 Intelligent Notification Center & Multi-Channel Routing (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Problem Understanding (20 pts), Reliability (20 pts)  
+**Bugzilla Gap Addressed**: Replaces raw email diff floods with intelligent batching and modern chat integrations.
+
+### 12.1 Technical Architecture
+- **15-Minute Digest Queue**: Collapses rapid sequential edits on the same bug into a single aggregated digest notification.
+- **Channels**: In-app notification bell with unread counters, bi-directional Slack/Teams bots, and Web Push.
+
+---
+
+## 13. 🔐 Advanced Access Control & Compliance (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Technical Implementation (15 pts), Reliability (20 pts)  
+**Bugzilla Gap Addressed**: Replaces simple UNIX-style groups with enterprise Role-Based Access Control (RBAC).
+
+### 13.1 Technical Architecture
+- **RBAC Matrix**: Granular capability permissions across Organization, Product, and Issue scopes.
+- **Compliance Tooling**: Immutable audit trail exports (SOC 2, ISO 27001) and automated GDPR PII scrubbing scripts.
+
+---
+
+## 14. 📤 Data Portability & Real-Time API Ecosystem (Phase 4 Roadmap)
+
+**Target Rubric Areas**: Technical Implementation (15 pts), Performance (20 pts)  
+**Bugzilla Gap Addressed**: Replaces legacy Perl XML-RPC with OpenAPI 3.1 REST and GraphQL Subscriptions.
+
+### 14.1 Technical Architecture
+- OpenAPI 3.1 Swagger UI playground.
+- Live GraphQL Subscriptions over WebSockets for third-party bots and dashboards.
+- Streaming S3 cloud backup pipeline for multi-gigabyte project exports.
+
+---
+
+## 15. 📱 Mobile-First Progressive Web App (PWA) (Phase 4 Roadmap)
+
 **Target Rubric Areas**: User Experience & Accessibility (15 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla completely breaks on mobile viewports. This delivers a native app-like experience on iOS and Android without an app store download.
+**Bugzilla Gap Addressed**: Legacy Bugzilla is completely unusable on mobile viewports.
 
-### 13.1 Ergonomics & Offline Architecture
-- Service Worker built with **Workbox**:
-  * Network-first strategy for active ticket data.
-  * Cache-first strategy for static assets and avatars.
-  * Background sync for queued offline comments: comments drafted in offline mode automatically upload when network reconnects.
-- Native mobile gestures: Swipe left on issue card to assign to self; swipe right to resolve.
-- Direct hardware access: Mobile camera capture for taking photos of hardware screens, and Web Audio recording for voice repro notes.
+### 15.1 Technical Architecture
+- Workbox Service Worker caching the last 100 accessed tickets with background sync for offline comment drafting.
+- Mobile touch swipe gestures (swipe left to assign, swipe right to resolve).
+- Direct camera integration for hardware screen capture.
 
 ---
 
-## 14. ♿ Accessibility (WCAG 2.1 AA) & Global i18n 💎
+## 16. ♿ Accessibility (WCAG 2.1 AA) & Global i18n (Phase 4 Roadmap)
 
-**Judge Wow Factor**: ⭐⭐⭐ (Engineering Maturity & Inclusive Design)  
 **Target Rubric Areas**: User Experience & Accessibility (15 pts)  
-**Bugzilla Gap Addressed**: Fixes severe legacy accessibility shortcomings (missing ARIA roles, unlabelled forms, poor color contrast).
+**Bugzilla Gap Addressed**: Fixes severe legacy accessibility shortcomings (missing ARIA roles, unlabelled forms).
 
-### 14.1 Accessibility Rigor
-- Strict adherence to WCAG 2.1 AA contrast ratios ($\ge 4.5:1$ for normal text, $\ge 3:1$ for UI controls).
-- Fully accessible keyboard focus rings (`focus-visible:ring-2 focus-visible:ring-primary`).
-- Dynamic ARIA live regions for WebSocket alerts (`aria-live="polite"`).
-- Screen-reader compatibility tested with NVDA and VoiceOver.
-
-### 14.2 Global Internationalization (i18n)
-- Externalized translations with `react-i18next`.
-- Full bidirectional RTL support for Arabic, Hebrew, and Persian using CSS logical properties (`margin-inline-start`, `inset-inline-start`).
-- Number and date formatting localized using native browser `Intl` APIs.
+### 16.1 Technical Architecture
+- Strict WCAG 2.1 AA contrast compliance and `focus-visible` keyboard rings.
+- Dynamic ARIA live regions for real-time updates.
+- Full bidirectional Right-to-Left (RTL) layout switching for Arabic, Hebrew, and Persian.
 
 ---
 
-## 15. 🌐 Multi-Instance Migration & Federation 💎
+## 17. 🌐 Multi-Instance Migration & Plugin Marketplace (Phase 4 Roadmap)
 
-**Judge Wow Factor**: ⭐⭐⭐ (Frictionless Onboarding for Legacy Organizations)  
-**Target Rubric Areas**: Problem Understanding (20 pts)  
-**Bugzilla Gap Addressed**: Organizations cannot adopt a new tool if they cannot import their 20 years of historical Bugzilla data.
-
-### 15.1 Legacy Bugzilla XML Streaming Importer
-- SAX-based streaming XML parser capable of ingesting multi-gigabyte `bugdump.xml` files without running out of memory.
-- Preserves historical numeric Bug IDs, reporter profiles, comment timestamps, and attachment BLOBs.
-- Turnkey CSV/JSON migration mappers for Jira and Linear.
-
-### 15.2 Public Contributor Portal
-- Lightweight unauthenticated ticket creation portal for open-source projects.
-- Protected by Cloudflare Turnstile / hCaptcha to eliminate bot spam.
-- Tickets submitted via public portal land in `UNCONFIRMED` triage queue for review.
-
----
-
-## 16. 🧩 Plugin Marketplace & Extension System 💎
-
-**Judge Wow Factor**: ⭐⭐⭐ (Sustainable Open Source Extensibility)  
 **Target Rubric Areas**: Innovation (20 pts), Technical Architecture (15 pts)  
-**Bugzilla Gap Addressed**: Bugzilla's Perl extension hook system was notoriously hard to write and required server restarts. This provides a modern TypeScript plugin sandbox.
+**Bugzilla Gap Addressed**: Eliminates barriers to enterprise migration and extensibility.
 
-### 16.1 Sandboxed Extension Architecture
-- Extension runtime isolates third-party code in sandboxed worker threads.
-- Exposes clean lifecycle hooks: `onIssueCreated()`, `onStatusChange()`, `customFieldRenderer()`.
-- Zero-downtime hot reloading: plugins can be enabled, updated, or removed from the admin panel without restarting web services.
-- Turnkey webhook connections for Zapier, Make, and n8n no-code automations.
-
----
-
-## 17. 🎨 Theming, Dark Mode & White-Label Branding 💎
-
-**Judge Wow Factor**: ⭐⭐⭐ (Polish & First Impressions)  
-**Target Rubric Areas**: User Experience & Aesthetics (15 pts)  
-**Bugzilla Gap Addressed**: Replaces the ancient gray-and-yellow Bugzilla skin with a curated, modern aesthetic.
-
-### 17.1 Curated Modern Aesthetic
-- Tailored HSL color tokens for seamless Light and Dark modes.
-- Subtle glassmorphism (`backdrop-blur-md`, soft border highlights).
-- Per-organization custom branding: custom SVG logo upload, custom favicon, primary brand color picker, and custom CSS injection.
+### 17.1 Technical Architecture
+- SAX-based streaming XML parser capable of importing 5GB+ legacy Bugzilla dumps without memory exhaustion.
+- Sandboxed TypeScript plugin runtime with zero-downtime hot reloading.
 
 ---
 
 ## 🏆 Master Ranking & Rubric Alignment Matrix
 
-| Rank | Feature Area | Evaluation Tier | Primary Rubric Target | Key Judge "WOW" Factor | Rubric Score Potential |
-|:---:|---|:---:|---|---|:---:|
-| **1** | **Interactive Dependency Graphing & Release Risk Engine** | 🌟 Tier 1 | Innovation (20) + UX (15) + Core (20) + Tech (15) | Pulsing Critical Path, bottleneck heatmaps, interactive ELKjs canvas, and live Git/CI badges. | **98%** |
-| **2** | **Code Navigation & Fault Localization** | 🌟 Tier 1 | Innovation (20) + Tech Arch (15) + Core (20) | 1-click jump from bug report directly to exact file/line in embedded Monaco or GitHub. | **96%** |
-| **3** | **Real-Time Collaboration & CRDT Multiplayer Layer** | 🌟 Tier 1 | Problem (20) + Reliability (20) + UX (15) + Tech (15) | Yjs/CRDT concurrent editing (kills Mid-Air Collisions), live presence, Loom-style screen recording. | **96%** |
-| **4** | **AI-Powered Triage Assistant & Semantic Duplicate Engine** | 🌟 Tier 1 | Innovation (20) + Problem (20) + Tech (15) | Vector embedding duplicate detection, Git blame-aware assignee routing, and thread summarization. | **94%** |
-| **5** | **Enterprise Vulnerability Disclosure: CVSS v4.0 & Embargoes** | 🌟 Tier 1 | Innovation (20) + Problem (20) + Tech (15) | Native CVSS v4.0 calculator widget, CVE lifecycle, and automated 90-day embargo countdown clocks. | **94%** |
-| **6** | **Real-Time Analytics & Team Health Cockpit** | 🚀 Tier 2 | Performance (20) + UX (15) + Core (20) | Live burndowns, escape rates, cycle times, and real-time SLA breach heatmaps. | **90%** |
-| **7** | **Deep Developer Ecosystem Integration & DevEx** | 🚀 Tier 2 | Tech Arch (15) + UX (15) + Core (20) | `Cmd+K` command palette, PR auto-closing, live CI status, Sentry self-healing auto-verification. | **89%** |
-| **8** | **Automation & SLA Escalation Engine** | 🚀 Tier 2 | Innovation (20) + Core Functionality (20) | Visual IF/THEN rule builder, PagerDuty/Slack escalation chains, recurring tickets. | **86%** |
-| **9** | **Agile / Sprint Workflow Layer** | 🚀 Tier 2 | UX & Aesthetics (15) + Core Functionality (20) | Fluid drag-and-drop Kanban board, sprint planning, WIP limits, backlog grooming. | **85%** |
-| **10** | **Intelligent Notification Center & Channel Routing** | 🛡️ Tier 3 | Problem Understanding (20) + Reliability (20) | In-app notification center, digest bundling, Slack/Teams bots, thread muting. | **83%** |
-| **11** | **Advanced Access Control & Compliance** | 🛡️ Tier 3 | Tech Arch (15) + Reliability (20) | Granular RBAC, SOC 2 / GDPR immutable audit logs, PII scrubbing. | **81%** |
-| **12** | **Data Portability & Real-Time API Ecosystem** | 🛡️ Tier 3 | Tech Arch (15) + Performance (20) | Live GraphQL subscriptions, OpenAPI 3.1 Swagger UI, S3 backup exports. | **80%** |
-| **13** | **Mobile-First Progressive Web App (PWA)** | 🛡️ Tier 3 | UX & Aesthetics (15) | Responsive touch gestures, offline caching, mobile camera & voice memo bug reports. | **78%** |
-| **14** | **Accessibility (WCAG 2.1 AA) & Global i18n** | 💎 Tier 4 | UX & Accessibility (15) | Keyboard navigation, screen-reader verified, RTL support, locale formatting. | **76%** |
-| **15** | **Multi-Instance Migration & Federation** | 💎 Tier 4 | Problem Understanding (20) | 100% faithful Bugzilla XML importer, Jira/Linear migration, public open-source portal. | **75%** |
-| **16** | **Plugin Marketplace & Extension System** | 💎 Tier 4 | Innovation (20) + Tech Arch (15) | Sandboxed TypeScript plugins, hot-reloading, Zapier/Make webhooks. | **74%** |
-| **17** | **Theming, Dark Mode & White-Label Branding** | 💎 Tier 4 | UX & Aesthetics (15) | Sleek dark/light modes, glassmorphism, accent customization, white-label domains. | **72%** |
+| Rank | Feature Area | Execution Status | Primary Rubric Target | Key Evaluator "WOW" Factor |
+|:---:|---|:---:|---|---|
+| **1** | **Interactive Dependency Graph & Critical Path** | 🟢 **Phase 2 (Live Demo)** | Innovation (20) + UX (15) + Tech (15) | Live React Flow DAG, pulsing red Critical Path, server-side cycle rejection. |
+| **2** | **Enterprise CVSS v4.0 & Embargo Countdown** | 🟢 **Phase 2 (Live Demo)** | Innovation (20) + Problem (20) + Tech (15) | FIRST.org CVSS v4.0 math calculator, live 90-day embargo countdown clock. |
+| **3** | **Sub-10ms Command Palette (`Cmd+K`)** | 🟢 **Phase 3 (Live Demo)** | UX & Aesthetics (15) + Innovation (20) | Linear-style keyboard-driven navigation and zero-mouse quick actions. |
+| **4** | **PostgreSQL Full-Text Search (`tsvector`)** | 🟢 **Phase 3 (Live Demo)** | Performance & Reliability (20) | Sub-20ms stemmed search with GIN indexing and group security isolation. |
+| **5** | **Drag-and-Drop Kanban Status Board** | 🟢 **Phase 3 (Live Demo)** | UX & Aesthetics (15) + Core Func (20) | Visual board calling server state machine with invalid move rollback. |
+| **6** | **1-Click AI Triage Assistant** | 🟢 **Phase 3 (Live Demo)** | Innovation (20) + Problem (20) | Instant LLM thread summary, priority recommendation, and action plan. |
+| **7** | **Lightweight Live Updates** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Performance (20) | Real-time visual badge refreshes via polling / WebSocket broadcast. |
+| **8** | **CRDT Multiplayer Ticket Editing** | 📄 Phase 4 (Roadmap) | Problem (20) + Reliability (20) + Tech (15) | Yjs/y-redis 3-tier persistence eliminating Bugzilla Mid-Air Collisions. |
+| **9** | **Code Navigation & Fault Localization** | 📄 Phase 4 (Roadmap) | Innovation (20) + Tech Arch (15) | Stack trace regex parser and embedded Monaco culprit line viewer. |
+| **10** | **AI Semantic Vector Search & Blame Routing** | 📄 Phase 4 (Roadmap) | Innovation (20) + Problem (20) | pgvector HNSW duplicate search and Git-blame author routing. |
+| **11** | **Real-Time Analytics & Team Health Cockpit** | 📄 Phase 4 (Roadmap) | Performance (20) + UX (15) | PostgreSQL materialized view rollups, defect escape rates, SLA heatmaps. |
+| **12** | **Event-Driven Automation & SLA Escalation** | 📄 Phase 4 (Roadmap) | Innovation (20) + Core Func (20) | BullMQ event queue processing declarative JSON logic rule trees. |
+| **13** | **Intelligent Notification Center** | 📄 Phase 4 (Roadmap) | Problem Understanding (20) | 15-minute sliding digest bundling and multi-channel bots. |
+| **14** | **Enterprise RBAC & Audit Compliance** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | Granular permission matrix, SOC 2 exports, and GDPR PII scrubbing. |
+| **15** | **Data Portability & GraphQL Subscriptions** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | OpenAPI 3.1 Swagger playground and live GraphQL subscriptions. |
+| **16** | **Mobile-First Progressive Web App (PWA)** | 📄 Phase 4 (Roadmap) | UX & Accessibility (15) | Offline Workbox service workers and mobile camera/voice capture. |
+| **17** | **Accessibility (WCAG 2.1 AA) & Plugin Sandbox** | 📄 Phase 4 (Roadmap) | UX (15) + Tech (15) | Screen-reader tested, RTL support, and sandboxed TypeScript plugin runtime. |
