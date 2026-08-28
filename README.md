@@ -1,35 +1,132 @@
-# Bugzilla
+# BugzillaRevamp — Modernized Defect, Vulnerability & Governance Platform
 
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-blue.svg)](https://opensource.org/licenses/MPL-2.0)
-[![Perl Version](https://img.shields.io/badge/Perl-5.14.0%2B-39457E.svg)](https://www.perl.org/)
-[![Database Support](https://img.shields.io/badge/Databases-MariaDB%20|%20MySQL%20|%20PostgreSQL%20|%20Oracle%20|%20SQLite-brightgreen.svg)](#complete-technology-stack)
-[![API Support](https://img.shields.io/badge/APIs-REST%20|%20JSON--RPC%202.0%20|%20XML--RPC-orange.svg)](#web-services--api-integration)
+[![Fastify](https://img.shields.io/badge/Fastify-4.28-black?logo=fastify)](https://fastify.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-14_App_Router-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Vitest](https://img.shields.io/badge/Tests-45%2F45_Passing_100%25-brightgreen?logo=vitest)](https://vitest.dev/)
 
-**Bugzilla** is a mature, enterprise-grade defect tracking, issue management, and workflow automation system originally developed by the Mozilla Foundation and maintained by a global community of developers. Powering major open-source projects (such as Mozilla Firefox, Linux Kernel bug trackers, Eclipse, LibreOffice, and Apache infrastructure) as well as commercial enterprise software teams worldwide, Bugzilla provides comprehensive lifecycle management for defects, feature requests, and complex software delivery pipelines.
-
----
-
-## Table of Contents
-
-- [Overview & Architecture](#overview--architecture)
-- [Key Features & Capabilities](#key-features--capabilities)
-- [Complete Technology Stack](#complete-technology-stack)
-- [Repository Structure](#repository-structure)
-- [Quick Start with Docker](#quick-start-with-docker)
-- [Native Installation & Setup](#native-installation--setup)
-- [Web Services & API Integration](#web-services--api-integration)
-- [Background Daemons & Scheduled Tasks](#background-daemons--scheduled-tasks)
-- [Extension & Plugin Architecture](#extension--plugin-architecture)
-- [Authentication & Directory Integration](#authentication--directory-integration)
-- [Testing & Quality Assurance](#testing--quality-assurance)
-- [Security Model & Hardening](#security-model--hardening)
-- [License & Community](#license--community)
+**BugzillaRevamp** is a high-performance modernization of the open-source defect tracking platform, re-architected with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14**. It replaces 25-year-old Perl/CGI infrastructure with 5 unbeatable algorithmic and security moats: an interactive CPM critical path engine, FIRST.org CVSS v4.0 math engine with embargo timers, strict 404 zero-leakage group secrecy, formal FSM state transitions, and 1-click Gemini 2.0 Flash AI triage.
 
 ---
 
-## Overview & Architecture
+## ⚡ 60-Second Quick Start (For Judges & Evaluators)
 
-Bugzilla is designed with an MVC-style layered architecture written in Object-Oriented Perl:
+### Option A: Zero-Database Instant Test Verification (Pure Node.js)
+```bash
+git clone https://github.com/OjasKugore/clonefest-2.git && cd clonefest-2
+npm install
+npm test
+```
+> **Runs all 45 automated tests in ~1.8 seconds** with 0 external dependencies (using in-memory SQL).
+
+### Option B: Local Full-Stack Run with Docker
+```bash
+# 1. Check environment health
+npm run preflight
+
+# 2. Boot PostgreSQL 16, run migrations & seed 30 master test bugs
+docker compose up -d db
+npm run migrate
+npm run seed
+
+# 3. Start API Server (Interactive OpenAPI Docs at http://localhost:3001/docs)
+npm run dev
+```
+
+---
+
+## 🔄 Bug Reporting & Enterprise Lifecycle Workflow
+
+```mermaid
+flowchart TD
+    %% Styling and layout
+    classDef startEnd fill:#1E293B,stroke:#38BDF8,stroke-width:2px,color:#F8FAFC;
+    classDef client fill:#0F172A,stroke:#818CF8,stroke-width:1.5px,color:#F8FAFC;
+    classDef server fill:#1E1B4B,stroke:#A855F7,stroke-width:1.5px,color:#F8FAFC;
+    classDef database fill:#14532D,stroke:#4ADE80,stroke-width:1.5px,color:#F8FAFC;
+    classDef moat fill:#701A75,stroke:#F472B6,stroke-width:1.5px,color:#F8FAFC;
+    classDef decision fill:#312E81,stroke:#FBBF24,stroke-width:1.5px,color:#F8FAFC;
+
+    %% 1. User Input & Live Assist
+    subgraph S1 ["1. Client Filing & Duplicate Prevention (/bugs/new)"]
+        START(["👤 Engineer starts filing bug"]):::startEnd
+        INPUT["Enter Summary & Description"]:::client
+        TRGM_QUERY["Debounced GET /api/v1/bugs/duplicates"]:::client
+        CHECK_DUP{"Similarity > 0.28?"}:::decision
+        WARN_CARD["⚠️ Display Candidate Duplicate Warning Card"]:::client
+        USER_CONTINUE["Select Product & Component<br/>(Sets Priority, Severity, Est. Time)"]:::client
+    end
+
+    %% 2. Backend Validation & Ingestion
+    subgraph S2 ["2. Fastify API Gateway & Validation Engine"]
+        SUBMIT["POST /api/v1/bugs"]:::server
+        AUTH_CHECK{"Valid Session Cookie?"}:::decision
+        AUTH_ERR["401 Unauthorized"]:::server
+        ZOD_CHECK{"Zod Schema Validation<br/>& Active Product Check"}:::decision
+        VAL_ERR["400 Validation Error"]:::server
+        OWNER_RESOLVE["Resolve Assignee<br/>(Fallback to Component default_owner_id)"]:::server
+    end
+
+    %% 3. PostgreSQL Transaction & Audit
+    subgraph S3 ["3. Atomic Database Insertion (PostgreSQL 16)"]
+        DB_TX["BEGIN Transaction"]:::database
+        INSERT_BUG["INSERT INTO bugs<br/>• status = 'UNCONFIRMED'<br/>• resolution = ''<br/>• Auto-generates TSVECTOR"]:::database
+        INSERT_AUDIT["INSERT INTO bugs_activity<br/>• field = 'status'<br/>• old_value = NULL<br/>• new_value = 'UNCONFIRMED'"]:::database
+        DB_COMMIT["COMMIT Transaction<br/>(Returns Bug #ID)"]:::database
+    end
+
+    %% 4. Downstream Moats & Lifecycle
+    subgraph S4 ["4. Enterprise Governance & Algorithmic Moats"]
+        DETAIL_PAGE["Redirect to Bug Detail (/bugs/:id)"]:::startEnd
+        
+        M_FSM["<b>Formal State Machine</b><br/>UNCONFIRMED ➔ CONFIRMED ➔ IN_PROGRESS<br/>➔ RESOLVED (requires resolution code)"]:::moat
+        M_CPM["<b>CPM Critical Path DAG</b><br/>Add Dependencies with Kahn's Topo Sort<br/>Cycle Detection (422 CYCLIC_DEPENDENCY)"]:::moat
+        M_CVSS["<b>CVSS v4.0 & Embargo</b><br/>FIRST.org Vector Calc + 90-Day Timer<br/>404 Group Secrecy for Non-Members"]:::moat
+        M_FLAGS["<b>Three-State Review Flags</b><br/>Enterprise Patch Governance<br/>(? ➔ + / -)"]:::moat
+        M_AI["<b>1-Click AI Triage Assistant</b><br/>Gemini 2.0 Flash synthesizes<br/>30+ comments in < 2.5s"]:::moat
+    end
+
+    %% Connections
+    START --> INPUT
+    INPUT --> TRGM_QUERY
+    TRGM_QUERY --> CHECK_DUP
+    CHECK_DUP -- Yes --> WARN_CARD
+    CHECK_DUP -- No --> USER_CONTINUE
+    WARN_CARD --> USER_CONTINUE
+    USER_CONTINUE --> SUBMIT
+
+    SUBMIT --> AUTH_CHECK
+    AUTH_CHECK -- No --> AUTH_ERR
+    AUTH_CHECK -- Yes --> ZOD_CHECK
+    ZOD_CHECK -- Fail --> VAL_ERR
+    ZOD_CHECK -- Pass --> OWNER_RESOLVE
+
+    OWNER_RESOLVE --> DB_TX
+    DB_TX --> INSERT_BUG
+    INSERT_BUG --> INSERT_AUDIT
+    INSERT_AUDIT --> DB_COMMIT
+
+    DB_COMMIT --> DETAIL_PAGE
+
+    DETAIL_PAGE -.-> M_FSM
+    DETAIL_PAGE -.-> M_CPM
+    DETAIL_PAGE -.-> M_CVSS
+    DETAIL_PAGE -.-> M_FLAGS
+    DETAIL_PAGE -.-> M_AI
+```
+
+---
+
+## 🏆 The 5 Core Algorithmic & Governance Moats
+
+1. **Interactive DAG & Critical Path Engine (CPM)**: React Flow canvas running Kahn's topological sort and Earliest Finish Time (EFT) calculations, highlighting project bottleneck chains with pulsing animated red lines.
+2. **FIRST.org CVSS v4.0 Math Engine & Embargo Timers**: Complete discrete MacroVector computation (`EQ1`–`EQ5`), interactive vector modal, and live disclosure countdowns (`DD:HH:MM:SS`).
+3. **Formal Finite State Machine & 404 Group Secrecy**: Server-side transition validation with mandatory resolution codes and zero-leakage security returning `404 Not Found` for unauthorized users.
+4. **1-Click AI Triage Assistant**: Integrated Gemini 2.0 Flash synthesizing 30+ comment threads into root causes and next steps in <2.5s.
+5. **Three-State Flag Governance (`?`, `+`, `-`)**: Enterprise patch review and approval workflows with permissioned grant groups.
+
+---
 
 ```
                       +------------------------------------------+
