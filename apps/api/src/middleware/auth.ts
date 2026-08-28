@@ -1,9 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
 import { db } from '../db/client.js';
-import type { AuthenticatedUser } from '@bugzilla/shared';
-
-export type { AuthenticatedUser };
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  display_name: string;
+  username: string;
+  is_admin: boolean;
+}
 
 declare module 'fastify' {
   interface FastifyRequest {
