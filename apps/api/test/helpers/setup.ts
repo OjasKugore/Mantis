@@ -158,6 +158,33 @@ export async function setupTestEnvironment() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS bug_comments (
+      id SERIAL PRIMARY KEY,
+      bug_id INTEGER NOT NULL,
+      author_id UUID NOT NULL,
+      body TEXT NOT NULL,
+      format VARCHAR(16) NOT NULL DEFAULT 'markdown',
+      is_private BOOLEAN NOT NULL DEFAULT FALSE,
+      parent_id INTEGER,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS comment_mentions (
+      id SERIAL PRIMARY KEY,
+      comment_id INTEGER NOT NULL,
+      mentioned_user_id UUID NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id UUID NOT NULL,
+      type VARCHAR(32) NOT NULL,
+      payload JSONB NOT NULL DEFAULT '{}',
+      is_read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   const pgAdapter = memDb.adapters.createPg();
@@ -177,6 +204,9 @@ export async function getTestApp(): Promise<FastifyInstance> {
 
 export async function resetDb() {
   try {
+    await db.query('DELETE FROM notifications;');
+    await db.query('DELETE FROM comment_mentions;');
+    await db.query('DELETE FROM bug_comments;');
     await db.query('DELETE FROM flags;');
     await db.query('DELETE FROM flag_types;');
     await db.query('DELETE FROM bug_group_map;');
@@ -331,3 +361,26 @@ export async function createTestBug(
 
   return bug;
 }
+
+export async function createTestFlagType(overrides: {
+  name?: string;
+  target_type?: 'b' | 'a';
+  grant_group_id?: string | null;
+} = {}) {
+  const name = overrides.name || `review_${crypto.randomBytes(3).toString('hex')}`;
+  const target_type = overrides.target_type || 'b';
+  const grant_group_id = overrides.grant_group_id ?? null;
+
+  const { rows } = await db.query(
+    `INSERT INTO flag_types (name, description, target_type, grant_group_id)
+     VALUES ($1, 'Test Flag Type Description', $2, $3)
+     RETURNING id, name, target_type, grant_group_id`,
+    [name, target_type, grant_group_id]
+  );
+
+  return {
+    ...rows[0],
+    id: Number(rows[0].id),
+  };
+}
+
