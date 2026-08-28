@@ -2911,6 +2911,88 @@ const handled = handleTriageKey('r', focusedBugId);
 expect(handled.action).toBe('OPEN_RESOLVE_DIALOG');
 ```
 
+---
+
+## High-Value Extension: `bz-monitor` — Autonomous Dev/Test Monitoring & Bi-Directional CLI (`apps/cli/`)
+
+### 1. System Overview & Problem Statement
+In standard software development workflows, defect tracking suffers from two major friction points:
+1. **Manual Ingestion Overhead**: Engineers or QA testers must manually copy stack traces, logs, and system details from terminal outputs into web forms.
+2. **Asynchronous Context Disconnect (Web vs. Terminal)**: Once a bug is filed, its lifecycle updates (status transitions `UNCONFIRMED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `RESOLVED`, reviewer comments, and flag assignments) occur asynchronously on the web interface. Developers working inside a CLI environment lose visibility unless they constantly switch to a web browser.
+
+`bz-monitor` operates as a **git-style bi-directional synchronization and monitoring engine**. It passively intercepts runtime/test failures to construct and stage `POST /api/v1/bugs` JSON payloads, while simultaneously providing Git-equivalent state management (`bz-monitor status`, `bz-monitor pull`, `bz-monitor log`, `bz-monitor diff`, `bz-monitor comment`, `bz-monitor resolve`) that synchronizes remote Bugzilla web state directly into the local workspace terminal.
+
+### 2. Architecture & Data Flow
+```mermaid
+flowchart TD
+    subgraph Local Execution and Monitoring
+        A1["bz-monitor exec -- npm test"] --> A2["Process Stdio Interceptor"]
+        A3["Test Framework Reporter Hook"] --> A2
+        A2 --> B1["Stack Trace and Path Resolver"]
+        B1 --> B2["Stage Local Report in .bz-monitor/reports/report-uuid.json"]
+    end
+
+    subgraph Bi-Directional State Synchronization Engine
+        B2 --> C1["bz-monitor push"]
+        C1 -->|"POST /api/v1/bugs"| D1["Bugzilla Web Backend at http://localhost:3001"]
+        D1 -->|"201 Created: bug_id"| C2["Update Local State Index in .bz-monitor/state.json"]
+        
+        D1 -->|"GET /api/v1/bugs?updated_since=..."| C3["bz-monitor pull / sync"]
+        C3 -->|"Update Local State Index"| C2
+        
+        C2 --> E1["bz-monitor status (Git-style workspace status)"]
+        C2 --> E2["bz-monitor log bug_id (Git-style ASCII audit graph)"]
+        C2 --> E3["bz-monitor diff bug_id (Local vs. Web field diff)"]
+        
+        E4["bz-monitor comment / resolve"] -->|"PUT /api/v1/bugs/id"| D1
+    end
+```
+
+### 3. Production Edge Cases & Resiliency Guardrails
+1. **ANSI Escape Code Sanitization**: Pipes `stderr` through regex cleaner to strip compiler/test runner terminal color escape sequences (`\x1b[31m`) before saving descriptions.
+2. **Third-Party `node_modules` Stack Frame Filtering**: Traverses stack frames top-to-bottom, skipping runtime/library internals (`node_modules/`, `node:internal/`) to bind the component to the first application source frame (`apps/api/src/...`).
+3. **Staging Storm & Duplicate Report Deduplication**: Generates a deterministic SHA-256 fingerprint: $\text{SHA256}(\text{summary} + \text{source\_file} + \text{line\_number})$. Increments `reoccurrence_count` instead of creating duplicate report drafts during iterative test runs (`npm test --watch`).
+4. **Log Buffer Truncation & Payload Safety**: Bounded 64 KB / 100-line circular sliding window preventing massive log dumps from exceeding Fastify's 1 MB HTTP body limit (`413 Payload Too Large`).
+5. **Git Repository & Detached HEAD Fallbacks**: All Git commands execute with safe timeouts and fallback commit/branch names to support shallow CI clones or non-git directories without throwing code 128 errors.
+6. **FSM Resolution Guard**: Interactively prompts for mandatory resolution codes (`FIXED`, `INVALID`, etc.) on `bz-monitor resolve` to prevent `422 RESOLUTION_REQUIRED` API rejections.
+7. **Signal Forwarding & Process Cleanup**: Propagates `SIGINT` / `SIGTERM` to child processes so canceling `bz-monitor exec` does not leave background processes hogging ports.
+
+### 4. Monorepo Package Layout (`apps/cli/`)
+```text
+apps/cli/
+├── bin/
+│   └── bz-monitor.ts         # Executable CLI entrypoint (#!/usr/bin/env tsx)
+├── src/
+│   ├── commands/
+│   │   ├── init.ts           # bz-monitor init
+│   │   ├── config.ts         # bz-monitor config [get|set|show]
+│   │   ├── exec.ts           # bz-monitor exec -- <cmd>
+│   │   ├── list.ts           # bz-monitor list / show / discard / set
+│   │   ├── push.ts           # bz-monitor push (POST /api/v1/bugs)
+│   │   ├── status.ts         # bz-monitor status (Git-style index)
+│   │   ├── pull.ts           # bz-monitor pull (delta sync)
+│   │   ├── log.ts            # bz-monitor log <id> (ASCII activity timeline)
+│   │   ├── comment.ts        # bz-monitor comment <id>
+│   │   └── resolve.ts        # bz-monitor resolve <id> (FSM validation)
+│   ├── lib/
+│   │   ├── interceptor.ts    # Child process spawn & stream capture
+│   │   ├── parser.ts         # Regex stack trace & component resolver
+│   │   ├── sanitizer.ts      # ANSI code stripper & log context limiter
+│   │   ├── fingerprint.ts    # SHA-256 deduplication generator
+│   │   ├── storage.ts        # .bz-monitor/ file system store
+│   │   └── client.ts         # HTTP client communicating with Fastify API
+│   └── index.ts
+├── package.json
+└── tsconfig.json
+```
+
+### 5. CLI Verification Test Assertions (`T3.33` – `T3.35`)
+* **T3.33 — ANSI Sanitization**: Strips escape sequences from compiler `stderr` chunks.
+* **T3.34 — Stack Frame Resolution**: Skips `node_modules` frames and maps component to project source tree.
+* **T3.35 — SHA-256 Deduplication**: Identical test crash generates matched fingerprint and increments counter.
+
+---
+
 ## Final Freeze Checklist (Aug 30, 8:00 PM → 11:59 PM)
 
 > [!CAUTION]
