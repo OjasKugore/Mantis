@@ -9,6 +9,7 @@ import { commentRoutes } from './routes/comments.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { flagRoutes } from './routes/flags.js';
 import { dependencyRoutes } from './routes/dependencies.js';
+import { securityRoutes } from './routes/security.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = fastify({
@@ -79,6 +80,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(notificationRoutes, { prefix: '/api/v1' });
   await app.register(flagRoutes, { prefix: '/api/v1' });
   await app.register(dependencyRoutes, { prefix: '/api/v1' });
+  await app.register(securityRoutes, { prefix: '/api/v1' });
 
   return app;
 }
