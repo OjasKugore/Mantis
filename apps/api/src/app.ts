@@ -4,6 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { authRoutes } from './routes/auth.js';
+import { bugRoutes } from './routes/bugs.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = fastify({
@@ -69,6 +70,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // API v1 routes
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
+  await app.register(bugRoutes, { prefix: '/api/v1/bugs' });
 
   return app;
 }
