@@ -185,6 +185,14 @@ export async function setupTestEnvironment() {
       is_read BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS bug_dependencies (
+      blocking_bug_id INTEGER NOT NULL,
+      blocked_bug_id INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by UUID,
+      PRIMARY KEY (blocking_bug_id, blocked_bug_id)
+    );
   `);
 
   const pgAdapter = memDb.adapters.createPg();
@@ -204,6 +212,7 @@ export async function getTestApp(): Promise<FastifyInstance> {
 
 export async function resetDb() {
   try {
+    await db.query('DELETE FROM bug_dependencies;');
     await db.query('DELETE FROM notifications;');
     await db.query('DELETE FROM comment_mentions;');
     await db.query('DELETE FROM bug_comments;');
@@ -383,4 +392,14 @@ export async function createTestFlagType(overrides: {
     id: Number(rows[0].id),
   };
 }
+
+export async function createTestDependency(blockingBugId: number, blockedBugId: number, userId: string) {
+  await db.query(
+    `INSERT INTO bug_dependencies (blocking_bug_id, blocked_bug_id, created_by)
+     VALUES ($1, $2, $3)
+     ON CONFLICT DO NOTHING`,
+    [blockingBugId, blockedBugId, userId]
+  );
+}
+
 
