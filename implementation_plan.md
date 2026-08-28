@@ -2060,66 +2060,35 @@ DAY 2 FINAL VERIFICATION CHECKLIST:
 
 ---
 
-## Day 3 (Aug 30) — High-Value Polish
+## Day 3 (Aug 30) — High-Value Polish (Sequential 3-Person Division)
 
 ### Goal
-Ship 10 Phase 3 features (including 4 absorbed intelligence & UX features) before 8 PM Feature Freeze. Execute strictly in listed order.
+Ship 10 Phase 3 features (including 4 absorbed intelligence & UX features) before 8 PM Feature Freeze. Execute strictly in listed order, divided sequentially among three team members.
 
-**Execution order:**
-1. Command Palette (~45 min)
-2. Full-Text Search & Live Typeahead Duplicate Detection (~45 min)
-3. Kanban Board (~60 min)
-4. AI Triage with Gemini 2.0 Flash (~45 min)
-5. Markdown Frontend (~60 min — backend done Day 1)
-6. @Mentions Autocomplete UI (~60 min — backend done Day 1)
-7. GitHub Webhook (~90 min)
-8. Live Updates, Swagger UI & Single-Key Keyboard Triage Inbox (~60 min)
-9. Explainable Release Readiness Scoring Engine (~45 min)
-10. Engineering Velocity & MTTR Analytics Engine (~45 min)
+### Sequential Work Pipeline (Zero Parallel Friction)
 
----
-
-### Feature 3.1 — Command Palette (`⌘K` / `Ctrl+K`)
-
-**Bugzilla Gap Closed**: Zero keyboard navigation. Every action requires a page reload.
-
-**`apps/web/components/CommandPalette.tsx`**:
-```typescript
-import { CommandDialog, CommandInput, CommandList, CommandItem, CommandGroup } from 'cmdk';
-
-// Mount on root layout. Global ⌘K / Ctrl+K listener opens/closes.
-useEffect(() => {
-  const handler = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setOpen(o => !o); }
-  };
-  window.addEventListener('keydown', handler);
-  return () => window.removeEventListener('keydown', handler);
-}, []);
+```mermaid
+flowchart LR
+    D2["<b>Day 2 Gate Passed</b><br/>45/45 Green Tests"] --> A["<b>Person A (Hours 0-3)</b><br/><b>Search & Analytics</b><br/>• Full-Text Search<br/>• Live Typeahead Duplicates<br/>• Readiness & Velocity<br/>• Tests T3.1 - T3.8"]
+    A -->|Gate 3.A: 53/53 Tests Green| B["<b>Person B (Hours 3-6)</b><br/><b>AI & Integrations</b><br/>• AI Triage with Gemini<br/>• GitHub Webhooks<br/>• Live Polling & Swagger<br/>• Tests T3.9 - T3.25"]
+    B -->|Gate 3.B: 70/70 Tests Green| C["<b>Person C (Hours 6-9)</b><br/><b>Frontend & Polish</b><br/>• Kanban Board<br/>• Markdown & Mentions UI<br/>• Command Palette & Keys<br/>• Tests T3.26 - T3.43"]
+    C -->|Final Day 3 Gate: 88/88 Green| D["<b>Feature Freeze</b><br/>Ready for Final Demo"]
 ```
 
-**Command groups and actions:**
-
-| Input pattern | Action |
-|---|---|
-| `104` or `#104` (numeric) | Navigate to `/bugs/104` |
-| `status:confirmed` / `status:in_progress` / `status:resolved` | `PATCH /bugs/:currentId/status` |
-| `assign:me` | `PATCH /bugs/:currentId { assignee_id: me.id }` |
-| `copy:branch` | `clipboard.writeText('fix/${currentId}-${slug}')` |
-| `new` | Navigate to `/bugs/new` |
-| `kanban` | Navigate to `/kanban` |
-| other text | Navigate to `/bugs?q=<text>` |
-
-Context-awareness: if current URL is `/bugs/[id]`, show status/assign commands first. Otherwise hide them.
-
 ---
 
-### Feature 3.2 — PostgreSQL Full-Text Search & Live Typeahead Duplicate Detection
+### Person A: Search, Duplicate Detection, & Analytics Engine (Hours 0 – 3)
+
+**Role**: Data Search & Analytics Engineer  
+**Objective**: Implement PostgreSQL Full-Text Search with `tsvector`, live typeahead duplicate detection, explainable release readiness scoring, and engineering velocity analytics.
+
+#### Person A — Step-by-Step Build Instructions
+
+##### Feature 3.1 — PostgreSQL Full-Text Search & Live Typeahead Duplicate Detection
 
 **Bugzilla Gap Closed**: `LIKE '%query%'` forces full table scans. `tsvector` GIN enables sub-20ms ranked stemmed search. Duplicates are filed unknowingly and only triaged after submission.
 
-#### 1. Full-Text Search Route
-**GET `/api/v1/bugs/search?q=<query>&limit=25&offset=0`**
-
+**1. Full-Text Search Route** (`GET /api/v1/bugs/search?q=<query>&limit=25&offset=0`):
 ```typescript
 const { rows } = await db.query(`
   SELECT
@@ -2135,12 +2104,10 @@ const { rows } = await db.query(`
   LIMIT $2 OFFSET $3
 `, [q, limit, offset]);
 ```
-
 - `websearch_to_tsquery`: `+word` required, `-word` excluded, `"phrase"` exact, bare word = AND.
 - `ts_headline`: context snippet with match terms in `<mark>` tags.
-- Security filter always applied — embargoed/group bugs never appear.
 
-#### 2. Live Typeahead Duplicate Detection (`GET /api/v1/bugs/duplicates`)
+**2. Live Typeahead Duplicate Detection** (`GET /api/v1/bugs/duplicates`):
 ```typescript
 app.get('/api/v1/bugs/duplicates', {
   schema: {
@@ -2163,260 +2130,11 @@ app.get('/api/v1/bugs/duplicates', {
   return { duplicates: rows };
 });
 ```
+**Frontend**: Debounced search input in nav header; alert card with potential duplicates on `/bugs/new`.
 
-**Frontend**:
-- Search: Debounced (300ms) search input in nav header. Dropdown `<Popover>` with top 10 results.
-- Creation Form (`/bugs/new`): Debounced typeahead surfaces an alert card with potential duplicate matches (similarity > 0.28) before the user submits.
-
----
-
-### Feature 3.3 — Drag-and-Drop Kanban Status Board
-
-**Bugzilla Gap Closed**: No board view. Teams manage status through individual pages only.
-
-**`apps/web/components/KanbanBoard.tsx`**:
-```typescript
-async function handleDragEnd(event: DragEndEvent) {
-  const { active, over } = event;
-  if (!over || active.data.current?.status === over.id) return;
-  const bugId = Number(active.id);
-  const oldStatus = active.data.current.status;
-  const newStatus = over.id as string;
-
-  // Optimistic update — move card immediately
-  setOptimisticBugs(prev => prev.map(b => b.id === bugId ? { ...b, status: newStatus } : b));
-
-  const res = await fetch(`/api/v1/bugs/${bugId}/status`, {
-    method: 'PATCH', credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: newStatus }),
-  });
-
-  if (!res.ok) {
-    // Roll back — state machine rejected the move
-    setOptimisticBugs(prev => prev.map(b => b.id === bugId ? { ...b, status: oldStatus } : b));
-    toast.error(`Cannot move to ${newStatus} from ${oldStatus}`);
-  } else {
-    toast.success(`Bug #${bugId} → ${newStatus}`);
-  }
-}
-```
-
-Bug card displays: `#ID` badge, summary (`line-clamp-2`), priority dot (P1=red, P2=orange, P3=yellow, P4=blue, P5=grey), assignee avatar (16px), flag indicator if any pending `?`.
-
----
-
-### Feature 3.4 — 1-Click AI Triage Assistant
-
-**Bugzilla Gap Closed**: Triage leads manually read 50+ comment threads. AI distills them into structured context in ~2 seconds.
-
-**`apps/api/src/services/aiTriage.ts`**:
-```typescript
-export async function callLLMTriage(bug: Bug, comments: Comment[]): Promise<TriageResult | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null; // fallback path
-
-  const commentText = comments.slice(0, 30)
-    .map((c, i) => `Comment ${i+1} by ${c.author.display_name}:\n${c.body}`)
-    .join('\n\n---\n\n');
-
-  const prompt = `You are a senior software engineer performing bug triage.
-
-Bug #${bug.id}: ${bug.summary}
-Description: ${bug.description || '(none)'}
-Status: ${bug.status} | Priority: ${bug.priority} | Severity: ${bug.severity}
-
-Comments (${comments.length} total, showing first 30):
-${commentText}
-
-Respond ONLY with valid JSON matching this schema:
-{
-  "summary": "2-sentence root cause summary",
-  "suggested_priority": "P1|P2|P3|P4|P5",
-  "suggested_component": "component name",
-  "confidence_reason": "1 sentence explaining your assessment",
-  "next_steps": ["action 1", "action 2", "action 3"]
-}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 2500); // hard 2.5s cutoff
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST', signal: controller.signal,
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', temperature: 0.2, max_tokens: 400,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    clearTimeout(timeout);
-    const data = await res.json();
-    return JSON.parse(data.choices[0].message.content) as TriageResult;
-  } catch {
-    clearTimeout(timeout);
-    return null; // timeout or parse error → fallback
-  }
-}
-```
-
-**POST `/api/v1/bugs/:id/ai-triage`** _(authMiddleware)_:
-```typescript
-const result = await callLLMTriage(bug, comments);
-if (!result) return reply.code(200).send({ error: 'AI_SERVICE_UNAVAILABLE', fallback: true });
-return reply.send(result);
-// Always HTTP 200 — UI checks fallback:true to render graceful message
-```
-
----
-
-### Feature 3.5 — Rich-Text / Markdown in Comments
-
-**Bugzilla Gap Closed**: Plain-text `longdescs.thetext`. Code snippets and stack traces completely unformatted.
-
-> Schema + backend endpoint done on Day 1. Day 3 is frontend only.
-
-**`components/CommentEditor.tsx`** — Write/Preview tabbed editor:
-- **MarkdownToolbar**: Bold `**`, Italic `_`, Code `` ` ``, Code Block ` ``` `, Link, OL, UL. Wraps textarea selection with Markdown syntax.
-- **Preview tab**: `<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={{ code: CodeBlockWithCopyButton }}>`
-- **Copy button** on code blocks: `position: absolute; top: 8px; right: 8px`.
-- **Legacy plain comments** (`format='plain'`): `<pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-4 rounded">`.
-
----
-
-### Feature 3.6 — @Mentions Autocomplete UI
-
-**Bugzilla Gap Closed**: No targeted addressing of team members. CC list is blunt all-or-nothing.
-
-> Backend (extraction, `comment_mentions`, notifications) done Day 1. Day 3 is frontend.
-
-**`MentionTextarea` in `CommentEditor.tsx`**:
-- Detect `@` trigger: `/(@[\w.-]*)$/.exec(textBeforeCursor)`.
-- Debounce 150ms → `GET /api/v1/users/search?q=<query>&limit=8`.
-- Show floating dropdown: avatar + display_name + `@username`.
-- Keyboard: `ArrowUp`/`Down` navigate, `Enter`/`Tab` inserts, `Escape` closes.
-- Insert: replace `@<partial>` with `@<username> ` (trailing space).
-
-**`components/NotificationBell.tsx`**: Poll `GET /api/v1/notifications?unread=true` every 30s. Unread count badge (red dot). Click → `<Popover>` list. "Mark all read" → `PATCH /api/v1/notifications/read-all`.
-
-**GET `/api/v1/users/search?q=<query>&limit=8`** _(authMiddleware)_:
-```sql
-SELECT id, username, display_name, avatar_url FROM users
-WHERE (username ILIKE $1 || '%' OR display_name ILIKE '%' || $1 || '%')
-  AND is_enabled = TRUE
-ORDER BY display_name LIMIT $2
-```
-
----
-
-### Feature 3.7 — Git / GitHub Webhook Integration
-
-**Bugzilla Gap Closed**: Zero SCM awareness. Developers manually paste commit links; bugs never auto-close when fixes land.
-
-**`apps/api/src/lib/hmac.ts`**:
-```typescript
-import { createHmac, timingSafeEqual } from 'crypto';
-export function verifyGitHubSignature(payload: Buffer, signature: string | undefined, secret: string): boolean {
-  if (!signature?.startsWith('sha256=')) return false;
-  const expected = `sha256=${createHmac('sha256', secret).update(payload).digest('hex')}`;
-  try { return timingSafeEqual(Buffer.from(expected), Buffer.from(signature)); }
-  catch { return false; }
-  // timingSafeEqual prevents timing attacks
-}
-```
-
-**`apps/api/src/services/webhookParser.ts`**:
-```typescript
-const BUG_REF_RE = /(?:fixes|closes|resolves|refs|see|related\s+to)\s+#(\d+)/gi;
-const AUTO_CLOSE_RE = /fixes|closes|resolves/i;
-
-export function parseBugRefs(message: string): Array<{ bugId: number; autoClose: boolean }> {
-  const results: Array<{ bugId: number; autoClose: boolean }> = [];
-  const seen = new Set<number>();
-  let m: RegExpExecArray | null;
-  while ((m = BUG_REF_RE.exec(message)) !== null) {
-    const bugId = parseInt(m[1], 10);
-    if (seen.has(bugId)) continue;
-    seen.add(bugId);
-    results.push({ bugId, autoClose: AUTO_CLOSE_RE.test(m[0]) });
-  }
-  return results;
-}
-
-export function isDefaultBranch(ref: string): boolean {
-  return ref === 'refs/heads/main' || ref === 'refs/heads/master';
-}
-```
-
-**`apps/api/src/routes/webhooks.ts`** — `POST /api/v1/webhooks/github`:
-1. `verifyGitHubSignature(rawBody, sig, secret)` → 401 on failure.
-2. Read `x-github-event`.
-3. **push event**: for each commit → `parseBugRefs(message)` → `INSERT INTO bug_commits ON CONFLICT DO NOTHING`. If `autoClose && isDefaultBranch(ref)` → fetch bug → if status in `['CONFIRMED','IN_PROGRESS']` → transition RESOLVED/FIXED + `recordActivity({ comment: 'Auto-closed by commit ' + sha.slice(0,7) })`.
-4. **pull_request event**: `UPSERT bug_pull_requests`. If `action='closed' && merged && isDefaultBranch(base)` → auto-close matching bugs.
-5. Unknown events → always `200 { received: true }`.
-
-**Frontend (`components/CommitPanel.tsx`)**:
-- **Commits tab**: `GET /api/v1/bugs/:id/commits`. Row: short SHA (link → html_url), author, message first line, relative time.
-- **PRs tab**: `GET /api/v1/bugs/:id/pull-requests`. Row: `#N — PR Title` (link), state badge: open=green outline, merged=purple filled, closed=grey.
-- **Auto-close banner**: if `bugs_activity` has a row with `comment` matching `Auto-closed.*`, show green info banner at top of bug page.
-
----
-
-### Feature 3.8 — Live Updates, Swagger & Keyboard Shortcuts
-
-**Live Updates** — `GET /api/v1/bugs/:id/poll?since=<ISO8601>`:
-```typescript
-const changes = await db.query(
-  `SELECT field, new_value, changed_at FROM bugs_activity WHERE bug_id=$1 AND changed_at > $2 ORDER BY changed_at`, [id, since]
-);
-const newComments = await db.query(
-  `SELECT id FROM bug_comments WHERE bug_id=$1 AND created_at > $2`, [id, since]
-);
-return { changes: changes.rows, newCommentIds: newComments.rows.map(r => r.id) };
-```
-Client hook: poll every 5s → any changes → `queryClient.invalidateQueries(['bug', bugId])` → React Query refetches.
-
-**Swagger**:
-```typescript
-await app.register(require('@fastify/swagger'), {
-  openapi: { info: { title: 'BugzillaRevamp API', version: '1.0.0' } }
-});
-await app.register(require('@fastify/swagger-ui'), {
-  routePrefix: '/docs',
-  uiConfig: { docExpansion: 'list', deepLinking: true }
-});
-// All routes include schema: { tags, summary, body: TypeBoxSchema, response: { 200: TypeBoxSchema } }
-```
-
-**Keyboard shortcuts** (global `keydown` listener, skips if focus is in `input`/`textarea`):
-```typescript
-if (e.key === 'j') setFocusedIndex(i => Math.min(i+1, bugs.length-1));
-if (e.key === 'k') setFocusedIndex(i => Math.max(i-1, 0));
-if (e.key === 'Enter') router.push(`/bugs/${bugs[focusedIndex].id}`);
-if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
-if (e.key === '?') setShowShortcutsModal(true);
-if (e.key === 'a' && currentBugId) assignToMe();
-if (e.key === 'c' && currentBugId) commentRef.current?.focus();
-```
-
----
-
----
-
-### Feature 3.9 — Explainable Release Readiness Scoring (0–100%)
+##### Feature 3.2 — Explainable Release Readiness Scoring (0–100%)
 
 **Bugzilla Gap Closed**: Engineering leads have no automated metric to know if a release milestone is blocked by critical path dependencies or severe security bugs.
-
-**Mathematical Risk Formulation**:
-$$\text{Readiness Score} = \max\left(0, 100 - \sum \text{Penalties}\right)$$
-
-| Blocker Condition | Penalty Weight | Rationale |
-|---|:---:|---|
-| **Open CPM Critical Path Bug** | $-15\text{ pts}$ each | Directly delays milestone completion date |
-| **Unresolved CVSS CRITICAL Vulnerability** | $-20\text{ pts}$ each | Major zero-day exploit risk block |
-| **Unresolved CVSS HIGH Vulnerability** | $-10\text{ pts}$ each | Severe security risk |
-| **Pending Blocking Flag (`review?` / `needinfo?`)** | $-5\text{ pts}$ each | Unresolved governance gate |
-| **Unresolved Priority P1 / Blocker Bug** | $-8\text{ pts}$ each | High priority defect |
 
 **Backend Endpoint (`apps/api/src/routes/analytics.ts` -> `GET /api/v1/milestones/:id/readiness`)**:
 ```typescript
@@ -2449,52 +2167,27 @@ export async function calculateMilestoneReadiness(milestoneId: string) {
   const breakdown: { label: string; penalty: number }[] = [];
 
   const cpmCount = bugs.filter(b => criticalPath.includes(Number(b.id))).length;
-  if (cpmCount > 0) {
-    const p = cpmCount * 15;
-    penalties += p;
-    breakdown.push({ label: `${cpmCount} Open Critical Path Bugs`, penalty: p });
-  }
+  if (cpmCount > 0) { const p = cpmCount * 15; penalties += p; breakdown.push({ label: `${cpmCount} Open Critical Path Bugs`, penalty: p }); }
 
   const critCvss = bugs.filter(b => b.cvss_severity === 'CRITICAL').length;
-  if (critCvss > 0) {
-    const p = critCvss * 20;
-    penalties += p;
-    breakdown.push({ label: `${critCvss} Critical CVSS Vulnerabilities`, penalty: p });
-  }
+  if (critCvss > 0) { const p = critCvss * 20; penalties += p; breakdown.push({ label: `${critCvss} Critical CVSS Vulnerabilities`, penalty: p }); }
 
   const highCvss = bugs.filter(b => b.cvss_severity === 'HIGH').length;
-  if (highCvss > 0) {
-    const p = highCvss * 10;
-    penalties += p;
-    breakdown.push({ label: `${highCvss} High CVSS Vulnerabilities`, penalty: p });
-  }
+  if (highCvss > 0) { const p = highCvss * 10; penalties += p; breakdown.push({ label: `${highCvss} High CVSS Vulnerabilities`, penalty: p }); }
 
   const flagsCount = pendingFlags.length;
-  if (flagsCount > 0) {
-    const p = flagsCount * 5;
-    penalties += p;
-    breakdown.push({ label: `${flagsCount} Pending Blocking Flags`, penalty: p });
-  }
+  if (flagsCount > 0) { const p = flagsCount * 5; penalties += p; breakdown.push({ label: `${flagsCount} Pending Blocking Flags`, penalty: p }); }
 
   const p1Count = bugs.filter(b => b.priority === 'P1').length;
-  if (p1Count > 0) {
-    const p = p1Count * 8;
-    penalties += p;
-    breakdown.push({ label: `${p1Count} Unresolved P1 Blockers`, penalty: p });
-  }
+  if (p1Count > 0) { const p = p1Count * 8; penalties += p; breakdown.push({ label: `${p1Count} Unresolved P1 Blockers`, penalty: p }); }
 
   const score = Math.max(0, 100 - penalties);
   return { score, penalties, breakdown, totalOpenBugs: bugs.length };
 }
 ```
+**Frontend (`apps/web/components/ReleaseReadinessGauge.tsx`)**: Animated SVG circular gauge.
 
-**Frontend Component (`apps/web/components/ReleaseReadinessGauge.tsx`)**:
-* Renders an animated SVG circular gauge (0–100%) with color thresholding (Green ≥85%, Amber 60–84%, Red <60%).
-* Includes an accordion detailing every penalty item with direct links to the offending bugs.
-
----
-
-### Feature 3.10 — Engineering Velocity & MTTR Analytics (Pure SQL)
+##### Feature 3.3 — Engineering Velocity & MTTR Analytics (Pure SQL)
 
 **Bugzilla Gap Closed**: No native insights into resolution velocity or Mean Time To Resolve (MTTR).
 
@@ -2514,404 +2207,255 @@ app.get('/api/v1/analytics/velocity', async (req, reply) => {
     WHERE ba.changed_at >= NOW() - INTERVAL '30 days'
     GROUP BY p.name;
   `);
-
   return { velocity: rows };
 });
 ```
+**Frontend (`apps/web/components/VelocityCard.tsx`)**: Renders MTTR in days with 30-day trend comparison pill.
 
-**Frontend Widget (`apps/web/components/VelocityCard.tsx`)**:
-* Renders MTTR in days with 30-day trend comparison pill and product-by-product breakdown cards on the executive dashboard.
+#### Person A — Test Suite (8 Tests: T3.1 – T3.8)
 
-### Day 3 Test Suite (32 Named Tests)
-
-#### `test/unit/command_palette.test.ts`
-
-**T3.1 — 'res' fuzzy-matches status:resolved action**
-```typescript
-const filtered = filterActions(buildPaletteActions({ currentBugStatus: 'CONFIRMED' }), 'res');
-expect(filtered.some(a => a.id === 'status:resolved')).toBe(true);
-```
-
-**T3.2 — '104' (numeric) produces navigate action for /bugs/104**
-```typescript
-const filtered = filterActions(buildPaletteActions({}), '104');
-expect(filtered.some(a => a.type === 'navigate' && a.href === '/bugs/104')).toBe(true);
-```
-
-**T3.3 — '#104' (with hash prefix) also navigates to /bugs/104**
-```typescript
-const filtered = filterActions(buildPaletteActions({}), '#104');
-expect(filtered.some(a => a.type === 'navigate' && a.href === '/bugs/104')).toBe(true);
-```
-
-#### `test/integration/search.test.ts`
-
-**T3.4 — Stemming: 'parse' query matches bug with 'parsing' in summary**
+**T3.1 — Stemming: 'parse' query matches bug with 'parsing' in summary**
 ```typescript
 await createBug({ summary: 'NullPointerException when parsing HTTP headers' });
 const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/search?q=parse' });
 expect(res.json().bugs.some((b: any) => b.summary.includes('parsing'))).toBe(true);
 ```
-
-**T3.5 — Unrelated query returns empty bugs array**
+**T3.2 — Unrelated query returns empty bugs array**
 ```typescript
 const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/search?q=zzzzunrelated' });
 expect(res.json().bugs).toHaveLength(0);
 ```
-
-**T3.6 — Results ranked: more-relevant bug appears first**
+**T3.3 — Results ranked: more-relevant bug appears first**
 ```typescript
 await createBug({ summary: 'crash crash crash in renderer process' });
 await createBug({ summary: 'minor crash in storage module' });
 const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/search?q=crash+renderer' });
 expect(res.json().bugs[0].summary).toContain('renderer');
 ```
-
-**T3.7 — Group-restricted bug never appears in search for non-member**
+**T3.4 — Group-restricted bug never appears in search for non-member**
 ```typescript
 await createRestrictedBug({ summary: 'critical security auth bypass', group: 'security-team' });
-const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/search?q=security+bypass',
-  headers: { cookie: regularCookie }
-});
+const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/search?q=security+bypass', headers: { cookie: regularCookie } });
 expect(res.json().bugs.every((b: any) => b.id !== restrictedBugId)).toBe(true);
 ```
-
-**T3.8 — Response includes ts_headline with mark tags**
+**T3.5 — Response includes ts_headline with mark tags**
 ```typescript
 await createBug({ summary: 'parsing error in HTTP module' });
 const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/search?q=parsing' });
 expect(res.json().bugs[0].headline).toContain('<mark>');
 ```
-
-#### `test/integration/kanban.test.ts`
-
-**T3.9 — CONFIRMED→IN_PROGRESS: HTTP 200 and audit record created**
+**T3.6 — GET /api/v1/bugs/duplicates returns similarity matches > 0.28**
 ```typescript
-const res = await patchStatus(bugId, 'IN_PROGRESS');
-expect(res.statusCode).toBe(200);
-const row = await db.query(
-  `SELECT * FROM bugs_activity WHERE bug_id=$1 AND field='status' ORDER BY changed_at DESC LIMIT 1`, [bugId]
-);
-expect(row.rows[0]).toMatchObject({ old_value: 'CONFIRMED', new_value: 'IN_PROGRESS' });
-```
-
-**T3.10 — UNCONFIRMED→CLOSED: HTTP 422 and status unchanged**
-```typescript
-const res = await patchStatus(bugId, 'CLOSED');
-expect(res.statusCode).toBe(422);
-expect((await db.query(`SELECT status FROM bugs WHERE id=$1`, [bugId])).rows[0].status).toBe('UNCONFIRMED');
-```
-
-**T3.11 — RESOLVED without resolution: HTTP 422 RESOLUTION_REQUIRED**
-```typescript
-await patchStatus(bugId, 'CONFIRMED');
-const res = await app.inject({ method: 'PATCH', url: `/api/v1/bugs/${bugId}/status`,
-  headers: { cookie }, payload: { status: 'RESOLVED' } // no resolution
-});
-expect(res.statusCode).toBe(422);
-expect(res.json()).toMatchObject({ error: 'RESOLUTION_REQUIRED' });
-```
-
-#### `test/unit/ai_triage.test.ts`
-
-**T3.12 — buildTriagePrompt includes bug title, description, and all comment bodies**
-```typescript
-const { prompt } = buildTriagePrompt(
-  { id:104, summary:'Crash on login', description:'Steps: open app, login', status:'CONFIRMED', priority:'P1', severity:'critical' },
-  [{ body:'I can reproduce this', author:{ display_name:'Alice' } }]
-);
-expect(prompt).toContain('Crash on login');
-expect(prompt).toContain('Steps: open app, login');
-expect(prompt).toContain('I can reproduce this');
-expect(prompt).toContain('Alice');
-```
-
-**T3.13 — Valid JSON response parses to TriageResult shape**
-```typescript
-const result = parseTriageResponse(`{"summary":"Token expired","suggested_priority":"P1","suggested_component":"Auth","confidence_reason":"Multiple users","next_steps":["Rotate key"]}`);
-expect(result).toMatchObject({ summary: 'Token expired', suggested_priority: 'P1' });
-```
-
-**T3.14 — AbortController timeout: callLLMTriage returns null**
-```typescript
-vi.spyOn(global, 'fetch').mockImplementation(() =>
-  new Promise((_, reject) => setTimeout(() => reject(new DOMException('Aborted', 'AbortError')), 3000))
-);
-expect(await callLLMTriage(mockBug, mockComments)).toBeNull();
-```
-
-**T3.15 — POST /bugs/:id/ai-triage with no API key: HTTP 200 with fallback:true**
-```typescript
-delete process.env.OPENAI_API_KEY;
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/${bugId}/ai-triage`, headers: { cookie } });
-expect(res.statusCode).toBe(200); // never 5xx
-expect(res.json()).toMatchObject({ error: 'AI_SERVICE_UNAVAILABLE', fallback: true });
-```
-
-#### `test/integration/swagger.test.ts`
-
-**T3.16 — GET /docs returns 200 with Swagger UI HTML**
-```typescript
-const res = await app.inject({ method: 'GET', url: '/docs' });
-expect(res.statusCode).toBe(200);
-expect(res.headers['content-type']).toContain('text/html');
-expect(res.body).toContain('swagger-ui');
-```
-
-**T3.17 — GET /docs/json returns valid OpenAPI 3.x schema with all key endpoints**
-```typescript
-const res = await app.inject({ method: 'GET', url: '/docs/json' });
-const schema = res.json();
-expect(schema.openapi).toMatch(/^3\./);
-expect(schema.paths).toHaveProperty('/api/v1/bugs');
-expect(schema.paths).toHaveProperty('/api/v1/auth/login');
-expect(schema.paths).toHaveProperty('/api/v1/webhooks/github');
-```
-
-#### `test/unit/mention_parser.test.ts`
-
-**T3.18 — Extracts multiple unique usernames**
-```typescript
-expect(extractMentions('@jsmith and @alice_dev please review'))
-  .toEqual(expect.arrayContaining(['jsmith', 'alice_dev']));
-```
-
-**T3.19 — No @ symbols returns empty array**
-```typescript
-expect(extractMentions('Regular comment with no mentions')).toEqual([]);
-```
-
-**T3.20 — Duplicate mentions deduplicate to single entry**
-```typescript
-expect(extractMentions('@jsmith @jsmith @jsmith')).toHaveLength(1);
-```
-
-**T3.21 — Email addresses (user@example.com) are NOT extracted as mentions**
-```typescript
-expect(extractMentions('email user@example.com for help')).toEqual([]);
-```
-
-#### `test/integration/mentions.test.ts`
-
-**T3.22 — POST comment with @mention: comment_mentions row and notification created**
-```typescript
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/${bugId}/comments`,
-  headers: { cookie: aliceCookie },
-  payload: { body: '@bob can you take a look?', format: 'markdown' }
-});
-expect(res.statusCode).toBe(201);
-const mention = await db.query(`SELECT * FROM comment_mentions WHERE comment_id=$1`, [res.json().id]);
-expect(mention.rows).toHaveLength(1);
-expect(mention.rows[0].mentioned_user_id).toBe(bobId);
-const notif = await db.query(`SELECT * FROM notifications WHERE user_id=$1 AND type='mention'`, [bobId]);
-expect(notif.rows).toHaveLength(1);
-```
-
-**T3.23 — Mentioning non-existent user is silently skipped (201, no error)**
-```typescript
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/${bugId}/comments`,
-  headers: { cookie }, payload: { body: '@totally_nonexistent_xyz please review', format: 'markdown' }
-});
-expect(res.statusCode).toBe(201);
-const mentions = await db.query(`SELECT * FROM comment_mentions WHERE comment_id=$1`, [res.json().id]);
-expect(mentions.rows).toHaveLength(0);
-```
-
-#### `test/unit/markdown_sanitizer.test.ts`
-
-**T3.24 — Bold markdown renders to strong tag**
-```typescript
-const html = renderMarkdownToHtml('**bold text**');
-expect(html).toContain('<strong>bold text</strong>');
-```
-
-**T3.25 — XSS script tag stripped by DOMPurify**
-```typescript
-const html = renderMarkdownToHtml('<script>alert("xss")</script>');
-expect(html).not.toContain('<script>');
-expect(html).not.toContain('alert');
-```
-
-**T3.26 — Code fence content preserved**
-```typescript
-const html = renderMarkdownToHtml('```\nconst x = a < b ? a : b;\n```');
-expect(html).toContain('const x = a');
-```
-
-#### `test/integration/comments.test.ts`
-
-**T3.27 — Markdown comment stored raw; GET returns raw body + format:'markdown'**
-```typescript
-const createRes = await app.inject({ method: 'POST', url: `/api/v1/bugs/${bugId}/comments`,
-  headers: { cookie }, payload: { body: '## Root Cause\n\nToken expired.', format: 'markdown' }
-});
-const getRes = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugId}/comments`, headers: { cookie } });
-const comment = getRes.json().find((c: any) => c.id === createRes.json().id);
-expect(comment.format).toBe('markdown');
-expect(comment.body).toBe('## Root Cause\n\nToken expired.');
-```
-
-**T3.28 — Plain comment returned with format:'plain' and body unchanged**
-```typescript
-const createRes = await app.inject({ method: 'POST', url: `/api/v1/bugs/${bugId}/comments`,
-  headers: { cookie }, payload: { body: 'Simple plain text.', format: 'plain' }
-});
-const getRes = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugId}/comments`, headers: { cookie } });
-const comment = getRes.json().find((c: any) => c.id === createRes.json().id);
-expect(comment.format).toBe('plain');
-expect(comment.body).toBe('Simple plain text.');
-```
-
-#### `test/unit/webhook_parser.test.ts`
-
-**T3.29 — 'Fixes #104' → autoClose:true**
-```typescript
-expect(parseBugRefs('Fixes #104: null pointer in auth handler'))
-  .toEqual([{ bugId: 104, autoClose: true }]);
-```
-
-**T3.30 — 'Refs #101 and refs #102' → two entries, both autoClose:false**
-```typescript
-expect(parseBugRefs('Refs #101 and also refs #102'))
-  .toEqual(expect.arrayContaining([
-    { bugId: 101, autoClose: false },
-    { bugId: 102, autoClose: false },
-  ]));
-```
-
-**T3.31 — Mixed: 'Closes #200, refs #201' → correct autoClose flags**
-```typescript
-const refs = parseBugRefs('Closes #200, refs #201');
-expect(refs.find(r => r.bugId === 200)?.autoClose).toBe(true);
-expect(refs.find(r => r.bugId === 201)?.autoClose).toBe(false);
-```
-
-**T3.32 — No bug ref → empty array**
-```typescript
-expect(parseBugRefs('Update README with better examples')).toEqual([]);
-```
-
-**T3.33 — isDefaultBranch: main/master true; feature branch false**
-```typescript
-expect(isDefaultBranch('refs/heads/main')).toBe(true);
-expect(isDefaultBranch('refs/heads/master')).toBe(true);
-expect(isDefaultBranch('refs/heads/feature/my-feature')).toBe(false);
-expect(isDefaultBranch('refs/heads/develop')).toBe(false);
-```
-
-#### `test/integration/webhooks.test.ts`
-
-**T3.34 — Invalid HMAC: HTTP 401 and zero DB mutations**
-```typescript
-const res = await app.inject({
-  method: 'POST', url: '/api/v1/webhooks/github',
-  headers: { 'x-hub-signature-256': 'sha256=badhash', 'x-github-event': 'push' },
-  payload: buildPushPayload({ message: 'Fixes #101', ref: 'refs/heads/main' })
-});
-expect(res.statusCode).toBe(401);
-expect((await db.query(`SELECT * FROM bug_commits WHERE bug_id=101`)).rows).toHaveLength(0);
-```
-
-**T3.35 — Valid HMAC + 'Fixes #101' push: commit row inserted, bug auto-resolves with audit record**
-```typescript
-const payload = buildPushPayload({ sha: 'abc1234567890', message: 'Fixes #101: crash on login', ref: 'refs/heads/main' });
-const sig = signPayload(JSON.stringify(payload), process.env.GITHUB_WEBHOOK_SECRET!);
-const res = await app.inject({
-  method: 'POST', url: '/api/v1/webhooks/github',
-  headers: { 'x-hub-signature-256': sig, 'x-github-event': 'push' }, payload
-});
-expect(res.statusCode).toBe(200);
-expect((await db.query(`SELECT * FROM bug_commits WHERE bug_id=101`)).rows).toHaveLength(1);
-expect((await db.query(`SELECT status FROM bugs WHERE id=101`)).rows[0].status).toBe('RESOLVED');
-const activity = await db.query(
-  `SELECT * FROM bugs_activity WHERE bug_id=101 AND field='status' ORDER BY changed_at DESC LIMIT 1`
-);
-expect(activity.rows[0].comment).toMatch(/Auto-closed/);
-```
-
-**T3.36 — PR merged 'Closes #102': PR row upserted with state:'merged', bug auto-resolves**
-```typescript
-const payload = buildPRPayload({ action:'closed', merged:true, body:'Closes #102', base:'main', number:7, title:'Fix login crash' });
-const sig = signPayload(JSON.stringify(payload), process.env.GITHUB_WEBHOOK_SECRET!);
-await app.inject({ method: 'POST', url: '/api/v1/webhooks/github',
-  headers: { 'x-hub-signature-256': sig, 'x-github-event': 'pull_request' }, payload });
-expect((await db.query(`SELECT pr_state FROM bug_pull_requests WHERE bug_id=102`)).rows[0].pr_state).toBe('merged');
-expect((await db.query(`SELECT status FROM bugs WHERE id=102`)).rows[0].status).toBe('RESOLVED');
-```
-
-**T3.37 — PR merge on non-default branch (develop): does NOT auto-close bug**
-```typescript
-const payload = buildPRPayload({ action:'closed', merged:true, body:'Closes #103', base:'develop' });
-const sig = signPayload(JSON.stringify(payload), process.env.GITHUB_WEBHOOK_SECRET!);
-await app.inject({ method: 'POST', url: '/api/v1/webhooks/github',
-  headers: { 'x-hub-signature-256': sig, 'x-github-event': 'pull_request' }, payload });
-expect((await db.query(`SELECT status FROM bugs WHERE id=103`)).rows[0].status).not.toBe('RESOLVED');
-```
-
-**T3.38 — Replayed identical push: HTTP 200 and no duplicate commit rows**
-```typescript
-const payload = buildPushPayload({ sha: 'deadbeef0000', message: 'Fixes #104', ref: 'refs/heads/main' });
-const sig = signPayload(JSON.stringify(payload), process.env.GITHUB_WEBHOOK_SECRET!);
-for (let i = 0; i < 2; i++) {
-  await app.inject({ method: 'POST', url: '/api/v1/webhooks/github',
-    headers: { 'x-hub-signature-256': sig, 'x-github-event': 'push' }, payload });
-}
-const commits = await db.query(`SELECT * FROM bug_commits WHERE bug_id=104 AND commit_sha='deadbeef0000'`);
-expect(commits.rows).toHaveLength(1); // UNIQUE ON CONFLICT DO NOTHING
-```
-
-**T3.39 — GET /bugs/:id/commits returns commit after push webhook**
-```typescript
-// After T3.35 setup:
-const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/101/commits', headers: { cookie } });
-expect(res.statusCode).toBe(200);
-expect(res.json()).toHaveLength(1);
-expect(res.json()[0].commit_sha).toHaveLength(40);
-```
-
----
-
-**T3.29 — GET /api/v1/bugs/duplicates returns similarity matches > 0.28**
-```typescript
-const res = await app.inject({
-  method: 'GET',
-  url: '/api/v1/bugs/duplicates?summary=Crash in networking auth module',
-});
-expect(res.statusCode).toBe(200);
-expect(res.json().duplicates.length).toBeGreaterThanOrEqual(1);
+const res = await app.inject({ method: 'GET', url: '/api/v1/bugs/duplicates?summary=Crash in networking auth module' });
 expect(res.json().duplicates[0].score).toBeGreaterThan(0.28);
 ```
-
-**T3.30 — Milestone readiness score applies correct penalties for CPM blockers & CVSS**
+**T3.7 — Milestone readiness score applies correct penalties for CPM blockers & CVSS**
 ```typescript
-const res = await app.inject({
-  method: 'GET',
-  url: '/api/v1/milestones/v2.0/readiness',
-});
-expect(res.statusCode).toBe(200);
-const data = res.json();
-expect(data.score).toBeLessThanOrEqual(100);
-expect(data.breakdown.length).toBeGreaterThan(0);
+const res = await app.inject({ method: 'GET', url: '/api/v1/milestones/v2.0/readiness' });
+expect(res.json().score).toBeLessThanOrEqual(100);
 ```
-
-**T3.31 — GET /api/v1/analytics/velocity returns MTTR aggregated from bugs_activity**
+**T3.8 — GET /api/v1/analytics/velocity returns MTTR aggregated from bugs_activity**
 ```typescript
-const res = await app.inject({
-  method: 'GET',
-  url: '/api/v1/analytics/velocity',
-});
-expect(res.statusCode).toBe(200);
+const res = await app.inject({ method: 'GET', url: '/api/v1/analytics/velocity' });
 expect(Array.isArray(res.json().velocity)).toBe(true);
 ```
 
-**T3.32 — Single-key keyboard triage J/K/A/R navigation triggers expected actions**
-```typescript
-// Unit test for keyboard event handler
-const handled = handleTriageKey('r', focusedBugId);
-expect(handled.action).toBe('OPEN_RESOLVE_DIALOG');
+#### Person A → Person B Handoff Verification Gate (Gate 3.A)
+
+```
+PERSON A COMPLETION CHECKLIST:
+  [ ] All Day 1 & 2 tests STILL pass (45/45)
+  [ ] Person A Day 3 tests pass (8/8 PASS)
+  [ ] Cumulative test count: 53/53 tests PASS
+  [ ] Git commit pushed: "feat(analytics): search, duplicate detection, readiness score, velocity mttr"
 ```
 
 ---
+
+### Person B: AI Triage, GitHub Webhooks, & Backend Polish (Hours 3 – 6)
+
+**Role**: AI & Integrations Engineer  
+**Objective**: Implement AI Triage via Gemini 2.0 Flash, GitHub Webhook auto-close functionality, live polling endpoints, and Swagger UI documentation.
+
+#### Person B — Step-by-Step Build Instructions
+
+##### Feature 3.4 — 1-Click AI Triage Assistant
+
+**Bugzilla Gap Closed**: Triage leads manually read 50+ comment threads. AI distills them into structured context in ~2 seconds.
+
+**`apps/api/src/services/aiTriage.ts`**:
+```typescript
+export async function callLLMTriage(bug: Bug, comments: Comment[]): Promise<TriageResult | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null; // fallback path
+
+  const commentText = comments.slice(0, 30).map((c, i) => `Comment ${i+1}:\n${c.body}`).join('\n\n---\n\n');
+  const prompt = `You are a bug triage expert. Analyze Bug #${bug.id}: ${bug.summary}\nComments: ${commentText}\nRespond with JSON: { summary, suggested_priority, suggested_component, confidence_reason, next_steps }`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2500); // 2.5s cutoff
+  try {
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", generationConfig: { responseMimeType: "application/json" } });
+    const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] }, { signal: controller.signal });
+    clearTimeout(timeout);
+    return JSON.parse(result.response.text()) as TriageResult;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+```
+**POST `/api/v1/bugs/:id/ai-triage`**: Returns HTTP 200 with result or `{ error: 'AI_SERVICE_UNAVAILABLE', fallback: true }`.
+
+##### Feature 3.5 — Git / GitHub Webhook Integration
+
+**Bugzilla Gap Closed**: Zero SCM awareness. Bugs never auto-close when fixes land.
+
+**`apps/api/src/lib/hmac.ts`**:
+```typescript
+import { createHmac, timingSafeEqual } from 'crypto';
+export function verifyGitHubSignature(payload: Buffer, signature: string | undefined, secret: string): boolean {
+  if (!signature?.startsWith('sha256=')) return false;
+  const expected = `sha256=${createHmac('sha256', secret).update(payload).digest('hex')}`;
+  try { return timingSafeEqual(Buffer.from(expected), Buffer.from(signature)); } catch { return false; }
+}
+```
+**`apps/api/src/routes/webhooks.ts`**:
+- Push event: Parses commit message for `fixes #123`. Updates `bug_commits` and transitions bug to `RESOLVED`.
+- Pull Request event: Upserts `bug_pull_requests`. Auto-resolves if `action='closed'` and `merged`.
+
+##### Feature 3.6 — Live Updates & Swagger UI
+
+**Live Updates (`GET /api/v1/bugs/:id/poll?since=<ISO8601>`)**:
+```typescript
+const changes = await db.query(`SELECT field, new_value, changed_at FROM bugs_activity WHERE bug_id=$1 AND changed_at > $2`, [id, since]);
+const newComments = await db.query(`SELECT id FROM bug_comments WHERE bug_id=$1 AND created_at > $2`, [id, since]);
+return { changes: changes.rows, newCommentIds: newComments.rows.map(r => r.id) };
+```
+
+**Swagger UI**:
+```typescript
+await app.register(require('@fastify/swagger'), { openapi: { info: { title: 'BugzillaRevamp API', version: '1.0.0' } } });
+await app.register(require('@fastify/swagger-ui'), { routePrefix: '/docs', uiConfig: { docExpansion: 'list' } });
+```
+
+#### Person B — Test Suite (17 Tests: T3.9 – T3.25)
+
+**T3.9-T3.12: AI Triage**
+- T3.9: `buildTriagePrompt` includes bug title, description, and comments.
+- T3.10: Valid JSON response parses to `TriageResult`.
+- T3.11: AbortController timeout returns null.
+- T3.12: Missing API key returns fallback:true safely.
+
+**T3.13-T3.17: Webhook Parser**
+- T3.13: 'Fixes #104' -> autoClose:true.
+- T3.14: 'Refs #101 and refs #102' -> autoClose:false x2.
+- T3.15: Mixed refs handled correctly.
+- T3.16: No bug ref -> empty array.
+- T3.17: `isDefaultBranch` handles main/master correctly.
+
+**T3.18-T3.23: Webhook Endpoints**
+- T3.18: Invalid HMAC returns 401.
+- T3.19: Valid push auto-resolves bug.
+- T3.20: PR merged on default branch auto-resolves bug.
+- T3.21: PR merged on non-default branch does not auto-resolve.
+- T3.22: Replayed identical push handles idempotently.
+- T3.23: GET /commits returns expected webhook data.
+
+**T3.24-T3.25: Swagger**
+- T3.24: GET /docs returns HTML.
+- T3.25: GET /docs/json returns valid OpenAPI 3 schema.
+
+#### Person B → Person C Handoff Verification Gate (Gate 3.B)
+
+```
+PERSON B COMPLETION CHECKLIST:
+  [ ] All Day 1, Day 2, and 3.A tests STILL pass (53/53)
+  [ ] Person B Day 3 tests pass (17/17 PASS)
+  [ ] Cumulative test count: 70/70 tests PASS
+  [ ] Git commit pushed: "feat(integrations): AI triage, github webhooks, live polling, swagger ui"
+```
+
+---
+
+### Person C: High-Impact UI, Markdown, Mentions & Kanban (Hours 6 – 9)
+
+**Role**: Frontend Polish & Interactions Engineer  
+**Objective**: Build the Command Palette (`⌘K`), the drag-and-drop Kanban board, Markdown rich-text support, @mentions autocomplete, and keyboard shortcuts.
+
+#### Person C — Step-by-Step Build Instructions
+
+##### Feature 3.7 — Command Palette & Keyboard Shortcuts
+
+**Bugzilla Gap Closed**: Zero keyboard navigation. Every action requires a page reload.
+
+**`apps/web/components/CommandPalette.tsx`**: Uses `cmdk` to provide instant navigation (`/bugs/104`, `/kanban`, `/bugs/new`), status actions (`status:resolved`), and search. 
+**Keyboard shortcuts**: Global listener for `j`/`k` (navigate lists), `Enter` (open bug), `/` (focus search), `?` (help modal), `a` (assign), `c` (comment).
+
+##### Feature 3.8 — Drag-and-Drop Kanban Status Board
+
+**Bugzilla Gap Closed**: No board view. Teams manage status through individual pages only.
+
+**`apps/web/components/KanbanBoard.tsx`**: Uses `@dnd-kit/core`. Optimistically moves cards between status columns, triggering `PATCH /api/v1/bugs/:id/status`. Handles state machine rejections by rolling back visually and showing a toast.
+
+##### Feature 3.9 — Rich-Text / Markdown in Comments
+
+**`components/CommentEditor.tsx`**: Write/Preview tabs. Toolbar for formatting. Renders markdown safely with `react-markdown`, `remark-gfm`, `rehype-highlight`.
+
+##### Feature 3.10 — @Mentions Autocomplete UI
+
+**`MentionTextarea`**: Detects `@`, debounces 150ms `GET /api/v1/users/search`, shows floating avatar dropdown. Keyboard nav `ArrowUp/Down`. Mention saves cleanly in comment.
+**Notification Bell**: Polls for unread notifications, shows count, allows marking read.
+
+#### Person C — Test Suite (18 Tests: T3.26 – T3.43)
+
+**T3.26-T3.28: Command Palette**
+- T3.26: 'res' fuzzy-matches `status:resolved` action.
+- T3.27: '104' produces navigate action for `/bugs/104`.
+- T3.28: '#104' produces navigate action.
+
+**T3.29-T3.31: Kanban**
+- T3.29: Valid DnD update: HTTP 200 and audit record.
+- T3.30: Invalid DnD update: HTTP 422 and status unchanged.
+- T3.31: Missing resolution on RESOLVED rejects transition.
+
+**T3.32-T3.35: Mention Parser**
+- T3.32: Extracts multiple unique usernames.
+- T3.33: Duplicate mentions deduplicate.
+- T3.34: Email addresses ignored.
+- T3.35: No @ symbols returns empty.
+
+**T3.36-T3.37: Mentions Integration**
+- T3.36: POST comment with @mention creates notification.
+- T3.37: Mentioning non-existent user skipped silently.
+
+**T3.38-T3.40: Markdown**
+- T3.38: Bold markdown renders to strong tag.
+- T3.39: XSS script tag stripped by DOMPurify.
+- T3.40: Code fence preserved.
+
+**T3.41-T3.42: Comments**
+- T3.41: Markdown comment stored raw, returned as `format: markdown`.
+- T3.42: Plain comment returned correctly.
+
+**T3.43: Keyboard Shortcuts**
+- T3.43: Single-key triage `j/k` navigation triggers expected actions.
+
+#### Final Day 3 Verification Gate (Gate 3.C)
+
+```
+DAY 3 FINAL VERIFICATION CHECKLIST:
+  [ ] npm test  → ALL 88 TESTS PASS (0 failures)
+  [ ] Swagger UI loads at /docs
+  [ ] AI Triage returns fallback properly without API key
+  [ ] Webhooks parse GitHub payloads successfully
+  [ ] Kanban board works with valid/invalid transitions
+  [ ] Markdown preview and code copy button works
+  [ ] Command palette opens with Cmd+K
+  [ ] Git commit pushed: "feat(frontend): kanban, command palette, markdown, mentions"
+```
 
 ## High-Value Extension: `bz-monitor` — Autonomous Dev/Test Monitoring & Bi-Directional CLI (`apps/cli/`)
 
