@@ -1374,10 +1374,11 @@ Context-awareness: if current URL is `/bugs/[id]`, show status/assign commands f
 
 ---
 
-### Feature 3.2 — PostgreSQL Full-Text Search
+### Feature 3.2 — PostgreSQL Full-Text Search & Live Typeahead Duplicate Detection
 
-**Bugzilla Gap Closed**: `LIKE '%query%'` forces full table scans. `tsvector` GIN enables sub-20ms ranked stemmed search.
+**Bugzilla Gap Closed**: `LIKE '%query%'` forces full table scans. `tsvector` GIN enables sub-20ms ranked stemmed search. Duplicates are filed unknowingly and only triaged after submission.
 
+#### 1. Full-Text Search Route
 **GET `/api/v1/bugs/search?q=<query>&limit=25&offset=0`**
 
 ```typescript
@@ -1400,7 +1401,33 @@ const { rows } = await db.query(`
 - `ts_headline`: context snippet with match terms in `<mark>` tags.
 - Security filter always applied — embargoed/group bugs never appear.
 
-**Frontend**: Debounced (300ms) search input in nav header. Dropdown `<Popover>` with top 10 results: `#ID` badge, `headline` with `dangerouslySetInnerHTML` (HTML comes from PostgreSQL, not user input), status + priority badges.
+#### 2. Live Typeahead Duplicate Detection (`GET /api/v1/bugs/duplicates`)
+```typescript
+app.get('/api/v1/bugs/duplicates', {
+  schema: {
+    querystring: {
+      type: 'object',
+      required: ['summary'],
+      properties: { summary: { type: 'string', minLength: 3 } }
+    }
+  }
+}, async (request, reply) => {
+  const { summary } = request.query as { summary: string };
+  const { rows } = await db.query(
+    `SELECT id, summary, status, priority, similarity(summary, $1) AS score
+     FROM bugs
+     WHERE similarity(summary, $1) > 0.28
+     ORDER BY score DESC
+     LIMIT 5`,
+    [summary]
+  );
+  return { duplicates: rows };
+});
+```
+
+**Frontend**:
+- Search: Debounced (300ms) search input in nav header. Dropdown `<Popover>` with top 10 results.
+- Creation Form (`/bugs/new`): Debounced typeahead surfaces an alert card with potential duplicate matches (similarity > 0.28) before the user submits.
 
 ---
 
