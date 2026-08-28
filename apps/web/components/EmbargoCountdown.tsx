@@ -24,12 +24,29 @@ function pad(n: number) {
 }
 
 export function EmbargoCountdown({ embargoUntil }: { embargoUntil: string }) {
-  const [remaining, setRemaining] = useState<TimeLeft | null>(() => calcRemaining(embargoUntil));
+  const [mounted, setMounted] = useState(false);
+  const [remaining, setRemaining] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+    setRemaining(calcRemaining(embargoUntil));
     const interval = setInterval(() => setRemaining(calcRemaining(embargoUntil)), 1000);
     return () => clearInterval(interval);
   }, [embargoUntil]);
+
+  if (!mounted) {
+    return (
+      <div
+        id="embargo-loading-banner"
+        className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 text-sm font-semibold animate-pulse"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 text-base">🔒</span>
+          <span className="uppercase tracking-wide">Calculating Security Embargo...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!remaining) {
     return (

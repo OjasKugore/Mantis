@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { DependencyGraph } from '@/components/DependencyGraph';
 import { CvssModal } from '@/components/CvssModal';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
@@ -232,9 +233,15 @@ export default function Home() {
 
                     return (
                       <tr key={b.id} className="hover:bg-slate-800/40 transition">
-                        <td className="px-4 py-3 font-mono text-slate-400">#{b.id}</td>
+                        <td className="px-4 py-3 font-mono text-slate-400">
+                          <Link href={`/bugs/${b.id}`} className="hover:text-indigo-400 font-semibold underline">
+                            #{b.id}
+                          </Link>
+                        </td>
                         <td className="px-4 py-3 text-slate-200 font-semibold max-w-md truncate">
-                          {b.summary}
+                          <Link href={`/bugs/${b.id}`} className="hover:text-indigo-300 transition">
+                            {b.summary}
+                          </Link>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
@@ -248,18 +255,24 @@ export default function Home() {
                         </td>
                         <td className="px-4 py-3 text-slate-400">{b.severity}</td>
                         <td className="px-4 py-3 text-right space-x-2">
+                          <Link
+                            href={`/bugs/${b.id}`}
+                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 text-[11px] font-semibold border border-slate-700 transition"
+                          >
+                            Details
+                          </Link>
                           <button
                             onClick={() => setSelectedBugId(Number(b.id))}
                             className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold border border-slate-700 transition"
                           >
-                            View DAG
+                            DAG
                           </button>
-                          <a
+                          <Link
                             href={`/bugs/${b.id}/graph`}
                             className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold transition"
                           >
-                            Full View →
-                          </a>
+                            Graph →
+                          </Link>
                         </td>
                       </tr>
                     );
