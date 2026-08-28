@@ -1,0 +1,23 @@
+{
+  "name": "bugzilla-revamp",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev": "npm run dev:api",
+    "build": "npm --prefix packages/shared run build && npm --prefix apps/api run build",
+    "test": "npm --prefix apps/api test",
+    "test:unit": "npm --prefix apps/api run test:unit",
+    "test:integration": "npm --prefix apps/api run test:integration",
+    "seed": "npm --prefix apps/api run seed",
+    "migrate": "npm --prefix apps/api run migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
