@@ -5,6 +5,9 @@ import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { authRoutes } from './routes/auth.js';
 import { bugRoutes } from './routes/bugs.js';
+import { commentRoutes } from './routes/comments.js';
+import { notificationRoutes } from './routes/notifications.js';
+import { flagRoutes } from './routes/flags.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = fastify({
@@ -71,8 +74,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   // API v1 routes
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
   await app.register(bugRoutes, { prefix: '/api/v1/bugs' });
+  await app.register(commentRoutes, { prefix: '/api/v1' });
+  await app.register(notificationRoutes, { prefix: '/api/v1' });
+  await app.register(flagRoutes, { prefix: '/api/v1' });
 
   return app;
 }
 
 export default buildApp;
+
