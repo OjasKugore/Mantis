@@ -28,6 +28,10 @@
 | **Default theme** | **Dark mode** default + light toggle | Persist in `localStorage` via `next-themes` |
 | **Monorepo** | **npm workspaces** | Root `package.json` with `apps/api`, `apps/web`, `packages/shared` |
 | **Attachments** | **Local disk upload** (`/uploads` Docker volume) | Complete feature, ~2h on Day 3 after other features |
+| **Duplicate Prevention** | **Live Typeahead** (`pg_trgm` similarity > 0.28) | proactive duplicate suggestions on bug filing |
+| **Milestone Health** | **0–100% Release Readiness Engine** | explainable math over CPM blockers, CVSS, and Flags |
+| **Keyboard Ergonomics** | **Single-Key Triage Inbox** (`J/K/A/R/D/?`) | rapid standup triage without mouse |
+| **Engineering Metrics** | **Pure SQL MTTR & Velocity** | aggregated directly over `bugs_activity` diffs |
 | **E2E tests** | **Skip** Playwright/Cypress | 39 Vitest unit + integration tests only |
 | **Build order** | Strict **Day 1 → 2 → 3** | No parallelization |
 
@@ -72,6 +76,7 @@ clonefest-2/
 │   │   │   │   ├── security.ts      # PATCH /bugs/:id/security
 │   │   │   │   ├── webhooks.ts      # POST /webhooks/github
 │   │   │   │   ├── notifications.ts # GET /notifications; PATCH /notifications/read-all
+│   │   │   │   ├── analytics.ts     # GET /analytics/velocity; GET /milestones/:id/readiness
 │   │   │   │   └── users.ts         # GET /users/search
 │   │   │   ├── services/
 │   │   │   │   ├── stateMachine.ts  # isValidTransition(), validateResolution()
@@ -1319,17 +1324,19 @@ expect(body.embargo_until).toBeTruthy();
 ## Day 3 (Aug 30) — High-Value Polish
 
 ### Goal
-Ship 8 Phase 3 features before 8 PM Feature Freeze. Execute strictly in listed order.
+Ship 10 Phase 3 features (including 4 absorbed intelligence & UX features) before 8 PM Feature Freeze. Execute strictly in listed order.
 
 **Execution order:**
 1. Command Palette (~45 min)
-2. Full-Text Search (~30 min)
+2. Full-Text Search & Live Typeahead Duplicate Detection (~45 min)
 3. Kanban Board (~60 min)
-4. AI Triage (~45 min)
+4. AI Triage with Gemini 2.0 Flash (~45 min)
 5. Markdown Frontend (~60 min — backend done Day 1)
 6. @Mentions Autocomplete UI (~60 min — backend done Day 1)
 7. GitHub Webhook (~90 min)
-8. Live Updates + Swagger + Keyboard Shortcuts (~60 min)
+8. Live Updates, Swagger UI & Single-Key Keyboard Triage Inbox (~60 min)
+9. Explainable Release Readiness Scoring Engine (~45 min)
+10. Engineering Velocity & MTTR Analytics Engine (~45 min)
 
 ---
 
@@ -1628,7 +1635,128 @@ if (e.key === 'c' && currentBugId) commentRef.current?.focus();
 
 ---
 
-### Day 3 Test Suite (28 Named Tests)
+---
+
+### Feature 3.9 — Explainable Release Readiness Scoring (0–100%)
+
+**Bugzilla Gap Closed**: Engineering leads have no automated metric to know if a release milestone is blocked by critical path dependencies or severe security bugs.
+
+**Mathematical Risk Formulation**:
+$$\text{Readiness Score} = \max\left(0, 100 - \sum \text{Penalties}\right)$$
+
+| Blocker Condition | Penalty Weight | Rationale |
+|---|:---:|---|
+| **Open CPM Critical Path Bug** | $-15\text{ pts}$ each | Directly delays milestone completion date |
+| **Unresolved CVSS CRITICAL Vulnerability** | $-20\text{ pts}$ each | Major zero-day exploit risk block |
+| **Unresolved CVSS HIGH Vulnerability** | $-10\text{ pts}$ each | Severe security risk |
+| **Pending Blocking Flag (`review?` / `needinfo?`)** | $-5\text{ pts}$ each | Unresolved governance gate |
+| **Unresolved Priority P1 / Blocker Bug** | $-8\text{ pts}$ each | High priority defect |
+
+**Backend Endpoint (`apps/api/src/routes/analytics.ts` -> `GET /api/v1/milestones/:id/readiness`)**:
+```typescript
+export async function calculateMilestoneReadiness(milestoneId: string) {
+  const { rows: bugs } = await db.query(
+    `SELECT b.id, b.status, b.priority, b.severity, b.cvss_severity, b.estimated_time
+     FROM bugs b WHERE b.target_milestone = $1 AND b.status NOT IN ('RESOLVED','VERIFIED','CLOSED')`,
+    [milestoneId]
+  );
+
+  const { rows: deps } = await db.query(
+    `SELECT blocking_bug_id, blocked_bug_id FROM bug_dependencies
+     WHERE blocking_bug_id IN (SELECT id FROM bugs WHERE target_milestone = $1)
+        OR blocked_bug_id IN (SELECT id FROM bugs WHERE target_milestone = $1)`,
+    [milestoneId]
+  );
+
+  const { rows: pendingFlags } = await db.query(
+    `SELECT f.id FROM flags f JOIN bugs b ON b.id = f.bug_id
+     WHERE b.target_milestone = $1 AND f.status = '?'`,
+    [milestoneId]
+  );
+
+  const criticalPath = computeCPM(
+    bugs.map(b => ({ id: Number(b.id), estimatedTime: Number(b.estimated_time) || 1, status: b.status })),
+    deps.map(d => ({ blockingId: Number(d.blocking_bug_id), blockedId: Number(d.blocked_bug_id) }))
+  );
+
+  let penalties = 0;
+  const breakdown: { label: string; penalty: number }[] = [];
+
+  const cpmCount = bugs.filter(b => criticalPath.includes(Number(b.id))).length;
+  if (cpmCount > 0) {
+    const p = cpmCount * 15;
+    penalties += p;
+    breakdown.push({ label: `${cpmCount} Open Critical Path Bugs`, penalty: p });
+  }
+
+  const critCvss = bugs.filter(b => b.cvss_severity === 'CRITICAL').length;
+  if (critCvss > 0) {
+    const p = critCvss * 20;
+    penalties += p;
+    breakdown.push({ label: `${critCvss} Critical CVSS Vulnerabilities`, penalty: p });
+  }
+
+  const highCvss = bugs.filter(b => b.cvss_severity === 'HIGH').length;
+  if (highCvss > 0) {
+    const p = highCvss * 10;
+    penalties += p;
+    breakdown.push({ label: `${highCvss} High CVSS Vulnerabilities`, penalty: p });
+  }
+
+  const flagsCount = pendingFlags.length;
+  if (flagsCount > 0) {
+    const p = flagsCount * 5;
+    penalties += p;
+    breakdown.push({ label: `${flagsCount} Pending Blocking Flags`, penalty: p });
+  }
+
+  const p1Count = bugs.filter(b => b.priority === 'P1').length;
+  if (p1Count > 0) {
+    const p = p1Count * 8;
+    penalties += p;
+    breakdown.push({ label: `${p1Count} Unresolved P1 Blockers`, penalty: p });
+  }
+
+  const score = Math.max(0, 100 - penalties);
+  return { score, penalties, breakdown, totalOpenBugs: bugs.length };
+}
+```
+
+**Frontend Component (`apps/web/components/ReleaseReadinessGauge.tsx`)**:
+* Renders an animated SVG circular gauge (0–100%) with color thresholding (Green ≥85%, Amber 60–84%, Red <60%).
+* Includes an accordion detailing every penalty item with direct links to the offending bugs.
+
+---
+
+### Feature 3.10 — Engineering Velocity & MTTR Analytics (Pure SQL)
+
+**Bugzilla Gap Closed**: No native insights into resolution velocity or Mean Time To Resolve (MTTR).
+
+**Backend Endpoint (`apps/api/src/routes/analytics.ts` -> `GET /api/v1/analytics/velocity`)**:
+```typescript
+app.get('/api/v1/analytics/velocity', async (req, reply) => {
+  const { rows } = await db.query(`
+    SELECT 
+        p.name AS product_name,
+        COUNT(b.id)::int AS total_resolved,
+        ROUND(AVG(EXTRACT(EPOCH FROM (ba.changed_at - b.created_at)) / 86400)::numeric, 1)::float AS avg_mttr_days,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (ba.changed_at - b.created_at)) / 86400)::float AS median_mttr_days,
+        COUNT(CASE WHEN b.priority IN ('P1','P2') THEN 1 END)::int AS high_priority_resolved
+    FROM bugs b
+    JOIN products p ON p.id = b.product_id
+    JOIN bugs_activity ba ON ba.bug_id = b.id AND ba.field = 'status' AND ba.new_value = 'RESOLVED'
+    WHERE ba.changed_at >= NOW() - INTERVAL '30 days'
+    GROUP BY p.name;
+  `);
+
+  return { velocity: rows };
+});
+```
+
+**Frontend Widget (`apps/web/components/VelocityCard.tsx`)**:
+* Renders MTTR in days with 30-day trend comparison pill and product-by-product breakdown cards on the executive dashboard.
+
+### Day 3 Test Suite (32 Named Tests)
 
 #### `test/unit/command_palette.test.ts`
 
@@ -1976,6 +2104,46 @@ expect(res.json()[0].commit_sha).toHaveLength(40);
 ```
 
 ---
+
+**T3.29 — GET /api/v1/bugs/duplicates returns similarity matches > 0.28**
+```typescript
+const res = await app.inject({
+  method: 'GET',
+  url: '/api/v1/bugs/duplicates?summary=Crash in networking auth module',
+});
+expect(res.statusCode).toBe(200);
+expect(res.json().duplicates.length).toBeGreaterThanOrEqual(1);
+expect(res.json().duplicates[0].score).toBeGreaterThan(0.28);
+```
+
+**T3.30 — Milestone readiness score applies correct penalties for CPM blockers & CVSS**
+```typescript
+const res = await app.inject({
+  method: 'GET',
+  url: '/api/v1/milestones/v2.0/readiness',
+});
+expect(res.statusCode).toBe(200);
+const data = res.json();
+expect(data.score).toBeLessThanOrEqual(100);
+expect(data.breakdown.length).toBeGreaterThan(0);
+```
+
+**T3.31 — GET /api/v1/analytics/velocity returns MTTR aggregated from bugs_activity**
+```typescript
+const res = await app.inject({
+  method: 'GET',
+  url: '/api/v1/analytics/velocity',
+});
+expect(res.statusCode).toBe(200);
+expect(Array.isArray(res.json().velocity)).toBe(true);
+```
+
+**T3.32 — Single-key keyboard triage J/K/A/R navigation triggers expected actions**
+```typescript
+// Unit test for keyboard event handler
+const handled = handleTriageKey('r', focusedBugId);
+expect(handled.action).toBe('OPEN_RESOLVE_DIALOG');
+```
 
 ## Final Freeze Checklist (Aug 30, 8:00 PM → 11:59 PM)
 
