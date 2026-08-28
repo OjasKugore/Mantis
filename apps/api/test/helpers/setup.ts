@@ -203,7 +203,7 @@ export async function setupTestEnvironment() {
 
 export async function getTestApp(): Promise<FastifyInstance> {
   if (!testApp) {
-    process.env.NODE_ENV = 'test';
+    (process.env as any).NODE_ENV = 'test';
     testApp = await buildApp();
     await testApp.ready();
   }
@@ -317,6 +317,10 @@ export async function createTestBug(
     resolution?: string;
     priority?: string;
     severity?: string;
+    version?: string;
+    target_milestone?: string;
+    estimated_time?: number;
+    remaining_time?: number;
     is_embargoed?: boolean;
     cvss_score?: number;
     cvss_severity?: string;
@@ -330,6 +334,10 @@ export async function createTestBug(
   const resolution = overrides.resolution || '';
   const priority = overrides.priority || 'P3';
   const severity = overrides.severity || 'normal';
+  const version = overrides.version || 'unspecified';
+  const target_milestone = overrides.target_milestone || '---';
+  const estimated_time = overrides.estimated_time || 0;
+  const remaining_time = overrides.remaining_time || 0;
   const is_embargoed = overrides.is_embargoed || false;
   const cvss_score = overrides.cvss_score || null;
   const cvss_severity = overrides.cvss_severity || null;
@@ -337,9 +345,10 @@ export async function createTestBug(
   const { rows } = await db.query(
     `INSERT INTO bugs (
       summary, description, status, resolution, priority, severity,
+      version, target_milestone, estimated_time, remaining_time,
       product_id, component_id, reporter_id, is_embargoed, cvss_score, cvss_severity
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
     RETURNING *`,
     [
       summary,
@@ -348,6 +357,10 @@ export async function createTestBug(
       resolution,
       priority,
       severity,
+      version,
+      target_milestone,
+      estimated_time,
+      remaining_time,
       product_id,
       component_id,
       reporterId,
