@@ -235,6 +235,181 @@ CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
 
 ---
 
+## 8. 🔔 @Mentions in Comments with Autocomplete (Phase 3 Polish)
+
+**Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
+**Bugzilla Gap Addressed**: Bugzilla's CC list is a blunt instrument — there is no way to directly address a team member inside a comment thread. This replaces that primitive mechanism with inline `@username` mentions backed by a real-time autocomplete typeahead.
+
+### 8.1 Data Schema
+```sql
+CREATE TABLE comment_mentions (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    comment_id  BIGINT NOT NULL REFERENCES bug_comments(id) ON DELETE CASCADE,
+    mentioned_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (comment_id, mentioned_user_id)
+);
+
+CREATE INDEX idx_mentions_user ON comment_mentions(mentioned_user_id);
+```
+
+### 8.2 Backend Logic
+- **Autocomplete Endpoint**: `GET /api/v1/users/search?q=jo&limit=8`  
+  Returns `[{ id, display_name, avatar_url }]` filtered to users who share at least one product/group with the requester. Restricted users are never surfaced.
+- **Mention Extraction on Save**: When `POST /api/v1/bugs/:id/comments` is called, the server parses the comment body with a regex (`/@([\w.-]+)/g`), resolves matching usernames to user IDs, and inserts rows into `comment_mentions` in the same transaction. Each mentioned user receives an in-app notification immediately.
+- **Notification Payload**:
+  ```json
+  { "type": "mention", "bug_id": 104, "comment_id": 88, "actor": "jsmith", "excerpt": "@jsmith can you check the stack trace?" }
+  ```
+
+### 8.3 UI & Component Architecture
+- **Trigger**: Typing `@` inside the comment textarea activates a floating dropdown anchored below the caret.
+- **Typeahead Component**: Debounced 150ms fetch to `/api/v1/users/search?q=<typed>`. Renders user avatar, display name, and username. Keyboard-navigable (`↑`/`↓`, `Enter` to select, `Esc` to dismiss).
+- **Rendered Mention**: In saved comments, `@jsmith` is rendered as a styled `<a>` pill linking to the user profile, visually distinct from surrounding text.
+- **Separation from CC list**: Mentions trigger targeted notifications only; they do not automatically add the user to the bug's CC list (preserving the semantic distinction).
+
+### 8.4 API Endpoints
+- `GET /api/v1/users/search?q=<term>&limit=8`: Returns matching users visible to the current session.
+- `POST /api/v1/bugs/:id/comments`: Existing endpoint — extracts and persists mentions as a side-effect within the same transaction.
+- `GET /api/v1/notifications`: Returns pending mention notifications for the authenticated user.
+
+### 8.5 Automated Test Specifications
+* **Unit Tests (`test/unit/mention_parser.test.ts`)**:
+  - Verifies regex extracts `['jsmith', 'alice']` from `"@jsmith and @alice please review"`.
+  - Verifies mention extraction on a comment with no `@` symbols returns an empty array.
+  - Verifies duplicate mentions (same user mentioned twice) deduplicate to a single `comment_mentions` row.
+* **Integration Tests (`test/integration/mentions.test.ts`)**:
+  - `POST /api/v1/bugs/101/comments` with body `"@jsmith can you check?"`: Asserts `comment_mentions` contains one row for `jsmith`'s user ID.
+  - Asserts `GET /api/v1/notifications` for `jsmith` returns the pending mention notification.
+  - Asserts mentioning a user in a restricted group bug (that the commenter is not a member of) is rejected with HTTP 403.
+
+---
+
+## 9. 📝 Rich-Text / Markdown Support in Comments (Phase 3 Polish)
+
+**Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
+**Bugzilla Gap Addressed**: Bugzilla stores and renders all comments as plain text. Code snippets, reproduction steps, and stack traces are completely unformatted, making long bug threads extremely hard to read.
+
+### 9.1 Data Schema
+```sql
+ALTER TABLE bug_comments ADD COLUMN format VARCHAR(16) NOT NULL DEFAULT 'markdown'
+    CHECK (format IN ('plain', 'markdown'));
+```
+Existing plain-text comments are preserved with `format = 'plain'` and rendered as-is. All new comments default to `format = 'markdown'`.
+
+### 9.2 Backend Logic
+- **Storage**: Raw Markdown source is stored in `bug_comments.body` — the server never stores pre-rendered HTML, eliminating stored XSS vectors.
+- **Sanitization**: On `GET`, the API returns the raw Markdown. The frontend renders it client-side. If a server-side HTML render is ever needed (e.g. email), the body is processed through `marked` + `DOMPurify` server-side before dispatch.
+- **No schema migration needed for content**: The `body TEXT` column already exists; only the `format` column is added.
+
+### 9.3 UI & Component Architecture
+- **Editor**: The comment textarea is enhanced with a lightweight toolbar (Bold, Italic, Code, Code Block, Link, Ordered/Unordered List). Toolbar actions wrap the current selection with the appropriate Markdown syntax.
+- **Live Preview Tab**: A two-tab interface — **Write** | **Preview** — toggled above the textarea. The Preview tab renders `react-markdown` with `remark-gfm` (GitHub Flavored Markdown: tables, strikethrough, task lists) and `rehype-highlight` for syntax-highlighted code fences.
+- **Rendered Comments**: Saved comments use the same `react-markdown` + `remark-gfm` pipeline. Code blocks render with a monospace font, line numbers, and a **Copy** button. Inline `@mention` pills are handled by a custom `react-markdown` renderer for the mention syntax.
+- **Backward Compatibility**: Comments with `format = 'plain'` are wrapped in a `<pre>` block, preserving original whitespace and appearance.
+
+### 9.4 API Endpoints
+- `POST /api/v1/bugs/:id/comments`: Accepts `{ body: string, format: 'markdown' | 'plain' }`. Stores raw source.
+- `GET /api/v1/bugs/:id/comments`: Returns `{ id, body, format, author, created_at }` — raw source plus format discriminator so the client renders correctly.
+
+### 9.5 Automated Test Specifications
+* **Unit Tests (`test/unit/markdown_sanitizer.test.ts`)**:
+  - Verifies a server-side render of `**bold**` produces `<strong>bold</strong>`.
+  - Verifies a malicious payload `<script>alert(1)</script>` in Markdown body is stripped to an empty string after `DOMPurify` sanitization.
+  - Verifies a triple-backtick code fence preserves raw content without HTML-escaping issues.
+* **Integration Tests (`test/integration/comments.test.ts`)**:
+  - `POST /api/v1/bugs/101/comments` with `{ body: "## Root Cause", format: "markdown" }`: Returns HTTP 201 and stores raw Markdown.
+  - `GET /api/v1/bugs/101/comments`: Returns the comment with `format: "markdown"` and the unmodified raw body.
+  - Asserts that a comment posted with `format: "plain"` is returned with `format: "plain"` and body unchanged.
+
+---
+
+## 10. 🔗 Git / GitHub Webhook Integration (Phase 3 Polish)
+
+**Target Rubric Areas**: Innovation & Differentiation (20 pts), Core Functionality (20 pts)  
+**Bugzilla Gap Addressed**: Legacy Bugzilla has zero awareness of source control. Engineers must manually paste commit links into comments. This integration auto-links commits to bugs via commit message conventions, auto-closes bugs on merge, and surfaces linked PRs directly on the bug detail page.
+
+### 10.1 Data Schema
+```sql
+CREATE TABLE bug_commits (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    bug_id      BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
+    repo_full_name VARCHAR(256) NOT NULL,          -- e.g. 'org/repo'
+    commit_sha  VARCHAR(40) NOT NULL,
+    commit_message TEXT NOT NULL,
+    author_name VARCHAR(256),
+    author_email VARCHAR(256),
+    committed_at TIMESTAMPTZ,
+    html_url    TEXT,                              -- GitHub permalink
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (bug_id, commit_sha)
+);
+
+CREATE TABLE bug_pull_requests (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    bug_id      BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
+    repo_full_name VARCHAR(256) NOT NULL,
+    pr_number   INT NOT NULL,
+    pr_title    TEXT NOT NULL,
+    pr_state    VARCHAR(16) NOT NULL,              -- 'open', 'closed', 'merged'
+    pr_url      TEXT NOT NULL,
+    merged_at   TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (bug_id, repo_full_name, pr_number)
+);
+
+CREATE INDEX idx_bug_commits_bug ON bug_commits(bug_id);
+CREATE INDEX idx_bug_prs_bug ON bug_pull_requests(bug_id);
+```
+
+### 10.2 Algorithmic Core: Commit Message Parsing & Auto-Close
+1. **Commit Message Convention** — the server scans commit messages for these patterns (case-insensitive):
+   - **Link only**: `Refs #104`, `See #104`, `Related to #104`
+   - **Auto-close**: `Fixes #104`, `Closes #104`, `Resolves #104`
+2. **Regex extraction**:
+   ```typescript
+   const BUG_REF_RE = /(?:fixes|closes|resolves|refs|see|related to)\s+#(\d+)/gi;
+   ```
+3. **Auto-close logic**: When a `push` event arrives with a commit targeting the repository's default branch (`refs/heads/main` or `refs/heads/master`) and the message contains a closing keyword, the server transitions the referenced bug to `RESOLVED` (if currently `IN_PROGRESS` or `CONFIRMED`) and appends a `bugs_activity` audit row: `{ field: 'status', old_value: 'IN_PROGRESS', new_value: 'RESOLVED', who: 'github-bot', comment: 'Auto-closed by commit abc1234' }`.
+4. **PR Merge Close**: On `pull_request` event with `action: 'closed'` and `merged: true` targeting the default branch, the same auto-close logic fires.
+
+### 10.3 Webhook Receiver Architecture
+- **Endpoint**: `POST /api/v1/webhooks/github`
+- **Signature Verification**: Validates `X-Hub-Signature-256` HMAC-SHA256 header using a per-repository `GITHUB_WEBHOOK_SECRET` environment variable. Requests with invalid or missing signatures return HTTP 401 immediately.
+- **Event Routing**:
+  ```
+  push event           → parse commits → extract bug refs → upsert bug_commits → auto-close if keyword matched
+  pull_request event   → upsert bug_pull_requests → auto-close on merge
+  ```
+- **Idempotency**: `UNIQUE (bug_id, commit_sha)` and `UNIQUE (bug_id, repo_full_name, pr_number)` constraints ensure replayed webhooks are no-ops.
+- **Setup Instructions** (shown in the UI Settings page): User pastes the Fastify endpoint URL and the randomly generated webhook secret into their GitHub repository's Webhook settings. No OAuth is required.
+
+### 10.4 UI: Linked Commits & PRs on Bug Detail Page
+- **"Activity & Commits" Section**: A dedicated tab on the bug detail page shows two sub-lists:
+  - **Commits**: Each entry shows `[short SHA]` (linking to GitHub), author avatar, commit message, and relative timestamp.
+  - **Pull Requests**: Each entry shows PR number + title (linking to GitHub), state badge (`OPEN` in green / `MERGED` in purple / `CLOSED` in grey), and merge timestamp if applicable.
+- **Auto-close Banner**: When a bug was auto-resolved via a commit or PR merge, an info banner on the bug detail page reads: *"✅ Auto-resolved by commit `abc1234` on Aug 30, 2026."*
+
+### 10.5 API Endpoints
+- `POST /api/v1/webhooks/github`: Receives GitHub webhook payloads. Validates HMAC signature. Returns HTTP 200 on success, HTTP 401 on signature failure, HTTP 422 on unrecognized event type.
+- `GET /api/v1/bugs/:id/commits`: Returns `[{ sha, message, author_name, html_url, committed_at }]` for the bug.
+- `GET /api/v1/bugs/:id/pull-requests`: Returns `[{ pr_number, pr_title, pr_state, pr_url, merged_at }]` for the bug.
+
+### 10.6 Automated Test Specifications
+* **Unit Tests (`test/unit/webhook_parser.test.ts`)**:
+  - Verifies `"Fixes #104: null pointer in auth handler"` extracts `[{ bugId: 104, autoClose: true }]`.
+  - Verifies `"Refs #101 and #102"` extracts `[{ bugId: 101, autoClose: false }, { bugId: 102, autoClose: false }]`.
+  - Verifies a commit message with no bug reference returns an empty array.
+  - Verifies a PR merge event targeting a non-default branch (`feature/xyz`) does **not** trigger auto-close.
+* **Integration Tests (`test/integration/webhooks.test.ts`)**:
+  - `POST /api/v1/webhooks/github` with a valid HMAC signature and a `push` payload containing `"Fixes #101"`: Asserts `bug_commits` row inserted and bug #101 transitions to `RESOLVED` with an auto-close `bugs_activity` record.
+  - `POST /api/v1/webhooks/github` with an invalid signature: Returns HTTP 401 and makes zero database mutations.
+  - `POST /api/v1/webhooks/github` with a `pull_request` `merged` event for `"Closes #102"`: Asserts `bug_pull_requests` row upserted with `pr_state: 'merged'` and bug #102 auto-resolves.
+  - Replayed identical webhook payload: Returns HTTP 200 but creates no duplicate rows (idempotency assertion).
+  - `GET /api/v1/bugs/101/commits`: Returns the linked commit after the push webhook is processed.
+
+---
+
 # PART II: EXTENDED ENTERPRISE ROADMAP (Documented Architecture)
 
 The following eleven features represent the comprehensive enterprise roadmap. They are preserved in complete technical detail to demonstrate architectural rigor and long-term viability.
@@ -387,13 +562,16 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 | **5** | **Drag-and-Drop Kanban Status Board** | 🟢 **Phase 3 (Live Demo)** | UX & Aesthetics (15) + Core Func (20) | Visual board calling server state machine with invalid move rollback. |
 | **6** | **1-Click AI Triage Assistant** | 🟢 **Phase 3 (Live Demo)** | Innovation (20) + Problem (20) | Instant LLM thread summary, priority recommendation, and action plan. |
 | **7** | **Lightweight Live Updates** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Performance (20) | Real-time visual badge refreshes via polling / WebSocket broadcast. |
-| **8** | **CRDT Multiplayer Ticket Editing** | 📄 Phase 4 (Roadmap) | Problem (20) + Reliability (20) + Tech (15) | Yjs/y-redis 3-tier persistence eliminating Bugzilla Mid-Air Collisions. |
-| **9** | **Code Navigation & Fault Localization** | 📄 Phase 4 (Roadmap) | Innovation (20) + Tech Arch (15) | Stack trace regex parser and embedded Monaco culprit line viewer. |
-| **10** | **AI Semantic Vector Search & Blame Routing** | 📄 Phase 4 (Roadmap) | Innovation (20) + Problem (20) | pgvector HNSW duplicate search and Git-blame author routing. |
-| **11** | **Real-Time Analytics & Team Health Cockpit** | 📄 Phase 4 (Roadmap) | Performance (20) + UX (15) | PostgreSQL materialized view rollups, defect escape rates, SLA heatmaps. |
-| **12** | **Event-Driven Automation & SLA Escalation** | 📄 Phase 4 (Roadmap) | Innovation (20) + Core Func (20) | BullMQ event queue processing declarative JSON logic rule trees. |
-| **13** | **Intelligent Notification Center** | 📄 Phase 4 (Roadmap) | Problem Understanding (20) | 15-minute sliding digest bundling and multi-channel bots. |
-| **14** | **Enterprise RBAC & Audit Compliance** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | Granular permission matrix, SOC 2 exports, and GDPR PII scrubbing. |
-| **15** | **Data Portability & GraphQL Subscriptions** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | OpenAPI 3.1 Swagger playground and live GraphQL subscriptions. |
-| **16** | **Mobile-First Progressive Web App (PWA)** | 📄 Phase 4 (Roadmap) | UX & Accessibility (15) | Offline Workbox service workers and mobile camera/voice capture. |
-| **17** | **Accessibility (WCAG 2.1 AA) & Plugin Sandbox** | 📄 Phase 4 (Roadmap) | UX (15) + Tech (15) | Screen-reader tested, RTL support, and sandboxed TypeScript plugin runtime. |
+| **8** | **@Mentions in Comments with Autocomplete** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Core Func (20) | Real-time typeahead, mention pill rendering, targeted notifications — replaces blunt CC list. |
+| **9** | **Rich-Text / Markdown Support in Comments** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Core Func (20) | GFM renderer with syntax-highlighted code fences and live Write/Preview toggle. |
+| **10** | **Git / GitHub Webhook Integration** | 🟢 **Phase 3 (Live Demo)** | Innovation (20) + Core Func (20) | HMAC-verified webhook receiver; auto-links commits, auto-closes on merge, surfaces PR state badges. |
+| **11** | **CRDT Multiplayer Ticket Editing** | 📄 Phase 4 (Roadmap) | Problem (20) + Reliability (20) + Tech (15) | Yjs/y-redis 3-tier persistence eliminating Bugzilla Mid-Air Collisions. |
+| **12** | **Code Navigation & Fault Localization** | 📄 Phase 4 (Roadmap) | Innovation (20) + Tech Arch (15) | Stack trace regex parser and embedded Monaco culprit line viewer. |
+| **13** | **AI Semantic Vector Search & Blame Routing** | 📄 Phase 4 (Roadmap) | Innovation (20) + Problem (20) | pgvector HNSW duplicate search and Git-blame author routing. |
+| **14** | **Real-Time Analytics & Team Health Cockpit** | 📄 Phase 4 (Roadmap) | Performance (20) + UX (15) | PostgreSQL materialized view rollups, defect escape rates, SLA heatmaps. |
+| **15** | **Event-Driven Automation & SLA Escalation** | 📄 Phase 4 (Roadmap) | Innovation (20) + Core Func (20) | BullMQ event queue processing declarative JSON logic rule trees. |
+| **16** | **Intelligent Notification Center** | 📄 Phase 4 (Roadmap) | Problem Understanding (20) | 15-minute sliding digest bundling and multi-channel bots. |
+| **17** | **Enterprise RBAC & Audit Compliance** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | Granular permission matrix, SOC 2 exports, and GDPR PII scrubbing. |
+| **18** | **Data Portability & GraphQL Subscriptions** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | OpenAPI 3.1 Swagger playground and live GraphQL subscriptions. |
+| **19** | **Mobile-First Progressive Web App (PWA)** | 📄 Phase 4 (Roadmap) | UX & Accessibility (15) | Offline Workbox service workers and mobile camera/voice capture. |
+| **20** | **Accessibility (WCAG 2.1 AA) & Plugin Sandbox** | 📄 Phase 4 (Roadmap) | UX (15) + Tech (15) | Screen-reader tested, RTL support, and sandboxed TypeScript plugin runtime. |
