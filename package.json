@@ -7,6 +7,8 @@
     "packages/*"
   ],
   "scripts": {
+    "preflight": "node scripts/preflight.mjs",
+    "setup": "npm run preflight && docker compose up -d db && node -e \"setTimeout(()=>{},5000)\" && npm run migrate && npm run seed",
     "dev:api": "npm --prefix apps/api run dev",
     "dev:web": "npm --prefix apps/web run dev",
     "dev": "npm run dev:api",
