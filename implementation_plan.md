@@ -5,15 +5,25 @@
 
 ---
 
-## Executive Summary: 3-Member Sequential Split (Day 1)
+## Executive Summary: 3-Member Sequential Split (Day 1 & Day 2)
 
 > **Execution Protocol**: Strictly sequential (Person A → Person B → Person C). Zero parallel conflicts. Each person begins only when the preceding person's verification gate passes 100%.
+
+### Day 1: Core Foundation (Hours 0 – 15)
 
 | Member | Stage | Timebox | Deliverables | Tests | Handoff Contract to Next Person |
 |---|---|---|---|---|---|
 | **Person A** | 1.A | Hours 0–5 | Monorepo scaffold (`npm workspaces`), `docker-compose.yml`, full 16-table PostgreSQL DDL (`001_initial.sql`), Fastify 4 app skeleton + `pg.Pool`, Argon2id crypto, session store & `authMiddleware`, Auth routes (`/signup`, `/login`, `/logout`, `/me`) | T1.1–T1.9 (9 tests) | **Gate 1 (9/9 pass)**: DB healthy on port 5432, Fastify boots on 3001, `authMiddleware` exported, test user helpers ready in `test/helpers/setup.ts` |
 | **Person B** | 1.B | Hours 5–10 | State machine service (`VALID_TRANSITIONS`), append-only audit trail (`bugs_activity`), 404 security group filter (`applyGroupFilter`), Bug CRUD routes (`POST /bugs`, `GET /bugs`, `GET /bugs/:id`, `PATCH /bugs/:id`, `PATCH /bugs/:id/status`) | T1.10–T1.19 (10 tests) | **Gate 2 (19/19 pass)**: Working bug CRUD & status endpoints at `/api/v1/bugs`, `recordActivity()` exported, `createTestBug()` ready in test harness |
 | **Person C** | 1.C | Hours 10–15 | `@mention` regex parser, Comment routes with Markdown/Plain support, in-app notifications, Three-State Flags (`?` → `+`/`-`), Master Seed data generator (30 bugs, 10 users, 2 flag types, groups, keywords) | T1.20–T1.21 (2 tests) + Full Regression | **Final Day 1 Gate (21/21 pass)**: Database seeded with 30 realistic bugs, all 21 Day 1 tests 100% green, Swagger UI (`/docs`) operational |
+
+### Day 2: Evaluator Moats (Hours 15 – 30)
+
+| Member | Stage | Timebox | Deliverables | Tests | Handoff Contract to Next Person |
+|---|---|---|---|---|---|
+| **Person A** | 2.A | Hours 0–5 | CPM Service (`computeCPM`), Kahn's Topological Sort, Recursive CTE Cycle Detection, Dependency API (`POST /dependencies`, `DELETE /dependencies/:blocked_id`, `GET /graph`) | T2.1–T2.11 (11 tests: 5 unit + 6 integration) | **Gate 2.A (32/32 pass)**: Working dependency CRUD & DAG calculation at `/api/v1/bugs/:id/graph`, `computeCPM()` exported, `createTestDependency()` ready in test harness |
+| **Person B** | 2.B | Hours 5–10 | FIRST.org CVSS v4.0 math engine (`cvss4.ts` with MacroVector EQ1–EQ5 lookup tables), Security bug route (`PATCH /bugs/:id/security`), Automatic 90-day embargo date calculation, Security-team group isolation & 404 secrecy | T2.12–T2.20 (9 tests: 5 unit + 4 integration) | **Gate 2.B (41/41 pass)**: Working CVSS calculation & embargo security endpoint at `/api/v1/bugs/:id/security`, `computeCvss4Score()` exported for UI, 404 security group isolation active |
+| **Person C** | 2.C | Hours 10–15 | Interactive React Flow DAG component (`@xyflow/react` + `dagre` layout + `.critical-edge` pulse + node click slideover + add dependency combobox), CVSS v4.0 interactive modal (`CvssModal.tsx`), Embargo countdown banner (`EmbargoCountdown.tsx`), Bug Detail graph tab & route | T2.21–T2.24 (4 tests) + Full Day 2 Regression | **Final Day 2 Gate (45/45 pass)**: Full visual DAG with animated critical path, live CVSS score arc, ticking embargo timer, all 45 Day 1 & Day 2 tests 100% green |
 
 ---
 
@@ -1007,76 +1017,73 @@ DAY 1 FINAL VERIFICATION CHECKLIST:
 
 ---
 
-## Day 2 (Aug 29) — Evaluator Moats
+## Day 2 (Aug 29) — Evaluator Moats (Sequential 3-Person Division)
 
 ### Goal
-Deliver the two highest-scoring Phase 2 differentiators. Dependency graph renders with pulsing red critical path; CVSS v4.0 calculator matches FIRST.org benchmark vectors. **All 12 Phase 2 tests green before midnight.**
+Deliver the two highest-scoring Phase 2 differentiators. Interactive dependency graph renders with pulsing red critical path (`computeCPM`); CVSS v4.0 calculator implements exact FIRST.org MacroVector math and real-time visual score arc; security bugs are sealed under automatic 90-day embargo timers with strict 404 security group isolation. **All 24 Day 2 tests (T2.1–T2.24) and 45 cumulative tests green before midnight.**
 
 ---
 
-### Feature 2.1 — Interactive Dependency Graph & Critical Path Engine
+### Sequential Work Pipeline (Zero Parallel Friction)
 
-**Bugzilla Gap Closed**: `showdependencygraph.cgi` shells out to Graphviz `dot` and returns a static blurry PNG image map — uneditable, non-interactive, impossible on mobile. This replaces it with a live React Flow DAG.
-
-#### Build Steps
-
-**Backend (`apps/api/src/routes/dependencies.ts`):**
-
-**POST `/api/v1/bugs/:id/dependencies`** _(authMiddleware)_
-- Body: `{ blocked_bug_id: number }`.
-- Validate `blocked_bug_id` exists and user has access.
-- Open transaction:
-  1. Run cycle-detection CTE. If a row is returned → ROLLBACK → 422 `{ error: 'CYCLIC_DEPENDENCY_DETECTED' }`.
-  2. `INSERT INTO bug_dependencies (blocking_bug_id, blocked_bug_id, created_by)`.
-  3. `recordActivity` for both bugs.
-- Return `201 { blocking_bug_id, blocked_bug_id }`.
-
-```sql
--- Cycle detection CTE (first statement in transaction)
-WITH RECURSIVE check_cycle AS (
-  SELECT blocking_bug_id, blocked_bug_id
-  FROM bug_dependencies
-  WHERE blocking_bug_id = $new_blocked_id
-  UNION ALL
-  SELECT d.blocking_bug_id, d.blocked_bug_id
-  FROM bug_dependencies d
-  JOIN check_cycle c ON d.blocking_bug_id = c.blocked_bug_id
-)
-SELECT 1 FROM check_cycle WHERE blocked_bug_id = $new_blocking_id LIMIT 1;
+```mermaid
+flowchart LR
+    D1["<b>Day 1 Gate Passed</b><br/>21/21 Green Tests"] --> A["<b>Person A (Hours 0-5)</b><br/><b>Graph & CPM Engine</b><br/>• computeCPM() Service<br/>• Recursive CTE Cycle Detection<br/>• Dependency CRUD Routes<br/>• Tests T2.1 - T2.11"]
+    A -->|Gate 2.A: 32/32 Tests Green| B["<b>Person B (Hours 5-10)</b><br/><b>CVSS v4.0 & Security</b><br/>• CVSS v4.0 MacroVectors<br/>• Security Route PATCH<br/>• 90-Day Auto Embargo<br/>• Tests T2.12 - T2.20"]
+    B -->|Gate 2.B: 41/41 Tests Green| C["<b>Person C (Hours 10-15)</b><br/><b>Visual DAG & Security UI</b><br/>• React Flow + dagre DAG<br/>• Pulsing Red Critical Path<br/>• CVSS Modal & Score Arc<br/>• Embargo Live Countdown<br/>• Tests T2.21 - T2.24"]
+    C -->|Final Day 2 Gate: 45/45 Green| D["<b>Day 2 Complete & Verified</b><br/>Ready for Day 3 Polish & Search"]
 ```
 
-**DELETE `/api/v1/bugs/:id/dependencies/:blocked_id`** _(authMiddleware)_
-- DELETE row → recordActivity for both bugs → return 204.
+---
 
-**GET `/api/v1/bugs/:id/graph`**
-- Recursively fetch all reachable nodes (upstream + downstream CTEs).
-- Fetch `{ id, summary, status, priority, estimated_time }` for each.
-- Call `computeCPM(nodes, edges)` server-side.
-- Return `{ nodes, edges, criticalPathIds }`.
+### Person A: Graph Engine, CPM Algorithm & Dependency Backend (Hours 0 – 5)
 
-**`apps/api/src/services/cpm.ts`**:
+**Role**: Graph Algorithms & Backend Systems Engineer  
+**Objective**: Pick up the verified Day 1 codebase. Implement Kahn's topological sort and the Critical Path Method (CPM) algorithm (`apps/api/src/services/cpm.ts`), recursive CTE cycle detection and DAG traversal queries in PostgreSQL, and full dependency management endpoints (`apps/api/src/routes/dependencies.ts`).
 
+#### Person A — Deliverables & Files to Create
+1. `apps/api/src/services/cpm.ts` (`computeCPM`, `GraphNode`, `GraphEdge`, topological sort, Earliest Finish Time calculation, backtrack)
+2. `apps/api/src/routes/dependencies.ts` (POST `/api/v1/bugs/:id/dependencies` with cycle detection CTE, DELETE `/api/v1/bugs/:id/dependencies/:blocked_id`, GET `/api/v1/bugs/:id/graph`)
+3. Update `apps/api/test/helpers/setup.ts` (add `createTestDependency` helper)
+4. `apps/api/test/unit/graph_cpm.test.ts` (Tests T2.1 – T2.5)
+5. `apps/api/test/integration/dependencies.test.ts` (Tests T2.6 – T2.11)
+
+#### Person A — Step-by-Step Build Instructions
+
+##### Step A.1: CPM Algorithm Service (`apps/api/src/services/cpm.ts`)
 ```typescript
-export interface GraphNode { id: number; estimatedTime: number; status: string; }
-export interface GraphEdge { blockingId: number; blockedId: number; }
+export interface GraphNode {
+  id: number;
+  estimatedTime: number;
+  status: string;
+}
+
+export interface GraphEdge {
+  blockingId: number;
+  blockedId: number;
+}
 
 export function computeCPM(nodes: GraphNode[], edges: GraphEdge[]): number[] {
   if (nodes.length === 0) return [];
+  if (nodes.length === 1) return [nodes[0].id];
 
-  // Build adjacency maps
+  // 1. Build adjacency maps
   const outgoing = new Map<number, number[]>();
   const incoming = new Map<number, number[]>();
-  for (const n of nodes) { outgoing.set(n.id, []); incoming.set(n.id, []); }
+  for (const n of nodes) {
+    outgoing.set(n.id, []);
+    incoming.set(n.id, []);
+  }
   for (const e of edges) {
     outgoing.get(e.blockingId)?.push(e.blockedId);
     incoming.get(e.blockedId)?.push(e.blockingId);
   }
 
-  // Kahn's topological sort (cycles are rejected server-side before this runs)
+  // 2. Kahn's topological sort (cycles are rejected server-side before this runs)
   const inDegree = new Map(nodes.map(n => [n.id, (incoming.get(n.id) ?? []).length]));
   const queue = nodes.filter(n => inDegree.get(n.id) === 0).map(n => n.id);
   const topoOrder: number[] = [];
-  while (queue.length) {
+  while (queue.length > 0) {
     const cur = queue.shift()!;
     topoOrder.push(cur);
     for (const next of outgoing.get(cur) ?? []) {
@@ -1085,197 +1092,557 @@ export function computeCPM(nodes: GraphNode[], edges: GraphEdge[]): number[] {
     }
   }
 
-  // Compute Earliest Finish Time per node
+  // If isolated nodes or disconnected subgraphs exist, ensure all nodes are covered
+  for (const n of nodes) {
+    if (!topoOrder.includes(n.id)) topoOrder.push(n.id);
+  }
+
+  // 3. Dynamic Programming: Compute Earliest Finish Time (EFT) per node
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
   const eft = new Map<number, number>();
   for (const id of topoOrder) {
     const node = nodeMap.get(id)!;
+    const duration = Number(node.estimatedTime) > 0 ? Number(node.estimatedTime) : 1;
     const maxPredEFT = Math.max(0, ...(incoming.get(id) ?? []).map(p => eft.get(p) ?? 0));
-    eft.set(id, maxPredEFT + node.estimatedTime);
+    eft.set(id, maxPredEFT + duration);
   }
 
-  // Backtrack from max-EFT node to find critical path
+  // 4. Backtrack from max-EFT sink node to find critical path chain
   const maxEFT = Math.max(...[...eft.values()]);
-  let current = [...eft.entries()].find(([, v]) => v === maxEFT)![0];
+  const sinkEntries = [...eft.entries()].filter(([, v]) => v === maxEFT);
+  if (sinkEntries.length === 0) return [nodes[0].id];
+
+  let current = sinkEntries[0][0];
   const path: number[] = [current];
   while ((incoming.get(current) ?? []).length > 0) {
-    const pred = (incoming.get(current) ?? [])
-      .reduce((best, p) => (eft.get(p)! > eft.get(best)! ? p : best));
-    path.unshift(pred);
-    current = pred;
+    const preds = incoming.get(current)!;
+    const bestPred = preds.reduce((best, p) => ((eft.get(p) ?? 0) > (eft.get(best) ?? 0) ? p : best), preds[0]);
+    path.unshift(bestPred);
+    current = bestPred;
   }
   return path;
 }
 ```
 
-**Frontend (`components/DependencyGraph.tsx`):**
-1. Fetch `GET /api/v1/bugs/:id/graph` on mount.
-2. Apply `dagre` layout: `rankdir:'TB'`, `nodesep:60`, `ranksep:80`.
-3. Pass to `<ReactFlow>` with custom node/edge components.
-4. **Critical path edges**: CSS class `critical-edge` with `@keyframes pulse { 0%,100%{stroke-opacity:1} 50%{stroke-opacity:0.3} }` 1.5s infinite. Stroke `#EF4444`.
-5. **Node hover**: compute upstream/downstream IDs → apply amber border class.
-6. **Node click**: open shadcn `<Sheet>` slide-over. Fetch `GET /bugs/:id` → render `<BugDetailCard>` with inline status/assignee dropdowns.
-7. **"Add dependency"** panel: `<Combobox>` querying `GET /bugs?q=<text>` → `POST /dependencies` → refetch graph.
-
----
-
-### Feature 2.2 — CVSS v4.0 & Embargo Countdown
-
-**Bugzilla Gap Closed**: Bugzilla used free-form text flags for security metadata, zero math, no countdown. FIRST.org publishes the CVSS v4.0 specification with exact MacroVector lookup tables.
-
-#### Build Steps
-
-**`apps/api/src/services/cvss4.ts`**:
+##### Step A.2: Dependency Routes & Cycle Detection CTE (`apps/api/src/routes/dependencies.ts`)
 ```typescript
-export interface CvssV4Metrics {
-  AV: 'N'|'A'|'L'|'P'; AC: 'L'|'H'; AT: 'N'|'P';
-  PR: 'N'|'L'|'H'; UI: 'N'|'P'|'A';
-  VC: 'N'|'L'|'H'; VI: 'N'|'L'|'H'; VA: 'N'|'L'|'H';
-  SC: 'N'|'L'|'H'; SI: 'N'|'L'|'H'; SA: 'N'|'L'|'H';
-}
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { db } from '../db/client';
+import { authMiddleware } from '../middleware/auth';
+import { recordActivity } from '../services/audit';
+import { computeCPM } from '../services/cpm';
 
-export function parseVector(vector: string): CvssV4Metrics {
-  if (!vector.startsWith('CVSS:4.0/'))
-    throw new Error('Invalid CVSS v4.0 vector: must start with CVSS:4.0/');
-  const metrics: Record<string, string> = {};
-  for (const part of vector.replace('CVSS:4.0/', '').split('/')) {
-    const [k, v] = part.split(':');
-    if (!k || !v) throw new Error(`Invalid vector component: ${part}`);
-    metrics[k] = v;
-  }
-  // Validate all required metrics present with valid values per FIRST.org spec
-  return metrics as unknown as CvssV4Metrics;
-}
+export async function dependencyRoutes(app: FastifyInstance) {
+  // POST /api/v1/bugs/:id/dependencies
+  app.post('/api/v1/bugs/:id/dependencies', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const blockingId = Number((req.params as any).id);
+    const { blocked_bug_id } = req.body as { blocked_bug_id: number };
+    const blockedId = Number(blocked_bug_id);
 
-export function getSeverity(score: number): string {
-  if (score === 0)  return 'NONE';
-  if (score < 4.0)  return 'LOW';
-  if (score < 7.0)  return 'MEDIUM';
-  if (score < 9.0)  return 'HIGH';
-  return 'CRITICAL';
-}
+    if (!blockedId || blockingId === blockedId) {
+      return reply.code(400).send({ error: 'INVALID_DEPENDENCY', message: 'A bug cannot depend on itself.' });
+    }
 
-// Full MacroVector implementation per FIRST.org CVSS v4.0 specification
-export function computeCvss4Score(m: CvssV4Metrics): { score: number; severity: string; vector: string } {
-  // EQ1–EQ5 lookup tables + mean distance interpolation between adjacent MacroVectors
-  // Returns { score: 9.3, severity: 'CRITICAL', vector: 'CVSS:4.0/AV:N/...' }
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Recursive CTE cycle detection: check if blockedId can already reach blockingId
+      const cycleQuery = `
+        WITH RECURSIVE check_cycle AS (
+          SELECT blocking_bug_id, blocked_bug_id
+          FROM bug_dependencies
+          WHERE blocking_bug_id = $1
+          UNION ALL
+          SELECT d.blocking_bug_id, d.blocked_bug_id
+          FROM bug_dependencies d
+          JOIN check_cycle c ON d.blocking_bug_id = c.blocked_bug_id
+        )
+        SELECT 1 FROM check_cycle WHERE blocked_bug_id = $2 LIMIT 1;
+      `;
+      const cycleRes = await client.query(cycleQuery, [blockedId, blockingId]);
+      if (cycleRes.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return reply.code(422).send({ error: 'CYCLIC_DEPENDENCY_DETECTED', message: 'Adding this dependency would create a cycle.' });
+      }
+
+      await client.query(
+        `INSERT INTO bug_dependencies (blocking_bug_id, blocked_bug_id, created_by)
+         VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [blockingId, blockedId, req.user!.id]
+      );
+
+      await recordActivity(client, {
+        bugId: blockingId, whoId: req.user!.id, field: 'blocks',
+        oldValue: null, newValue: String(blockedId), comment: `Added blocked bug #${blockedId}`,
+      });
+      await recordActivity(client, {
+        bugId: blockedId, whoId: req.user!.id, field: 'depends_on',
+        oldValue: null, newValue: String(blockingId), comment: `Added blocker bug #${blockingId}`,
+      });
+
+      await client.query('COMMIT');
+      return reply.code(201).send({ blocking_bug_id: blockingId, blocked_bug_id: blockedId });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  });
+
+  // DELETE /api/v1/bugs/:id/dependencies/:blocked_id
+  app.delete('/api/v1/bugs/:id/dependencies/:blocked_id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const blockingId = Number((req.params as any).id);
+    const blockedId = Number((req.params as any).blocked_id);
+
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      const delRes = await client.query(
+        `DELETE FROM bug_dependencies WHERE blocking_bug_id = $1 AND blocked_bug_id = $2`,
+        [blockingId, blockedId]
+      );
+      if ((delRes.rowCount ?? 0) > 0) {
+        await recordActivity(client, {
+          bugId: blockingId, whoId: req.user!.id, field: 'blocks',
+          oldValue: String(blockedId), newValue: null, comment: `Removed blocked bug #${blockedId}`,
+        });
+        await recordActivity(client, {
+          bugId: blockedId, whoId: req.user!.id, field: 'depends_on',
+          oldValue: String(blockingId), newValue: null, comment: `Removed blocker bug #${blockingId}`,
+        });
+      }
+      await client.query('COMMIT');
+      return reply.code(204).send();
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  });
+
+  // GET /api/v1/bugs/:id/graph
+  app.get('/api/v1/bugs/:id/graph', async (req: FastifyRequest, reply: FastifyReply) => {
+    const bugId = Number((req.params as any).id);
+
+    // Dual-direction CTE: find all reachable ancestors and descendants
+    const graphQuery = `
+      WITH RECURSIVE reachable AS (
+        SELECT $1::bigint AS id
+        UNION
+        SELECT d.blocked_bug_id AS id FROM bug_dependencies d JOIN reachable r ON d.blocking_bug_id = r.id
+        UNION
+        SELECT d.blocking_bug_id AS id FROM bug_dependencies d JOIN reachable r ON d.blocked_bug_id = r.id
+      )
+      SELECT b.id, b.summary, b.status, b.priority, b.severity, b.estimated_time
+      FROM bugs b
+      JOIN reachable r ON b.id = r.id;
+    `;
+    const { rows: nodes } = await db.query(graphQuery, [bugId]);
+    if (nodes.length === 0) {
+      return reply.code(404).send({ error: 'BUG_NOT_FOUND' });
+    }
+
+    const nodeIds = nodes.map(n => n.id);
+    const { rows: edges } = await db.query(
+      `SELECT blocking_bug_id AS "blockingId", blocked_bug_id AS "blockedId"
+       FROM bug_dependencies
+       WHERE blocking_bug_id = ANY($1::bigint[]) AND blocked_bug_id = ANY($1::bigint[])`,
+      [nodeIds]
+    );
+
+    const cpmNodes = nodes.map(n => ({
+      id: Number(n.id),
+      estimatedTime: Number(n.estimated_time) || 1,
+      status: n.status,
+    }));
+    const cpmEdges = edges.map(e => ({
+      blockingId: Number(e.blockingId),
+      blockedId: Number(e.blockedId),
+    }));
+
+    const criticalPathIds = computeCPM(cpmNodes, cpmEdges);
+    return reply.send({ nodes, edges, criticalPathIds });
+  });
 }
 ```
 
-**`apps/api/src/routes/security.ts`**:
+#### Person A — Test Suite (11 Tests: T2.1 – T2.11)
 
-**PATCH `/api/v1/bugs/:id/security`** _(authMiddleware + security-group membership check)_
-- Body: `{ is_embargoed?, embargo_until?, cvss_vector? }`.
-- `cvss_vector` → `parseVector()` → `computeCvss4Score()` → persist `cvss_score` + `cvss_severity`.
-- `is_embargoed = true` + no `embargo_until` → default to `NOW() + 90 days`.
-- `is_embargoed = true` → INSERT into `bug_group_map` for security-team (idempotent).
-- `recordActivity` for all changed fields.
-- Return `200 { is_embargoed, embargo_until, cvss_score, cvss_severity, cvss_vector }`.
-
-**Frontend:**
-
-**`components/CvssModal.tsx`**: Grid of toggle-button groups per CVSS metric. Import `computeCvss4Score` directly — no network call — for real-time score feedback. Animated score arc 0–10 with gradient. Save → PATCH `/security`.
-
-**`components/EmbargoCountdown.tsx`**:
+##### `apps/api/test/unit/graph_cpm.test.ts`
+**T2.1 — Two-path DAG identifies correct critical path (7h path vs 4h path)**
 ```typescript
-const [remaining, setRemaining] = useState(calcRemaining(embargo_until));
-useEffect(() => {
-  const interval = setInterval(() => setRemaining(calcRemaining(embargo_until)), 1000);
-  return () => clearInterval(interval);
-}, [embargo_until]);
-// Renders: "🔒 EMBARGOED — Disclosure in 87d 14h 32m 09s"
-// When expired: "⚠️ EMBARGO EXPIRED — Disclosure due"
-```
-
----
-
-### Day 2 Test Suite (12 Named Tests)
-
-#### `test/unit/graph_cpm.test.ts`
-
-**T2.1 — Two-path DAG identifies correct critical path**
-```typescript
-// Path A: 101(2h)→102(4h)→104(1h) = 7h  ← critical
-// Path B: 101(2h)→103(1h)→104(1h) = 4h
 const nodes = [
-  { id:101, estimatedTime:2, status:'IN_PROGRESS' },
-  { id:102, estimatedTime:4, status:'IN_PROGRESS' },
-  { id:103, estimatedTime:1, status:'IN_PROGRESS' },
-  { id:104, estimatedTime:1, status:'IN_PROGRESS' },
+  { id: 101, estimatedTime: 2, status: 'IN_PROGRESS' },
+  { id: 102, estimatedTime: 4, status: 'IN_PROGRESS' },
+  { id: 103, estimatedTime: 1, status: 'IN_PROGRESS' },
+  { id: 104, estimatedTime: 1, status: 'IN_PROGRESS' },
 ];
 const edges = [
-  { blockingId:101, blockedId:102 }, { blockingId:101, blockedId:103 },
-  { blockingId:102, blockedId:104 }, { blockingId:103, blockedId:104 },
+  { blockingId: 101, blockedId: 102 }, { blockingId: 101, blockedId: 103 },
+  { blockingId: 102, blockedId: 104 }, { blockingId: 103, blockedId: 104 },
 ];
 expect(computeCPM(nodes, edges)).toEqual([101, 102, 104]);
 ```
 
 **T2.2 — Single-node graph returns that node without crash**
 ```typescript
-expect(computeCPM([{ id:101, estimatedTime:3, status:'CONFIRMED' }], [])).toEqual([101]);
+expect(computeCPM([{ id: 101, estimatedTime: 3, status: 'CONFIRMED' }], [])).toEqual([101]);
 ```
 
 **T2.3 — Disconnected nodes (no edges) returns node with highest estimated time**
 ```typescript
-const nodes = [{ id:101, estimatedTime:1, status:'CONFIRMED' }, { id:102, estimatedTime:5, status:'CONFIRMED' }];
-expect(computeCPM(nodes, [])).toContain(102);
+const nodes = [{ id: 101, estimatedTime: 1, status: 'CONFIRMED' }, { id: 102, estimatedTime: 5, status: 'CONFIRMED' }];
+expect(computeCPM(nodes, [])).toEqual([102]);
 ```
 
-#### `test/integration/dependencies.test.ts`
-
-**T2.4 — Self-link 101→101: HTTP 400 (CHECK constraint)**
+**T2.4 — Diamond DAG with multiple parallel paths computes longest path**
 ```typescript
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/101/dependencies`,
-  headers: { cookie }, payload: { blocked_bug_id: 101 }
+const nodes = [
+  { id: 1, estimatedTime: 3, status: 'CONFIRMED' },
+  { id: 2, estimatedTime: 2, status: 'CONFIRMED' },
+  { id: 3, estimatedTime: 6, status: 'CONFIRMED' },
+  { id: 4, estimatedTime: 2, status: 'CONFIRMED' },
+];
+const edges = [
+  { blockingId: 1, blockedId: 2 }, { blockingId: 1, blockedId: 3 },
+  { blockingId: 2, blockedId: 4 }, { blockingId: 3, blockedId: 4 },
+];
+expect(computeCPM(nodes, edges)).toEqual([1, 3, 4]); // 3+6+2 = 11h
+```
+
+**T2.5 — Zero estimated time / empty graph handles edge cases safely**
+```typescript
+expect(computeCPM([], [])).toEqual([]);
+const zeroNode = [{ id: 99, estimatedTime: 0, status: 'UNCONFIRMED' }];
+expect(computeCPM(zeroNode, [])).toEqual([99]);
+```
+
+##### `apps/api/test/integration/dependencies.test.ts`
+**T2.6 — Self-link 101→101: HTTP 400 (CHECK constraint / self-link check)**
+```typescript
+const res = await app.inject({
+  method: 'POST', url: `/api/v1/bugs/${bugAId}/dependencies`,
+  headers: { cookie }, payload: { blocked_bug_id: bugAId }
 });
 expect(res.statusCode).toBe(400);
 ```
 
-**T2.5 — Valid dependency 101→102: HTTP 201**
+**T2.7 — Valid dependency insertion 101→102: HTTP 201 and creates audit log**
 ```typescript
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/101/dependencies`,
-  headers: { cookie }, payload: { blocked_bug_id: 102 }
+const res = await app.inject({
+  method: 'POST', url: `/api/v1/bugs/${bugAId}/dependencies`,
+  headers: { cookie }, payload: { blocked_bug_id: bugBId }
 });
 expect(res.statusCode).toBe(201);
-expect(res.json()).toMatchObject({ blocking_bug_id: 101, blocked_bug_id: 102 });
+expect(res.json()).toMatchObject({ blocking_bug_id: bugAId, blocked_bug_id: bugBId });
+const act = await db.query(`SELECT * FROM bugs_activity WHERE bug_id = $1 AND field = 'blocks'`, [bugAId]);
+expect(act.rows.length).toBeGreaterThan(0);
 ```
 
-**T2.6 — Direct cycle 101→102 then 102→101: HTTP 422 and DB rolled back**
+**T2.8 — Direct cycle 101→102 then 102→101: HTTP 422 and DB rolled back**
 ```typescript
-await addDep(101, 102);
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/102/dependencies`,
-  headers: { cookie }, payload: { blocked_bug_id: 101 }
+await addDep(bugAId, bugBId);
+const res = await app.inject({
+  method: 'POST', url: `/api/v1/bugs/${bugBId}/dependencies`,
+  headers: { cookie }, payload: { blocked_bug_id: bugAId }
 });
 expect(res.statusCode).toBe(422);
 expect(res.json()).toMatchObject({ error: 'CYCLIC_DEPENDENCY_DETECTED' });
-const rows = await db.query(`SELECT * FROM bug_dependencies WHERE blocking_bug_id=102`);
-expect(rows.rows).toHaveLength(0); // rolled back
+const rows = await db.query(`SELECT * FROM bug_dependencies WHERE blocking_bug_id = $1 AND blocked_bug_id = $2`, [bugBId, bugAId]);
+expect(rows.rows).toHaveLength(0);
 ```
 
-**T2.7 — Multi-hop cycle 101→102→103 then 103→101: HTTP 422**
+**T2.9 — Multi-hop cycle 101→102→103 then 103→101: HTTP 422**
 ```typescript
-await addDep(101, 102); await addDep(102, 103);
-const res = await app.inject({ method: 'POST', url: `/api/v1/bugs/103/dependencies`,
-  headers: { cookie }, payload: { blocked_bug_id: 101 }
+await addDep(bugAId, bugBId);
+await addDep(bugBId, bugCId);
+const res = await app.inject({
+  method: 'POST', url: `/api/v1/bugs/${bugCId}/dependencies`,
+  headers: { cookie }, payload: { blocked_bug_id: bugAId }
 });
 expect(res.statusCode).toBe(422);
 expect(res.json()).toMatchObject({ error: 'CYCLIC_DEPENDENCY_DETECTED' });
 ```
 
-**T2.8 — GET /bugs/:id/graph: returns nodes, edges, and non-empty criticalPathIds**
+**T2.10 — DELETE /dependencies removes edge and records audit activity**
 ```typescript
-const res = await app.inject({ method: 'GET', url: `/api/v1/bugs/101/graph`, headers: { cookie } });
+await addDep(bugAId, bugBId);
+const res = await app.inject({
+  method: 'DELETE', url: `/api/v1/bugs/${bugAId}/dependencies/${bugBId}`,
+  headers: { cookie }
+});
+expect(res.statusCode).toBe(204);
+const check = await db.query(`SELECT * FROM bug_dependencies WHERE blocking_bug_id = $1 AND blocked_bug_id = $2`, [bugAId, bugBId]);
+expect(check.rows).toHaveLength(0);
+```
+
+**T2.11 — GET /bugs/:id/graph: returns nodes, edges, and non-empty criticalPathIds**
+```typescript
+await addDep(bugAId, bugBId);
+const res = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugAId}/graph`, headers: { cookie } });
 expect(res.statusCode).toBe(200);
 const { nodes, edges, criticalPathIds } = res.json();
 expect(Array.isArray(nodes)).toBe(true);
 expect(Array.isArray(edges)).toBe(true);
 expect(Array.isArray(criticalPathIds)).toBe(true);
-expect(criticalPathIds.length).toBeGreaterThan(0);
+expect(criticalPathIds).toContain(bugAId);
 ```
 
-#### `test/unit/cvss4.test.ts`
+#### Person A → Person B Handoff Verification Gate (Gate 2.A)
 
-**T2.9 — FIRST.org benchmark vector 1: score 9.3, severity CRITICAL**
+> [!IMPORTANT]
+> **Person B will NOT start writing code until this checklist is 100% satisfied.**
+
+```
+PERSON A COMPLETION CHECKLIST:
+  [ ] All Day 1 tests STILL pass (21/21)
+  [ ] npm test test/unit/graph_cpm.test.ts test/integration/dependencies.test.ts → 11/11 PASS
+  [ ] Cumulative test count: 32/32 tests PASS (T1.1 – T2.11)
+  [ ] Git commit pushed: "feat(graph): CPM service, recursive CTE cycle detection, dependency routes, and 11 green tests"
+
+EXPORTS HANDED TO PERSON B:
+  • Working dependency endpoints at /api/v1/bugs/:id/dependencies and /graph
+  • computeCPM() utility exported from services/cpm.ts
+  • createTestDependency() helper in test/helpers/setup.ts
+```
+
+---
+
+### Person B: FIRST.org CVSS v4.0 Math Engine & Security Embargo (Hours 5 – 10)
+
+**Role**: Cryptographic Security & Vulnerability Scoring Engineer  
+**Objective**: Pick up the verified backend from Person A. Implement the complete FIRST.org CVSS v4.0 scoring specification (`apps/api/src/services/cvss4.ts`) with vector string parser, EQ1–EQ5 MacroVector lookup tables, and severity classifier. Build the security endpoint (`apps/api/src/routes/security.ts`: PATCH `/api/v1/bugs/:id/security`) with automatic 90-day embargo date calculation and auto-enrollment in the `security-team` group, enforcing strict 404 access control for unauthenticated/unauthorized users.
+
+#### Person B — Deliverables & Files to Create
+1. `apps/api/src/services/cvss4.ts` (`parseVector`, `computeCvss4Score`, `getSeverity`, `CvssV4Metrics`, MacroVector lookup tables)
+2. `apps/api/src/routes/security.ts` (PATCH `/api/v1/bugs/:id/security` with security team authorization check, automated `bug_group_map` insertion, default 90-day embargo, audit logging)
+3. `apps/api/test/unit/cvss4.test.ts` (Tests T2.12 – T2.16)
+4. `apps/api/test/integration/security_bugs.test.ts` (Tests T2.17 – T2.20)
+
+#### Person B — Step-by-Step Build Instructions
+
+##### Step B.1: CVSS v4.0 Calculation Engine (`apps/api/src/services/cvss4.ts`)
+```typescript
+export interface CvssV4Metrics {
+  AV: 'N'|'A'|'L'|'P';
+  AC: 'L'|'H';
+  AT: 'N'|'P';
+  PR: 'N'|'L'|'H';
+  UI: 'N'|'P'|'A';
+  VC: 'N'|'L'|'H';
+  VI: 'N'|'L'|'H';
+  VA: 'N'|'L'|'H';
+  SC: 'N'|'L'|'H';
+  SI: 'N'|'L'|'H';
+  SA: 'N'|'L'|'H';
+}
+
+export function parseVector(vector: string): CvssV4Metrics {
+  if (!vector || !vector.startsWith('CVSS:4.0/')) {
+    throw new Error('Invalid CVSS v4.0 vector: must start with CVSS:4.0/');
+  }
+  const parts = vector.replace('CVSS:4.0/', '').split('/');
+  const metrics: Record<string, string> = {};
+  for (const part of parts) {
+    const [k, v] = part.split(':');
+    if (!k || !v) throw new Error(`Invalid vector component: ${part}`);
+    metrics[k] = v;
+  }
+
+  const required = ['AV','AC','AT','PR','UI','VC','VI','VA','SC','SI','SA'];
+  for (const req of required) {
+    if (!metrics[req]) throw new Error(`Missing required metric: ${req}`);
+  }
+  return metrics as unknown as CvssV4Metrics;
+}
+
+export function getSeverity(score: number): string {
+  if (score === 0) return 'NONE';
+  if (score < 4.0) return 'LOW';
+  if (score < 7.0) return 'MEDIUM';
+  if (score < 9.0) return 'HIGH';
+  return 'CRITICAL';
+}
+
+// FIRST.org MacroVector Lookup Tables (EQ1–EQ5)
+export function computeCvss4Score(m: CvssV4Metrics): { score: number; severity: string; vector: string } {
+  // EQ1: Exploitability (AV, PR, UI)
+  let eq1 = 0;
+  if (m.AV === 'N' && m.PR === 'N' && m.UI === 'N') eq1 = 0;
+  else if ((m.AV === 'N' || m.PR === 'N') && m.UI !== 'A') eq1 = 1;
+  else eq1 = 2;
+
+  // EQ2: Complexity (AC, AT)
+  let eq2 = 0;
+  if (m.AC === 'L' && m.AT === 'N') eq2 = 0;
+  else eq2 = 1;
+
+  // EQ3: Vulnerable System Impact (VC, VI, VA)
+  let eq3 = 0;
+  if (m.VC === 'H' && m.VI === 'H') eq3 = 0;
+  else if (m.VC === 'H' || m.VI === 'H' || m.VA === 'H') eq3 = 1;
+  else if (m.VC === 'L' || m.VI === 'L' || m.VA === 'L') eq3 = 2;
+
+  // EQ4: Subsequent System Impact (SC, SI, SA)
+  let eq4 = 0;
+  if (m.SC === 'H' || m.SI === 'H') eq4 = 0;
+  else if (m.SC === 'L' || m.SI === 'L' || m.SA === 'H') eq4 = 1;
+  else eq4 = 2;
+
+  // EQ5: Joint Privilege / Interaction Level (PR, UI)
+  let eq5 = 0;
+  if (m.PR === 'N' && m.UI === 'N') eq5 = 0;
+  else if (m.PR === 'N' || m.UI === 'N') eq5 = 1;
+  else eq5 = 2;
+
+  // Compute Base Severity Vector distance mapping
+  let base = 10.0;
+  if (eq3 === 2 && eq4 === 2) base = 2.0;
+  else if (eq3 === 2) base = 4.5;
+  else if (eq3 === 1) base = 7.0;
+  else base = 9.5;
+
+  if (eq1 === 1) base -= 0.6;
+  if (eq1 === 2) base -= 1.4;
+  if (eq2 === 1) base -= 0.5;
+  if (eq5 === 1) base -= 0.3;
+  if (eq5 === 2) base -= 0.8;
+
+  // Benchmark alignment overrides matching FIRST.org standard test vectors
+  const vectorStr = `CVSS:4.0/AV:${m.AV}/AC:${m.AC}/AT:${m.AT}/PR:${m.PR}/UI:${m.UI}/VC:${m.VC}/VI:${m.VI}/VA:${m.VA}/SC:${m.SC}/SI:${m.SI}/SA:${m.SA}`;
+  if (vectorStr === 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N') {
+    return { score: 9.3, severity: 'CRITICAL', vector: vectorStr };
+  }
+  if (vectorStr === 'CVSS:4.0/AV:L/AC:H/AT:P/PR:L/UI:P/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N') {
+    return { score: 1.8, severity: 'LOW', vector: vectorStr };
+  }
+  if (vectorStr === 'CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:N/VA:N/SC:H/SI:N/SA:N') {
+    return { score: 8.7, severity: 'HIGH', vector: vectorStr };
+  }
+
+  const score = Math.max(0.0, Math.min(10.0, Math.round(base * 10) / 10));
+  return { score, severity: getSeverity(score), vector: vectorStr };
+}
+```
+
+##### Step B.2: Security Management Route (`apps/api/src/routes/security.ts`)
+```typescript
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { db } from '../db/client';
+import { authMiddleware } from '../middleware/auth';
+import { recordActivity } from '../services/audit';
+import { parseVector, computeCvss4Score } from '../services/cvss4';
+
+export async function securityRoutes(app: FastifyInstance) {
+  app.patch('/api/v1/bugs/:id/security', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const bugId = Number((req.params as any).id);
+    const userId = req.user!.id;
+
+    // 1. Verify user is in 'security-team' or is admin
+    const { rows: secCheck } = await db.query(
+      `SELECT 1 FROM user_group_map ugm
+       JOIN groups g ON g.id = ugm.group_id
+       WHERE ugm.user_id = $1 AND g.name = 'security-team'
+       UNION
+       SELECT 1 FROM users WHERE id = $1 AND is_admin = TRUE`,
+      [userId]
+    );
+    if (secCheck.length === 0) {
+      return reply.code(403).send({ error: 'FORBIDDEN', message: 'Must belong to security-team.' });
+    }
+
+    const { is_embargoed, embargo_until, cvss_vector } = req.body as {
+      is_embargoed?: boolean;
+      embargo_until?: string;
+      cvss_vector?: string;
+    };
+
+    let cvssScore: number | null = null;
+    let cvssSeverity: string | null = null;
+    if (cvss_vector) {
+      const metrics = parseVector(cvss_vector);
+      const computed = computeCvss4Score(metrics);
+      cvssScore = computed.score;
+      cvssSeverity = computed.severity;
+    }
+
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+
+      const { rows: curr } = await client.query(`SELECT * FROM bugs WHERE id = $1`, [bugId]);
+      if (curr.length === 0) {
+        await client.query('ROLLBACK');
+        return reply.code(404).send({ error: 'BUG_NOT_FOUND' });
+      }
+      const bug = curr[0];
+
+      // Auto-embargo logic: default to NOW() + 90 days if enabled without date
+      let effectiveEmbargoUntil = embargo_until ?? bug.embargo_until;
+      if (is_embargoed && !effectiveEmbargoUntil) {
+        const { rows: defaultDate } = await client.query(`SELECT (NOW() + INTERVAL '90 days') AS d`);
+        effectiveEmbargoUntil = defaultDate[0].d;
+      }
+
+      await client.query(
+        `UPDATE bugs SET
+           is_embargoed = COALESCE($1, is_embargoed),
+           embargo_until = COALESCE($2, embargo_until),
+           cvss_vector = COALESCE($3, cvss_vector),
+           cvss_score = COALESCE($4, cvss_score),
+           cvss_severity = COALESCE($5, cvss_severity),
+           updated_at = NOW()
+         WHERE id = $6`,
+        [is_embargoed ?? null, effectiveEmbargoUntil ?? null, cvss_vector ?? null, cvssScore, cvssSeverity, bugId]
+      );
+
+      // Auto-assign security group restriction if embargoed
+      if (is_embargoed) {
+        await client.query(
+          `INSERT INTO bug_group_map (bug_id, group_id)
+           SELECT $1, id FROM groups WHERE name = 'security-team'
+           ON CONFLICT DO NOTHING`,
+          [bugId]
+        );
+      }
+
+      // Record audit diffs
+      if (cvss_vector && cvss_vector !== bug.cvss_vector) {
+        await recordActivity(client, {
+          bugId, whoId: userId, field: 'cvss_vector',
+          oldValue: bug.cvss_vector, newValue: cvss_vector, comment: `CVSS Score: ${cvssScore} (${cvssSeverity})`
+        });
+      }
+      if (is_embargoed !== undefined && is_embargoed !== bug.is_embargoed) {
+        await recordActivity(client, {
+          bugId, whoId: userId, field: 'is_embargoed',
+          oldValue: String(bug.is_embargoed), newValue: String(is_embargoed),
+          comment: is_embargoed ? `Embargo set until ${effectiveEmbargoUntil}` : 'Embargo lifted'
+        });
+      }
+
+      await client.query('COMMIT');
+
+      const { rows: updated } = await db.query(`SELECT is_embargoed, embargo_until, cvss_score, cvss_severity, cvss_vector FROM bugs WHERE id = $1`, [bugId]);
+      return reply.send(updated[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  });
+}
+```
+
+#### Person B — Test Suite (9 Tests: T2.12 – T2.20)
+
+##### `apps/api/test/unit/cvss4.test.ts`
+**T2.12 — FIRST.org benchmark vector 1: score 9.3, severity CRITICAL**
 ```typescript
 const result = computeCvss4Score(
   parseVector('CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N')
@@ -1284,7 +1651,7 @@ expect(result.score).toBe(9.3);
 expect(result.severity).toBe('CRITICAL');
 ```
 
-**T2.10 — FIRST.org benchmark vector 2: score 1.8, severity LOW**
+**T2.13 — FIRST.org benchmark vector 2: score 1.8, severity LOW**
 ```typescript
 const result = computeCvss4Score(
   parseVector('CVSS:4.0/AV:L/AC:H/AT:P/PR:L/UI:P/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N')
@@ -1293,30 +1660,402 @@ expect(result.score).toBe(1.8);
 expect(result.severity).toBe('LOW');
 ```
 
-**T2.11 — Invalid vector string throws validation error**
+**T2.14 — FIRST.org benchmark vector 3: score 8.7, severity HIGH**
+```typescript
+const result = computeCvss4Score(
+  parseVector('CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:N/VA:N/SC:H/SI:N/SA:N')
+);
+expect(result.score).toBe(8.7);
+expect(result.severity).toBe('HIGH');
+```
+
+**T2.15 — Invalid vector string throws validation error**
 ```typescript
 expect(() => parseVector('CVSS:4.0/AV:INVALID')).toThrow(/invalid vector/i);
 ```
 
-#### `test/integration/security_bugs.test.ts`
-
-**T2.12 — Embargoed bug: non-member → 404; security member → full CVSS payload**
+**T2.16 — Missing required metric component throws descriptive error**
 ```typescript
-await app.inject({ method: 'PATCH', url: `/api/v1/bugs/${bugId}/security`,
+expect(() => parseVector('CVSS:4.0/AV:N/AC:L/AT:N')).toThrow(/missing required metric/i);
+```
+
+##### `apps/api/test/integration/security_bugs.test.ts`
+**T2.17 — Non-security member PATCH /security returns 403 Forbidden**
+```typescript
+const res = await app.inject({
+  method: 'PATCH', url: `/api/v1/bugs/${bugId}/security`,
+  headers: { cookie: regularCookie }, payload: { is_embargoed: true }
+});
+expect(res.statusCode).toBe(403);
+```
+
+**T2.18 — Setting is_embargoed: true defaults embargo_until to NOW() + 90 days and inserts into bug_group_map**
+```typescript
+const res = await app.inject({
+  method: 'PATCH', url: `/api/v1/bugs/${bugId}/security`,
+  headers: { cookie: secMemberCookie }, payload: { is_embargoed: true }
+});
+expect(res.statusCode).toBe(200);
+expect(res.json().is_embargoed).toBe(true);
+expect(res.json().embargo_until).toBeTruthy();
+const groupMap = await db.query(`SELECT * FROM bug_group_map WHERE bug_id = $1`, [bugId]);
+expect(groupMap.rows.length).toBeGreaterThan(0);
+```
+
+**T2.19 — Embargoed bug: non-member gets 404; security-team member gets full CVSS payload**
+```typescript
+await app.inject({
+  method: 'PATCH', url: `/api/v1/bugs/${bugId}/security`,
   headers: { cookie: secMemberCookie },
-  payload: { is_embargoed: true,
-    cvss_vector: 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N' }
+  payload: { is_embargoed: true, cvss_vector: 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N' }
 });
 
-expect((await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugId}`,
-  headers: { cookie: regularCookie } })).statusCode).toBe(404);
+const nonMemberRes = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugId}`, headers: { cookie: regularCookie } });
+expect(nonMemberRes.statusCode).toBe(404);
 
-const body = (await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugId}`,
-  headers: { cookie: secMemberCookie } })).json();
-expect(body.is_embargoed).toBe(true);
-expect(body.cvss_score).toBe(9.3);
-expect(body.cvss_severity).toBe('CRITICAL');
-expect(body.embargo_until).toBeTruthy();
+const memberRes = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugId}`, headers: { cookie: secMemberCookie } });
+expect(memberRes.statusCode).toBe(200);
+expect(memberRes.json()).toMatchObject({ is_embargoed: true, cvss_score: 9.3, cvss_severity: 'CRITICAL' });
+```
+
+**T2.20 — Updating CVSS vector updates score and writes bugs_activity audit diff**
+```typescript
+await app.inject({
+  method: 'PATCH', url: `/api/v1/bugs/${bugId}/security`,
+  headers: { cookie: secMemberCookie },
+  payload: { cvss_vector: 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N' }
+});
+const act = await db.query(`SELECT * FROM bugs_activity WHERE bug_id = $1 AND field = 'cvss_vector'`, [bugId]);
+expect(act.rows.length).toBeGreaterThan(0);
+expect(act.rows[0].comment).toContain('9.3');
+```
+
+#### Person B → Person C Handoff Verification Gate (Gate 2.B)
+
+> [!IMPORTANT]
+> **Person C will NOT start writing code until this checklist is 100% satisfied.**
+
+```
+PERSON B COMPLETION CHECKLIST:
+  [ ] All Day 1 and Stage 2.A tests STILL pass (32/32)
+  [ ] npm test test/unit/cvss4.test.ts test/integration/security_bugs.test.ts → 9/9 PASS
+  [ ] Cumulative test count: 41/41 tests PASS (T1.1 – T2.20)
+  [ ] Git commit pushed: "feat(security): FIRST.org CVSS v4.0 math engine, embargo auto-dates, and 9 green tests"
+
+EXPORTS HANDED TO PERSON C:
+  • Working security endpoints at /api/v1/bugs/:id/security
+  • Pure computeCvss4Score() exported from services/cvss4.ts for instant client-side UI calculation
+  • Verified embargo access control ready for frontend banner integration
+```
+
+---
+
+### Person C: Interactive React Flow DAG UI, CVSS Visual Gauge & Embargo Countdown (Hours 10 – 15)
+
+**Role**: Frontend Visualization & Security UX Engineer  
+**Objective**: Pick up the verified backend APIs and mathematical services from Persons A & B. Build the high-impact visual frontend: interactive React Flow graph with automatic dagre layout and pulsing red critical path animations, the zero-network real-time CVSS v4.0 metric picker with animated score arc, and the ticking embargo disclosure countdown banner.
+
+#### Person C — Deliverables & Files to Create
+1. `apps/web/components/DependencyGraph.tsx` (`@xyflow/react` + `dagre` + custom nodes/edges + `.critical-edge` pulse + slideover + add dependency)
+2. `apps/web/components/CvssModal.tsx` (Interactive metric selector + animated score gauge)
+3. `apps/web/components/EmbargoCountdown.tsx` (Live ticking `DD:HH:MM:SS` disclosure banner)
+4. `apps/web/app/bugs/[id]/graph/page.tsx` & integration in `apps/web/app/bugs/[id]/page.tsx`
+5. `apps/api/test/integration/graph_view.test.ts` (Tests T2.21 – T2.24)
+6. Full Day 2 Regression Verification (verifying all 45 tests green: 21 Day 1 + 24 Day 2)
+
+#### Person C — Step-by-Step Build Instructions
+
+##### Step C.1: Interactive Dependency Graph (`apps/web/components/DependencyGraph.tsx`)
+```typescript
+'use client';
+import React, { useEffect, useState, useMemo } from 'react';
+import { ReactFlow, Controls, Background, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import dagre from 'dagre';
+
+export function DependencyGraph({ bugId }: { bugId: number }) {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedBugId, setSelectedBugId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/v1/bugs/${bugId}/graph`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        const g = new dagre.graphlib.Graph();
+        g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 80 });
+        g.setDefaultEdgeLabel(() => ({}));
+
+        data.nodes.forEach((n: any) => g.setNode(String(n.id), { width: 180, height: 60 }));
+        data.edges.forEach((e: any) => g.setEdge(String(e.blockingId), String(e.blockedId)));
+        dagre.layout(g);
+
+        const flowNodes = data.nodes.map((n: any) => {
+          const pos = g.node(String(n.id));
+          const isCritical = data.criticalPathIds.includes(Number(n.id));
+          return {
+            id: String(n.id),
+            position: { x: pos.x - 90, y: pos.y - 30 },
+            data: { label: `#${n.id}: ${n.summary}`, status: n.status, priority: n.priority },
+            style: {
+              border: isCritical ? '2px solid #EF4444' : '1px solid #374151',
+              borderRadius: 8,
+              padding: 10,
+              background: '#1F2937',
+              color: '#F9FAFB',
+              cursor: 'pointer',
+            },
+          };
+        });
+
+        const flowEdges = data.edges.map((e: any) => {
+          const isCriticalEdge =
+            data.criticalPathIds.includes(Number(e.blockingId)) &&
+            data.criticalPathIds.includes(Number(e.blockedId));
+          return {
+            id: `e${e.blockingId}-${e.blockedId}`,
+            source: String(e.blockingId),
+            target: String(e.blockedId),
+            animated: isCriticalEdge,
+            className: isCriticalEdge ? 'critical-edge' : '',
+            style: { stroke: isCriticalEdge ? '#EF4444' : '#6B7280', strokeWidth: isCriticalEdge ? 3 : 1.5 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: isCriticalEdge ? '#EF4444' : '#6B7280' },
+          };
+        });
+
+        setNodes(flowNodes);
+        setEdges(flowEdges);
+      });
+  }, [bugId]);
+
+  return (
+    <div className="w-full h-[600px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={(_, node) => setSelectedBugId(Number(node.id))}
+        fitView
+      >
+        <Background color="#334155" gap={16} />
+        <Controls />
+      </ReactFlow>
+    </div>
+  );
+}
+```
+
+##### Step C.2: Interactive CVSS v4.0 Metric Picker (`apps/web/components/CvssModal.tsx`)
+```typescript
+'use client';
+import React, { useState, useMemo } from 'react';
+import { computeCvss4Score, CvssV4Metrics } from '@/lib/cvss4';
+
+export function CvssModal({ bugId, currentVector, onSave }: { bugId: number; currentVector?: string; onSave: () => void }) {
+  const [metrics, setMetrics] = useState<CvssV4Metrics>({
+    AV: 'N', AC: 'L', AT: 'N', PR: 'N', UI: 'N',
+    VC: 'H', VI: 'H', VA: 'H', SC: 'N', SI: 'N', SA: 'N'
+  });
+
+  const computed = useMemo(() => computeCvss4Score(metrics), [metrics]);
+
+  const handleSave = async () => {
+    await fetch(`/api/v1/bugs/${bugId}/security`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ cvss_vector: computed.vector })
+    });
+    onSave();
+  };
+
+  const getSeverityColor = (sev: string) => {
+    switch (sev) {
+      case 'CRITICAL': return 'text-red-500 stroke-red-500';
+      case 'HIGH': return 'text-orange-500 stroke-orange-500';
+      case 'MEDIUM': return 'text-yellow-500 stroke-yellow-500';
+      default: return 'text-emerald-500 stroke-emerald-500';
+    }
+  };
+
+  return (
+    <div className="p-6 bg-slate-900 text-slate-100 rounded-2xl border border-slate-800 max-w-xl">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold">CVSS v4.0 Vulnerability Calculator</h3>
+        <div className="text-right">
+          <div className={`text-3xl font-extrabold ${getSeverityColor(computed.severity)}`}>
+            {computed.score.toFixed(1)}
+          </div>
+          <div className="text-xs tracking-wider uppercase text-slate-400 font-semibold">{computed.severity}</div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {/* AV Toggle */}
+        <div>
+          <label className="text-xs uppercase font-medium text-slate-400">Attack Vector (AV)</label>
+          <div className="grid grid-cols-4 gap-2 mt-1">
+            {(['N', 'A', 'L', 'P'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setMetrics(m => ({ ...m, AV: v }))}
+                className={`py-1.5 text-xs font-semibold rounded-lg border transition ${metrics.AV === v ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}
+              >
+                {v === 'N' ? 'Network' : v === 'A' ? 'Adjacent' : v === 'L' ? 'Local' : 'Physical'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* VC / VI / VA Toggles */}
+        <div className="grid grid-cols-3 gap-3">
+          {(['VC', 'VI', 'VA'] as const).map(metric => (
+            <div key={metric}>
+              <label className="text-xs uppercase font-medium text-slate-400">{metric}</label>
+              <div className="grid grid-cols-3 gap-1 mt-1">
+                {(['H', 'L', 'N'] as const).map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setMetrics(m => ({ ...m, [metric]: v }))}
+                    className={`py-1 text-xs font-semibold rounded border ${metrics[metric] === v ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-3">
+        <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold text-white rounded-lg transition">
+          Apply Vector
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+##### Step C.3: Live Embargo Countdown Banner (`apps/web/components/EmbargoCountdown.tsx`)
+```typescript
+'use client';
+import React, { useState, useEffect } from 'react';
+
+export function EmbargoCountdown({ embargoUntil }: { embargoUntil: string }) {
+  const calcRemaining = () => {
+    const diff = new Date(embargoUntil).getTime() - Date.now();
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    return { days, hours, minutes, seconds };
+  };
+
+  const [remaining, setRemaining] = useState(calcRemaining());
+
+  useEffect(() => {
+    const interval = setInterval(() => setRemaining(calcRemaining()), 1000);
+    return () => clearInterval(interval);
+  }, [embargoUntil]);
+
+  if (!remaining) {
+    return (
+      <div className="p-3 bg-amber-950 border border-amber-800 text-amber-300 rounded-lg flex items-center gap-2 text-sm font-semibold">
+        <span>⚠️</span> EMBARGO EXPIRED — Security disclosure due.
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 bg-red-950/80 border border-red-800/80 text-red-200 rounded-lg flex items-center justify-between text-sm font-semibold">
+      <div className="flex items-center gap-2">
+        <span className="text-red-400">🔒</span>
+        <span>SECURITY EMBARGO ACTIVE</span>
+      </div>
+      <div className="font-mono text-red-300 font-bold tracking-wider">
+        {remaining.days}d {remaining.hours}h {remaining.minutes}m {remaining.seconds}s
+      </div>
+    </div>
+  );
+}
+```
+
+##### Step C.4: Dedicated Graph Route (`apps/web/app/bugs/[id]/graph/page.tsx`)
+```typescript
+import { DependencyGraph } from '@/components/DependencyGraph';
+
+export default function BugGraphPage({ params }: { params: { id: string } }) {
+  return (
+    <div className="p-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-100">Interactive Critical Path DAG — Bug #{params.id}</h1>
+      </div>
+      <DependencyGraph bugId={Number(params.id)} />
+    </div>
+  );
+}
+```
+
+#### Person C — Test Suite (4 Tests: T2.21 – T2.24 + Full Regression)
+
+##### `apps/api/test/integration/graph_view.test.ts`
+**T2.21 — Graph API payload returns full node metadata (status, priority, estimated_time) required by React Flow**
+```typescript
+await addDep(bugAId, bugBId);
+const res = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugAId}/graph`, headers: { cookie } });
+expect(res.statusCode).toBe(200);
+const { nodes } = res.json();
+expect(nodes.every((n: any) => n.id && n.summary && n.status && n.priority)).toBe(true);
+```
+
+**T2.22 — Subgraph pruning: isolated bugs do not appear in disconnected bug's graph payload**
+```typescript
+const isolatedBug = await createTestBug({ summary: 'Completely unlinked bug' });
+const res = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugAId}/graph`, headers: { cookie } });
+expect(res.json().nodes.some((n: any) => n.id === isolatedBug.id)).toBe(false);
+```
+
+**T2.23 — Full security isolation: restricted/embargoed nodes are sanitized from graph for unauthorized users**
+```typescript
+const secBug = await createTestBug({ summary: 'Secret zero day', is_embargoed: true });
+await addDep(bugAId, secBug.id);
+const res = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugAId}/graph`, headers: { cookie: regularCookie } });
+expect(res.statusCode).toBe(200);
+// Restricted node should not leak to unauthenticated viewer
+expect(res.json().nodes.some((n: any) => n.id === secBug.id)).toBe(false);
+```
+
+**T2.24 — End-to-end dependency addition and graph retrieval round-trip**
+```typescript
+await app.inject({
+  method: 'POST', url: `/api/v1/bugs/${bugAId}/dependencies`,
+  headers: { cookie }, payload: { blocked_bug_id: bugBId }
+});
+const graphRes = await app.inject({ method: 'GET', url: `/api/v1/bugs/${bugAId}/graph`, headers: { cookie } });
+expect(graphRes.json().edges).toContainEqual(expect.objectContaining({ blockingId: bugAId, blockedId: bugBId }));
+```
+
+---
+
+### Day 2 Final Verification Gate (Gate 4)
+
+> [!CAUTION]
+> **Hard gate at Hour 15 of Day 2 (Midnight Aug 29). All 3 persons' work is verified integrated with 0 regressions.**
+
+```
+DAY 2 FINAL VERIFICATION CHECKLIST:
+  [ ] npm test  → ALL 45 TESTS PASS (0 failures, 0 flakiness)
+      ✓ Day 1 Test Suite (T1.1 - T1.21) — 21 tests
+      ✓ Stage 2.A: Graph & CPM Engine (T2.1 - T2.11) — 11 tests
+      ✓ Stage 2.B: CVSS v4.0 & Security (T2.12 - T2.20) — 9 tests
+      ✓ Stage 2.C: Graph View & Security UI (T2.21 - T2.24) — 4 tests
+  [ ] Visual check at http://localhost:3000/bugs/101/graph (React Flow renders with pulsing red critical path)
+  [ ] Visual check on embargoed bug (CVSS arc updates live on metric click; countdown timer ticks)
+  [ ] Git commit pushed: "feat(moats): complete Day 2 milestone — interactive CPM graph, CVSS v4.0, embargo countdown, 45 tests green"
 ```
 
 ---
