@@ -38,7 +38,9 @@ export async function setupTestEnvironment() {
       display_name VARCHAR(255) NOT NULL,
       username VARCHAR(64) NOT NULL UNIQUE,
       avatar_url TEXT,
-      password_hash VARCHAR(255) NOT NULL,
+      password_hash VARCHAR(255),
+      github_id VARCHAR(255) UNIQUE,
+      google_id VARCHAR(255) UNIQUE,
       is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

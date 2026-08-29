@@ -1,6 +1,6 @@
-# BugzillaRevamp — Complete Capabilities & Feature Guide
+# Mantis — Complete Capabilities & Feature Guide
 
-> **BugzillaRevamp** is a modernized, enterprise-grade defect tracking, vulnerability scoring, and release governance platform. It completely replaces legacy Perl Bugzilla with a high-performance Next.js 14, Node.js Fastify, and PostgreSQL 16 stack.
+> **Mantis** is a modernized, enterprise-grade defect tracking, vulnerability scoring, and release governance platform. It completely replaces legacy Perl Mantis with a high-performance Next.js 14, Node.js Fastify, and PostgreSQL 16 stack.
 
 ---
 
@@ -167,7 +167,7 @@
 
 ### J. `bz-monitor` CLI Tool (`apps/cli/`)
 * **Terminal Test Crash Interception**: Running `bz-monitor exec -- npm test` passively intercepts stack traces from compiler/test failures, strips ANSI escape sequences, deduplicates identical crashes, and lets developers stage or push bug reports straight from their terminal into the web database.
-* **Git-Style Terminal State Sync**: Commands like `bz-monitor status`, `bz-monitor pull`, `bz-monitor log`, and `bz-monitor resolve` bring Bugzilla state directly to developers' command lines.
+* **Git-Style Terminal State Sync**: Commands like `bz-monitor status`, `bz-monitor pull`, `bz-monitor log`, and `bz-monitor resolve` bring Mantis state directly to developers' command lines.
 
 ---
 

@@ -1,4 +1,4 @@
-# BugzillaRevamp — Modernized Defect, Vulnerability & Governance Platform
+# Mantis — Modernized Defect, Vulnerability & Governance Platform
 
 [![Fastify](https://img.shields.io/badge/Fastify-4.28-black?logo=fastify)](https://fastify.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Vitest](https://img.shields.io/badge/Tests-45%2F45_Passing_100%25-brightgreen?logo=vitest)](https://vitest.dev/)
 
-**BugzillaRevamp** is a high-performance modernization of the open-source defect tracking platform, re-architected with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14**. It replaces 25-year-old Perl/CGI infrastructure with 5 unbeatable algorithmic and security moats: an interactive CPM critical path engine, FIRST.org CVSS v4.0 math engine with embargo timers, strict 404 zero-leakage group secrecy, formal FSM state transitions, and 1-click Gemini 2.0 Flash AI triage.
+**Mantis** is a high-performance modernization of the open-source defect tracking platform, re-architected with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14**. It replaces 25-year-old Perl/CGI infrastructure with 5 unbeatable algorithmic and security moats: an interactive CPM critical path engine, FIRST.org CVSS v4.0 math engine with embargo timers, strict 404 zero-leakage group secrecy, formal FSM state transitions, and 1-click Gemini 2.0 Flash AI triage.
 
 ---
 
@@ -149,7 +149,7 @@ flowchart TD
         v                                  v                                  v
 +---------------+                +-------------------+               +------------------+
 | Presentation  |                |  Business Logic   |               | Extension Hooks  |
-| (Template     | <------------> |  (Bugzilla::Bug,  | <-----------> | (Bugzilla::Hook, |
+| (Template     | <------------> |  (Mantis::Bug,  | <-----------> | (Mantis::Hook, |
 |  Toolkit 3.x) |                |   User, Field)    |               |  extensions/*)   |
 +---------------+                +-------------------+               +------------------+
                                            |
@@ -158,7 +158,7 @@ flowchart TD
         v                                  v                                  v
 +---------------+                +-------------------+               +------------------+
 | Auth Layer    |                | Database Layer    |               | Async Job Queue  |
-| (DB, LDAP,    |                | (Bugzilla::DB,    |               | (TheSchwartz,    |
+| (DB, LDAP,    |                | (Mantis::DB,    |               | (TheSchwartz,    |
 |  RADIUS, Env) |                |  DBI / Connector) |               |  jobqueue.pl)    |
 +---------------+                +-------------------+               +------------------+
                                            |
@@ -169,8 +169,8 @@ flowchart TD
 ```
 
 1. **Routing & Dispatch Layer**: CGI and REST/RPC endpoints receive requests, manage HTTP sessions, and perform authentication and authorization.
-2. **Business Domain Objects**: High-performance domain models (`Bugzilla::Bug`, `Bugzilla::User`, `Bugzilla::Product`, `Bugzilla::Component`, `Bugzilla::Attachment`, `Bugzilla::Flag`) enforce permissions, workflow rules, field validation, and change audit logging.
-3. **Persistence & Database Abstraction**: An abstraction layer (`Bugzilla::DB`) built on DBI and `DBIx::Connector` provides unified SQL dialect translation, schema auto-migration, and query optimization across multiple RDBMS engines.
+2. **Business Domain Objects**: High-performance domain models (`Mantis::Bug`, `Mantis::User`, `Mantis::Product`, `Mantis::Component`, `Mantis::Attachment`, `Mantis::Flag`) enforce permissions, workflow rules, field validation, and change audit logging.
+3. **Persistence & Database Abstraction**: An abstraction layer (`Mantis::DB`) built on DBI and `DBIx::Connector` provides unified SQL dialect translation, schema auto-migration, and query optimization across multiple RDBMS engines.
 4. **Presentation Engine**: Template Toolkit (`Template::Toolkit`) separates all presentation markup, HTML, JavaScript templates, and localized language packs from business logic.
 5. **Asynchronous Background Processing**: A distributed worker framework (`TheSchwartz`) handles deferred email delivery, notification fan-outs, and heavy background jobs without blocking HTTP transactions.
 
@@ -218,7 +218,7 @@ flowchart TD
   - Trac (`BugUrl::Trac`)
   - MantisBT (`BugUrl::MantisBT`)
   - Debian BTS (`BugUrl::Debian`)
-  - Other Bugzilla instances (`BugUrl::Bugzilla`)
+  - Other Mantis instances (`BugUrl::Mantis`)
 
 ---
 
@@ -228,7 +228,7 @@ flowchart TD
 |---|---|---|
 | **Core Runtime** | **Perl 5** (`>= 5.14.0`, tested on 5.34/5.38/5.40) | Object-oriented backend utilizing `Moo`, `List::MoreUtils`, `DateTime`, `Digest::SHA` |
 | **Web Server** | **Apache HTTP Server 2.4+** | Optimized for `mod_perl2` (`Apache2::SizeLimit`) with support for prefork MPM and CGI |
-| **Templating Engine** | **Template Toolkit 3** (`Template::Toolkit`) | Fast, secure template evaluation with custom plugins (`Bugzilla::Template`) and auto-escaping |
+| **Templating Engine** | **Template Toolkit 3** (`Template::Toolkit`) | Fast, secure template evaluation with custom plugins (`Mantis::Template`) and auto-escaping |
 | **Database Abstraction** | **DBI** & **DBIx::Connector** | Connection management, dynamic SQL generation, and cross-RDBMS schema upgrades |
 | **Supported Databases** | MariaDB, MySQL, PostgreSQL, Oracle, SQLite | Supported via `DBD::MariaDB`, `DBD::mysql`, `DBD::Pg`, `DBD::Oracle`, `DBD::SQLite` |
 | **Asynchronous Queue** | **TheSchwartz** & **Daemon::Generic** | Reliable database-backed asynchronous worker daemon (`jobqueue.pl`) |
@@ -248,8 +248,8 @@ flowchart TD
 ## Repository Structure
 
 ```
-bugzilla/
-├── Bugzilla/                   # Core application Perl modules (Object-Oriented Domain Layer)
+mantis/
+├── Mantis/                   # Core application Perl modules (Object-Oriented Domain Layer)
 │   ├── Attachment/             # Attachment handlers, storage backends & patch parsing
 │   ├── Auth/                   # Authentication & verification providers (DB, LDAP, RADIUS, Stack)
 │   ├── BugUrl/                 # Cross-tracker integrators (GitHub, JIRA, Launchpad, Trac, etc.)
@@ -294,7 +294,7 @@ bugzilla/
 │   ├── Example/                # Reference extension showing UI and backend hooks
 │   ├── MoreBugUrl/             # Extended bug URL providers
 │   ├── Voting/                 # Bug voting and popularity scoring system
-│   └── create.pl               # Scaffold tool to create a new Bugzilla extension
+│   └── create.pl               # Scaffold tool to create a new Mantis extension
 ├── docs/                       # Comprehensive documentation (reStructuredText & Sphinx)
 │   └── en/rst/                 # User guides, administration manuals, API references, installation docs
 ├── docker/                     # Docker container configuration, entrypoints & Apache setup
@@ -326,13 +326,13 @@ bugzilla/
 │   ├── collectstats.pl         # Scheduled daily bug statistics collector for historical charts
 │   ├── email_in.pl             # Inbound email processing gateway (pipe from MTA)
 │   ├── importxml.pl            # XML-based bug import and migration tool
-│   ├── install-module.pl       # Automated CPAN module installer for Bugzilla dependencies
+│   ├── install-module.pl       # Automated CPAN module installer for Mantis dependencies
 │   ├── migrate.pl              # Database engine migration tool (e.g. MySQL -> PostgreSQL)
 │   ├── sanitycheck.pl / .cgi   # Database integrity checker and consistency validator
 │   └── runtests.pl             # Test suite execution runner
 │
 ├── Dockerfile                  # Container definition based on Ubuntu 24.04 LTS
-├── docker-compose.yml          # Multi-container orchestration (Bugzilla Web + MariaDB)
+├── docker-compose.yml          # Multi-container orchestration (Mantis Web + MariaDB)
 └── README.md                   # Repository documentation
 ```
 
@@ -340,7 +340,7 @@ bugzilla/
 
 ## Quick Start with Docker
 
-The fastest way to spin up a fully functioning Bugzilla instance with an isolated database is using Docker Compose.
+The fastest way to spin up a fully functioning Mantis instance with an isolated database is using Docker Compose.
 
 ### 1. Launch Containers
 ```bash
@@ -351,7 +351,7 @@ docker compose up
 Once `checksetup.pl` finishes provisioning the database schema, the terminal displays the connection details:
 
 - **Web URL**: `http://127.0.0.1:8080/`
-- **Default Administrator**: `admin@bugzilla.test`
+- **Default Administrator**: `admin@mantis.test`
 - **Default Password**: `password01!`
 
 ### 3. Environment Variables
@@ -359,15 +359,15 @@ You can customize the deployment in `docker-compose.yml` or via environment vari
 
 | Variable | Default Value | Description |
 |---|---|---|
-| `BZ_ADMIN_EMAIL` | `admin@bugzilla.test` | Initial administrator account email |
+| `BZ_ADMIN_EMAIL` | `admin@mantis.test` | Initial administrator account email |
 | `BZ_ADMIN_PASSWORD` | `password01!` | Initial administrator password |
 | `BZ_ADMIN_REALNAME` | `Test Admin` | Initial administrator real name |
-| `BZ_URLBASE` | `http://127.0.0.1:8080/` | Canonical base URL for Bugzilla links |
-| `BZ_DB_HOST` | `bugzilla5.db` | Hostname of database container |
+| `BZ_URLBASE` | `http://127.0.0.1:8080/` | Canonical base URL for Mantis links |
+| `BZ_DB_HOST` | `mantis5.db` | Hostname of database container |
 | `BZ_DB_PORT` | `3306` | Port of database service |
 | `BZ_DB_NAME` | `bugs` | Database name |
 | `BZ_DB_USER` | `bugs` | Database username |
-| `BZ_DB_PASS` | `bugzilla` | Database password |
+| `BZ_DB_PASS` | `mantis` | Database password |
 | `BZ_ALLOW_UNSAFE_UTF8_CONVERSION` | `0` | Set to `1` to permit automated non-interactive UTF-8 schema conversion |
 
 ---
@@ -382,8 +382,8 @@ You can customize the deployment in `docker-compose.yml` or via environment vari
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/bugzilla/bugzilla.git /var/www/html/bugzilla
-cd /var/www/html/bugzilla
+git clone https://github.com/mantis/mantis.git /var/www/html/mantis
+cd /var/www/html/mantis
 ```
 
 ### Step 2: Verify and Install Perl Dependencies
@@ -435,13 +435,13 @@ Enable required Apache modules:
 sudo a2enmod rewrite headers expires cgi
 ```
 
-Configure a virtual host (e.g., `/etc/apache2/sites-available/bugzilla.conf`):
+Configure a virtual host (e.g., `/etc/apache2/sites-available/mantis.conf`):
 ```apache
 <VirtualHost *:80>
-    ServerName bugzilla.example.com
-    DocumentRoot /var/www/html/bugzilla
+    ServerName mantis.example.com
+    DocumentRoot /var/www/html/mantis
 
-    <Directory /var/www/html/bugzilla>
+    <Directory /var/www/html/mantis>
         AddHandler cgi-script .cgi
         Options +ExecCGI +FollowSymLinks
         DirectoryIndex index.cgi index.html
@@ -449,14 +449,14 @@ Configure a virtual host (e.g., `/etc/apache2/sites-available/bugzilla.conf`):
         Require all granted
     </Directory>
 
-    ErrorLog ${APACHE_LOG_DIR}/bugzilla_error.log
-    CustomLog ${APACHE_LOG_DIR}/bugzilla_access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/mantis_error.log
+    CustomLog ${APACHE_LOG_DIR}/mantis_access.log combined
 </VirtualHost>
 ```
 
 Enable the site and restart Apache:
 ```bash
-sudo a2ensite bugzilla.conf
+sudo a2ensite mantis.conf
 sudo systemctl restart apache2
 ```
 
@@ -464,18 +464,18 @@ sudo systemctl restart apache2
 
 ## Web Services & API Integration
 
-Bugzilla provides three synchronous Web Service APIs: **RESTful JSON API**, **JSON-RPC 2.0**, and **XML-RPC**.
+Mantis provides three synchronous Web Service APIs: **RESTful JSON API**, **JSON-RPC 2.0**, and **XML-RPC**.
 
 ### Authentication Options
 1. **API Key (Recommended)**: Pass via query parameter `?api_key=KEY`, header `X-BUGZILLA-API-KEY: KEY`, or JSON payload `{"api_key": "KEY"}`. Generate keys in **User Preferences -> API Keys**.
-2. **Login / Password Basic Auth**: Standard HTTP Basic Authentication or parameters `Bugzilla_login` & `Bugzilla_password`.
+2. **Login / Password Basic Auth**: Standard HTTP Basic Authentication or parameters `Mantis_login` & `Mantis_password`.
 3. **Session Cookie / Token**: Obtain a login token via `GET /rest/login`.
 
 ### Key REST Endpoints (`/rest/`)
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/rest/version` | Returns the Bugzilla server version |
+| `GET` | `/rest/version` | Returns the Mantis server version |
 | `GET` | `/rest/bug/{id}` | Retrieve comprehensive bug details, fields, and history |
 | `POST` | `/rest/bug` | Create a new bug |
 | `PUT` | `/rest/bug/{id}` | Update fields, add comments, change status, or assignees |
@@ -489,7 +489,7 @@ Bugzilla provides three synchronous Web Service APIs: **RESTful JSON API**, **JS
 
 #### Example: Create a Bug using cURL
 ```bash
-curl -X POST "https://bugzilla.example.com/rest/bug" \
+curl -X POST "https://mantis.example.com/rest/bug" \
      -H "Content-Type: application/json" \
      -H "X-BUGZILLA-API-KEY: your_api_key_here" \
      -d '{
@@ -509,7 +509,7 @@ curl -X POST "https://bugzilla.example.com/rest/bug" \
 
 ## Background Daemons & Scheduled Tasks
 
-Bugzilla includes automated daemons and maintenance scripts that should be configured via `systemd` or `cron`.
+Mantis includes automated daemons and maintenance scripts that should be configured via `systemd` or `cron`.
 
 ### 1. Asynchronous Job Queue (`jobqueue.pl`)
 Processes outbound notification emails, external tracker webhooks, and long-running operations asynchronously using `TheSchwartz`:
@@ -525,28 +525,28 @@ perl jobqueue.pl start
 Evaluates user-configured search alerts and sends scheduled summary emails:
 ```bash
 # Add to crontab to run every 15 minutes:
-*/15 * * * * cd /var/www/html/bugzilla && perl whine.pl
+*/15 * * * * cd /var/www/html/mantis && perl whine.pl
 ```
 
 ### 3. Historical Statistics Collection (`collectstats.pl`)
 Snapshots bug counts and status distributions to generate historical trend graphs:
 ```bash
 # Add to crontab to run daily at midnight:
-0 0 * * * cd /var/www/html/bugzilla && perl collectstats.pl
+0 0 * * * cd /var/www/html/mantis && perl collectstats.pl
 ```
 
 ### 4. Inbound Email Processor (`email_in.pl`)
 Integrate with an MTA (Postfix, Sendmail, Exim) to convert incoming emails into bug comments or new bug filings:
 ```bash
 # Example Postfix alias:
-# bugzilla-submit: "|/var/www/html/bugzilla/email_in.pl"
+# mantis-submit: "|/var/www/html/mantis/email_in.pl"
 ```
 
 ---
 
 ## Extension & Plugin Architecture
 
-Bugzilla provides a modular extension system located in `extensions/`. Extensions can alter data models, inject custom HTML/CSS/JS into templates, listen to lifecycle hooks, and expose new REST endpoints.
+Mantis provides a modular extension system located in `extensions/`. Extensions can alter data models, inject custom HTML/CSS/JS into templates, listen to lifecycle hooks, and expose new REST endpoints.
 
 ### Creating a New Extension
 Use the built-in scaffolding tool:
@@ -559,13 +559,13 @@ This creates an extension directory containing:
 - `Extension.pm`: Main class defining metadata and hooking into lifecycle events (`bug_start_of_update`, `object_before_create`, etc.).
 - `template/`: Overrides and template hooks injected into existing UI views.
 - `web/`: Custom static CSS, JavaScript, and asset files.
-- `Config.pm`: Extension-specific configuration parameters editable via the Bugzilla Admin UI.
+- `Config.pm`: Extension-specific configuration parameters editable via the Mantis Admin UI.
 
 ---
 
 ## Authentication & Directory Integration
 
-Bugzilla supports multiple authentication and authorization providers configured under **Administration -> Parameters -> Authentication**:
+Mantis supports multiple authentication and authorization providers configured under **Administration -> Parameters -> Authentication**:
 
 - **Database (`DB`)**: Local user accounts with secure salted password hashing (`Math::Random::ISAAC` and `Digest::SHA`).
 - **LDAP / Active Directory (`LDAP`)**: Query remote directory servers for authentication and attribute mapping (UID, email, real name).
@@ -577,7 +577,7 @@ Bugzilla supports multiple authentication and authorization providers configured
 
 ## Testing & Quality Assurance
 
-Bugzilla includes automated test suites covering compilation, unit tests, web service contracts, and code formatting:
+Mantis includes automated test suites covering compilation, unit tests, web service contracts, and code formatting:
 
 ```bash
 # Run all core tests
@@ -602,14 +602,14 @@ prove -l t/011pod.t
 - **Password Policies**: Configurable minimum length, complexity checks, account lockout thresholds after failed attempts, and rate limiting.
 
 ### Reporting Security Vulnerabilities
-Security vulnerabilities should be reported directly to the [Mozilla Bugzilla Security Team](https://bugzilla.mozilla.org/enter_bug.cgi?product=Bugzilla) with the security flag enabled to ensure embargoed handling.
+Security vulnerabilities should be reported directly to the [Mozilla Mantis Security Team](https://mantis.mozilla.org/enter_bug.cgi?product=Mantis) with the security flag enabled to ensure embargoed handling.
 
 ---
 
 ## License & Community
 
 - **License**: [Mozilla Public License, version 2.0 (MPL-2.0)](LICENSE).
-- **Official Website**: [https://www.bugzilla.org/](https://www.bugzilla.org/)
-- **Documentation**: [https://www.bugzilla.org/docs/](https://www.bugzilla.org/docs/)
-- **Community Forum & Mailing Lists**: [Mozilla Bugzilla Discourse](https://discourse.mozilla.org/c/bugzilla)
-- **IRC / Matrix**: `#bugzilla` on Matrix / IRC.
+- **Official Website**: [https://www.mantis.org/](https://www.mantis.org/)
+- **Documentation**: [https://www.mantis.org/docs/](https://www.mantis.org/docs/)
+- **Community Forum & Mailing Lists**: [Mozilla Mantis Discourse](https://discourse.mozilla.org/c/mantis)
+- **IRC / Matrix**: `#mantis` on Matrix / IRC.

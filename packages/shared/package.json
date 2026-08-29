@@ -1,5 +1,5 @@
 {
-  "name": "@bugzilla/shared",
+  "name": "@mantis/shared",
   "version": "1.0.0",
   "private": true,
   "main": "./dist/types.js",

@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/client.js';
 import { canUserAccessBug } from '../middleware/groupFilter.js';
 import { callLLMTriage } from '../services/aiTriage.js';
-import { Bug, BugComment } from '@bugzilla/shared';
+import { Bug, BugComment } from '@mantis/shared';
 
 export async function aiTriageRoutes(app: FastifyInstance) {
   /**

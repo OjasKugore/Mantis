@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Bug, BugComment, TriageResult } from '@bugzilla/shared';
+import { Bug, BugComment, TriageResult } from '@mantis/shared';
 
 export function buildTriagePrompt(bug: Bug, comments: BugComment[]): string {
   const commentText = comments

@@ -1,6 +1,6 @@
 # 09 — Modernization Roadmap
 
-> This document maps each Bugzilla legacy feature to modern equivalents, providing a concrete blueprint for building a next-generation bug tracking platform that scores high across all evaluation rubrics.
+> This document maps each Mantis legacy feature to modern equivalents, providing a concrete blueprint for building a next-generation bug tracking platform that scores high across all evaluation rubrics.
 
 ---
 
@@ -16,7 +16,7 @@ The core problem hasn't changed: **teams need a structured, auditable, collabora
 | UNCONFIRMED triage queue | Separate triage role adds friction | AI-assisted triage with auto-classification |
 | Email-only notifications | Asynchronous, easily missed | In-app + email + Slack/Teams webhooks |
 | Boolean chart search | Powerful but cryptic | Natural language search + filters |
-| Flag-based review workflow | Context-switch to Bugzilla for review status | GitHub PR integration |
+| Flag-based review workflow | Context-switch to Mantis for review status | GitHub PR integration |
 | Static charts from cron | Stale data, limited visualization | Real-time dashboards |
 | CGI page-per-action | Full page reload for every change | SPA with optimistic updates |
 | Text-only comments | No rich content in discussions | Markdown + code highlighting + images |
@@ -68,7 +68,7 @@ CDN:             CloudFront / Cloudflare
 
 ### 3.1 Authentication System
 
-**Legacy (Bugzilla):**
+**Legacy (Mantis):**
 - DB password (bcrypt), LDAP, RADIUS
 - Cookie-based sessions
 - API keys stored in DB
@@ -92,7 +92,7 @@ Multi-factor authentication:
 └── WebAuthn/Passkeys
 ```
 
-**Innovation**: Add OIDC provider capability so organizations can use Bugzilla-Modern as an auth source for other tools.
+**Innovation**: Add OIDC provider capability so organizations can use Mantis-Modern as an auth source for other tools.
 
 ### 3.2 Bug Lifecycle Management
 
@@ -146,7 +146,7 @@ interface Issue {
   
   // People
   reporter: User;
-  assignees: User[];       // Multiple assignees (vs. Bugzilla's single)
+  assignees: User[];       // Multiple assignees (vs. Mantis's single)
   reviewers: User[];
   watchers: User[];
   
@@ -179,7 +179,7 @@ interface Issue {
 ```
 
 **Innovations:**
-- Multiple assignees (Bugzilla only allows one)
+- Multiple assignees (Mantis only allows one)
 - Label system that replaces keywords + whiteboard (more intuitive)
 - Sub-issues / parent-child relationships
 - Issue templates per project/type
@@ -469,7 +469,7 @@ Issue shortcuts:
 
 ### From MySQL to PostgreSQL
 
-| Feature | MySQL/Bugzilla | PostgreSQL/Modern |
+| Feature | MySQL/Mantis | PostgreSQL/Modern |
 |---|---|---|
 | Full-text search | MySQL FULLTEXT | `tsvector`/`tsquery` + GIN index |
 | JSON fields | Limited | JSONB (indexed) |
@@ -484,7 +484,7 @@ Issue shortcuts:
 ### Schema Improvements
 
 ```sql
--- Modern issues table (vs. Bugzilla's bugs table)
+-- Modern issues table (vs. Mantis's bugs table)
 CREATE TABLE issues (
     id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     number      INTEGER NOT NULL,
@@ -589,7 +589,7 @@ type Subscription {
 
 | Criterion | How the Modern System Addresses It |
 |---|---|
-| **Problem Understanding (20)** | Deeply solves bug lifecycle management, triage, collaboration, and tracking with all Bugzilla features preserved |
+| **Problem Understanding (20)** | Deeply solves bug lifecycle management, triage, collaboration, and tracking with all Mantis features preserved |
 | **Innovation (20)** | AI triage, real-time collaboration, multi-channel notifications, mobile PWA, GitHub deep integration, configurable workflows |
 | **Technical Architecture (15)** | TypeScript monorepo, PostgreSQL, Redis, REST+GraphQL APIs, event-sourced audit trail, Docker/Kubernetes ready |
 | **UX & Accessibility (15)** | React SPA, keyboard navigation, WCAG 2.1 AA compliance, mobile-first, dark mode, command palette |

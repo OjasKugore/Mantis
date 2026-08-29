@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Bugzilla's search engine is one of its most powerful features and most complex components. It is implemented primarily in `Bugzilla/Search.pm` (~110k bytes, ~3562 lines) with supporting modules for specific search modes.
+Mantis's search engine is one of its most powerful features and most complex components. It is implemented primarily in `Mantis/Search.pm` (~110k bytes, ~3562 lines) with supporting modules for specific search modes.
 
 The engine translates a user's multi-field query into SQL, applying security filters, handling custom fields, and supporting Boolean logic with arbitrary nesting.
 
@@ -57,7 +57,7 @@ WHERE ((priority = 'P1' OR priority = 'P2') AND assigned_to_login LIKE '%develop
 
 ### 2.3 Quicksearch
 
-**Location**: `Bugzilla/Search/Quicksearch.pm` (~21k bytes)
+**Location**: `Mantis/Search/Quicksearch.pm` (~21k bytes)
 
 A power-user query language that gets converted to a standard boolean chart internally:
 
@@ -121,7 +121,7 @@ value-0-1-0 = CONFIRMED
 
 ### 3.2 Search Clause Objects
 
-**Location**: `Bugzilla/Search/Clause.pm`, `Bugzilla/Search/ClauseGroup.pm`, `Bugzilla/Search/Condition.pm`
+**Location**: `Mantis/Search/Clause.pm`, `Mantis/Search/ClauseGroup.pm`, `Mantis/Search/Condition.pm`
 
 ```
 ClauseGroup (AND of ClauseGroups and Clauses)
@@ -234,7 +234,7 @@ For logged-out users: only bugs with no group restrictions are shown.
 
 ## 5. Saved Searches
 
-**Location**: `Bugzilla/Search/Saved.pm`  
+**Location**: `Mantis/Search/Saved.pm`  
 **DB Table**: `namedqueries`
 
 ### 5.1 Saving a Search
@@ -269,14 +269,14 @@ VALUES (123, 42)
 
 ## 6. Recent Searches
 
-**Location**: `Bugzilla/Search/Recent.pm`  
+**Location**: `Mantis/Search/Recent.pm`  
 **DB Table**: Referenced from `profile_search`
 
-Bugzilla automatically saves the last `SAVE_NUM_SEARCHES = 10` searches per user. These appear in the search page's "Recent Searches" section.
+Mantis automatically saves the last `SAVE_NUM_SEARCHES = 10` searches per user. These appear in the search page's "Recent Searches" section.
 
 ```perl
 # When a search is executed:
-Bugzilla::Search::Recent->create({
+Mantis::Search::Recent->create({
     user_id => $user->id,
     query   => $query_string,
     list_of_ids => \@result_ids,  # cached result set
@@ -313,14 +313,14 @@ Atom feeds allow subscribing to a search result set in RSS readers:
 
 ```xml
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>Bugzilla: P1 Firefox Bugs</title>
-  <link href="https://bugzilla.example.com/buglist.cgi?..."/>
+  <title>Mantis: P1 Firefox Bugs</title>
+  <link href="https://mantis.example.com/buglist.cgi?..."/>
   <updated>2024-01-15T10:00:00Z</updated>
   
   <entry>
-    <id>https://bugzilla.example.com/show_bug.cgi?id=12345</id>
+    <id>https://mantis.example.com/show_bug.cgi?id=12345</id>
     <title>[Bug 12345] Crash on startup with GPU acceleration</title>
-    <link href="https://bugzilla.example.com/show_bug.cgi?id=12345"/>
+    <link href="https://mantis.example.com/show_bug.cgi?id=12345"/>
     <updated>2024-01-15T09:45:00Z</updated>
     <author><name>developer@example.com</name></author>
     <summary>...</summary>
@@ -380,9 +380,9 @@ LIMIT 500
 
 ## 9. Duplicate Detection
 
-**Location**: `Bugzilla::Bug::possible_duplicates()`
+**Location**: `Mantis::Bug::possible_duplicates()`
 
-When a user submits a new bug, Bugzilla automatically searches for potential duplicates:
+When a user submits a new bug, Mantis automatically searches for potential duplicates:
 
 ```perl
 sub possible_duplicates {
@@ -397,11 +397,11 @@ sub possible_duplicates {
         product_id        => [$params->{product}->id],
     };
     
-    my $search = Bugzilla::Search->new(fields => ['bug_id'], params => $query);
+    my $search = Mantis::Search->new(fields => ['bug_id'], params => $query);
     my ($data) = $search->data;
     
     # Return up to MAX_POSSIBLE_DUPLICATES results
-    return Bugzilla::Bug->new_from_list([
+    return Mantis::Bug->new_from_list([
         map { $_->[0] } @{$data}[0..MAX_POSSIBLE_DUPLICATES-1]
     ]);
 }
@@ -413,15 +413,15 @@ sub possible_duplicates {
 
 **Location**: `search_plugin.cgi`
 
-Bugzilla generates an OpenSearch description document, allowing browsers to add Bugzilla as a built-in search engine:
+Mantis generates an OpenSearch description document, allowing browsers to add Mantis as a built-in search engine:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
-  <ShortName>Bugzilla</ShortName>
-  <Description>Search Bugzilla bugs</Description>
+  <ShortName>Mantis</ShortName>
+  <Description>Search Mantis bugs</Description>
   <Url type="text/html"
-       template="https://bugzilla.example.com/buglist.cgi?quicksearch={searchTerms}"/>
+       template="https://mantis.example.com/buglist.cgi?quicksearch={searchTerms}"/>
 </OpenSearchDescription>
 ```
 

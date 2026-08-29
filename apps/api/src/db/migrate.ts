@@ -55,7 +55,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         console.error('   The Docker container may still be initializing.\n');
         console.error('   Fix:  Wait 10 seconds, then retry: npm run migrate\n');
       } else if (code === '3D000') {
-        console.error('\n   Cause: Database "bugzilla" does not exist.');
+        console.error('\n   Cause: Database "mantis" does not exist.');
         console.error('   The Docker container started but the DB was not created.\n');
         console.error('   Fix:');
         console.error('     docker compose down -v && docker compose up -d db');

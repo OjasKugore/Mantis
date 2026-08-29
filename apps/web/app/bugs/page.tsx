@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bug } from '@bugzilla/shared';
+import { Bug } from '@mantis/shared';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AuthBar } from '@/components/AuthBar';
 import { Search } from 'lucide-react';

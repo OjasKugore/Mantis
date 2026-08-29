@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
     display_name  VARCHAR(255) NOT NULL,
     username      VARCHAR(64)  NOT NULL UNIQUE,   -- for @mentions
     avatar_url    TEXT,
-    password_hash VARCHAR(255) NOT NULL,           -- Argon2id
+    password_hash VARCHAR(255),           -- Argon2id
+    github_id     VARCHAR(255) UNIQUE,
+    google_id     VARCHAR(255) UNIQUE,
     is_enabled    BOOLEAN NOT NULL DEFAULT TRUE,
     is_admin      BOOLEAN NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()

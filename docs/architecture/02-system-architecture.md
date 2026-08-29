@@ -2,7 +2,7 @@
 
 ## 1. High-Level Architecture Overview
 
-Bugzilla follows a **monolithic, server-side rendered MVC architecture** built entirely in Object-Oriented Perl (5.14+), running on Apache HTTP Server with mod_perl.
+Mantis follows a **monolithic, server-side rendered MVC architecture** built entirely in Object-Oriented Perl (5.14+), running on Apache HTTP Server with mod_perl.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -24,9 +24,9 @@ Bugzilla follows a **monolithic, server-side rendered MVC architecture** built e
            │                           │
     ┌──────▼──────┐             ┌──────▼──────┐
     │  Auth Layer │             │  Business   │
-    │  Bugzilla   │◄───────────►│  Logic      │
+    │  Mantis   │◄───────────►│  Logic      │
     │  ::Auth     │             │  Layer      │
-    └─────────────┘             │  (Bugzilla  │
+    └─────────────┘             │  (Mantis  │
                                 │  ::Bug,     │
     ┌─────────────┐             │  ::User,    │
     │ Presentation│◄───────────►│  ::Product, │
@@ -38,7 +38,7 @@ Bugzilla follows a **monolithic, server-side rendered MVC architecture** built e
     ┌─────────────┐             ┌──────▼──────┐
     │  Extension  │◄───────────►│  Database   │
     │  Hooks      │             │  Layer      │
-    │  (Bugzilla  │             │  (Bugzilla  │
+    │  (Mantis  │             │  (Mantis  │
     │  ::Hook)    │             │  ::DB)      │
     └─────────────┘             └──────┬──────┘
                                        │
@@ -62,7 +62,7 @@ Bugzilla follows a **monolithic, server-side rendered MVC architecture** built e
 
 ### Layer 1: Entrypoint / Routing (CGI Scripts)
 
-**Location**: `bugzilla/*.cgi` and `bugzilla/*.pl`  
+**Location**: `mantis/*.cgi` and `mantis/*.pl`  
 **Technology**: Perl CGI scripts, mod_perl handlers
 
 There is **no centralized router**. Each `.cgi` file is both a URL endpoint and a controller:
@@ -100,33 +100,33 @@ There is **no centralized router**. Each `.cgi` file is both a URL endpoint and 
 **Request lifecycle in a CGI script:**
 ```perl
 # Typical pattern inside each .cgi
-use Bugzilla;
-Bugzilla->init_page();                    # 1. Initialize request context
-my $user = Bugzilla->login(LOGIN_REQUIRED); # 2. Authenticate
+use Mantis;
+Mantis->init_page();                    # 1. Initialize request context
+my $user = Mantis->login(LOGIN_REQUIRED); # 2. Authenticate
 
 # 3. Input validation and permission check
-my $bug_id = Bugzilla->cgi->param('id');
-my $bug    = Bugzilla::Bug->check($bug_id);
+my $bug_id = Mantis->cgi->param('id');
+my $bug    = Mantis::Bug->check($bug_id);
 
 # 4. Business logic
 $bug->update_fields(...);
 
 # 5. Render template
-my $template = Bugzilla->template;
+my $template = Mantis->template;
 $template->process('bug/show.html.tmpl', { bug => $bug });
 ```
 
 ---
 
-### Layer 2: Authentication (Bugzilla::Auth)
+### Layer 2: Authentication (Mantis::Auth)
 
-**Location**: `Bugzilla/Auth.pm` and `Bugzilla/Auth/`
+**Location**: `Mantis/Auth.pm` and `Mantis/Auth/`
 
 The auth layer is a **three-stage pipeline**:
 
 ```
 ┌─────────────────────────────────────────┐
-│          Bugzilla::Auth (orchestrator)  │
+│          Mantis::Auth (orchestrator)  │
 ├────────────────┬─────────────────────── ┤
 │  Info Getter   │  Verifier              │ ← Stage 1+2
 │  (How to get   │  (How to verify        │
@@ -166,10 +166,10 @@ LOGIN_REQUIRED = 2  (must be logged in)
 
 ### Layer 3: Business Logic (Domain Objects)
 
-**Location**: `Bugzilla/*.pm`  
-**Base class**: `Bugzilla::Object`
+**Location**: `Mantis/*.pm`  
+**Base class**: `Mantis::Object`
 
-All domain entities extend `Bugzilla::Object`, which provides:
+All domain entities extend `Mantis::Object`, which provides:
 - CRUD operations mapped to database tables
 - Field-level validation via `VALIDATORS` hash
 - Automatic audit logging
@@ -180,52 +180,52 @@ Key domain objects:
 
 | Class | DB Table | Purpose |
 |---|---|---|
-| `Bugzilla::Bug` | `bugs` | Central bug record (156k lines) |
-| `Bugzilla::User` | `profiles` | User accounts and permissions |
-| `Bugzilla::Product` | `products` | Product definitions |
-| `Bugzilla::Component` | `components` | Component within a product |
-| `Bugzilla::Classification` | `classifications` | Top-level grouping |
-| `Bugzilla::Attachment` | `attachments` | File attachments |
-| `Bugzilla::Comment` | `longdescs` | Bug comments |
-| `Bugzilla::Flag` | `flags` | Review/approval flags |
-| `Bugzilla::FlagType` | `flagtypes` | Flag type definitions |
-| `Bugzilla::Group` | `groups` | Security groups |
-| `Bugzilla::Field` | `fielddefs` | Custom field definitions |
-| `Bugzilla::Keyword` | `keyworddefs` | Tag/keyword definitions |
-| `Bugzilla::Milestone` | `milestones` | Release milestones |
-| `Bugzilla::Version` | `versions` | Product versions |
-| `Bugzilla::Status` | (enum) | Bug status state machine |
-| `Bugzilla::Token` | `tokens` | CSRF/account/session tokens |
+| `Mantis::Bug` | `bugs` | Central bug record (156k lines) |
+| `Mantis::User` | `profiles` | User accounts and permissions |
+| `Mantis::Product` | `products` | Product definitions |
+| `Mantis::Component` | `components` | Component within a product |
+| `Mantis::Classification` | `classifications` | Top-level grouping |
+| `Mantis::Attachment` | `attachments` | File attachments |
+| `Mantis::Comment` | `longdescs` | Bug comments |
+| `Mantis::Flag` | `flags` | Review/approval flags |
+| `Mantis::FlagType` | `flagtypes` | Flag type definitions |
+| `Mantis::Group` | `groups` | Security groups |
+| `Mantis::Field` | `fielddefs` | Custom field definitions |
+| `Mantis::Keyword` | `keyworddefs` | Tag/keyword definitions |
+| `Mantis::Milestone` | `milestones` | Release milestones |
+| `Mantis::Version` | `versions` | Product versions |
+| `Mantis::Status` | (enum) | Bug status state machine |
+| `Mantis::Token` | `tokens` | CSRF/account/session tokens |
 
 ---
 
-### Layer 4: Database Abstraction (Bugzilla::DB)
+### Layer 4: Database Abstraction (Mantis::DB)
 
-**Location**: `Bugzilla/DB.pm`, `Bugzilla/DB/`
+**Location**: `Mantis/DB.pm`, `Mantis/DB/`
 
 ```
-Bugzilla::DB (abstract base, uses Moo)
-├── Bugzilla::DB::Mysql    (MySQL driver)
-├── Bugzilla::DB::MariaDB  (MariaDB driver, extends Mysql)
-├── Bugzilla::DB::Pg       (PostgreSQL driver)
-├── Bugzilla::DB::Oracle   (Oracle driver)
-└── Bugzilla::DB::Sqlite   (SQLite driver, dev/test only)
+Mantis::DB (abstract base, uses Moo)
+├── Mantis::DB::Mysql    (MySQL driver)
+├── Mantis::DB::MariaDB  (MariaDB driver, extends Mysql)
+├── Mantis::DB::Pg       (PostgreSQL driver)
+├── Mantis::DB::Oracle   (Oracle driver)
+└── Mantis::DB::Sqlite   (SQLite driver, dev/test only)
 ```
 
 Key features:
 - Built on **DBI** (Perl DBI interface) + **DBIx::Connector** for connection management
 - Provides cross-database SQL helpers: `sql_date_format()`, `sql_date_math()`, `sql_istrcmp()`, `sql_fulltext_search()`, `sql_limit()`
-- **Schema auto-migration**: `Bugzilla::DB::Schema` tracks all table definitions and auto-generates DDL
+- **Schema auto-migration**: `Mantis::DB::Schema` tracks all table definitions and auto-generates DDL
 - Isolation level: `REPEATABLE READ` for transactional consistency
-- Connection stored per-request in `Bugzilla->dbh`
+- Connection stored per-request in `Mantis->dbh`
 
 **Schema versioning**: The `bz_schema` table stores a serialized Perl snapshot of the canonical schema. Migrations compare this against current DB state and auto-apply `ALTER TABLE` statements.
 
 ---
 
-### Layer 5: Search Engine (Bugzilla::Search)
+### Layer 5: Search Engine (Mantis::Search)
 
-**Location**: `Bugzilla/Search.pm` (~110k bytes, ~3562 lines)
+**Location**: `Mantis/Search.pm` (~110k bytes, ~3562 lines)
 
 The most complex module. It translates a user's boolean chart queries into SQL:
 
@@ -234,7 +234,7 @@ User Query Params
     │
     ▼
 ┌─────────────────────────────────┐
-│  Bugzilla::Search               │
+│  Mantis::Search               │
 │  - Parses chart tuples          │
 │  - Builds ClauseGroup/Clause    │
 │  - Resolves field→SQL mappings  │
@@ -285,15 +285,15 @@ template/en/default/
 
 ---
 
-### Layer 7: Extension/Hook System (Bugzilla::Hook)
+### Layer 7: Extension/Hook System (Mantis::Hook)
 
-**Location**: `Bugzilla/Hook.pm`, `Bugzilla/Extension.pm`, `extensions/`
+**Location**: `Mantis/Hook.pm`, `Mantis/Extension.pm`, `extensions/`
 
 Extensions can inject code at predefined hook points:
 
 ```perl
-# In any Bugzilla core code:
-Bugzilla::Hook::process("bug_end_of_update", {
+# In any Mantis core code:
+Mantis::Hook::process("bug_end_of_update", {
     bug     => $bug,
     changes => \%changes,
     old_bug => $old_bug,
@@ -318,7 +318,7 @@ Available extensions in the repository:
 
 ### Layer 8: Async Background Processing
 
-**Location**: `jobqueue.pl`, `Bugzilla/JobQueue.pm`, `Bugzilla/Job/`  
+**Location**: `jobqueue.pl`, `Mantis/JobQueue.pm`, `Mantis/Job/`  
 **Technology**: TheSchwartz (database-backed job queue)
 
 ```
@@ -328,7 +328,7 @@ HTTP Request
 Business Logic runs
     │ (triggers notifications)
     ▼
-Bugzilla::BugMail::Send() ──► TheSchwartz::Job enqueued
+Mantis::BugMail::Send() ──► TheSchwartz::Job enqueued
     │                          into 'ts_job' table
     ▼
 HTTP Response returned immediately (fast)
@@ -351,7 +351,7 @@ HTTP Response returned immediately (fast)
 - `whine.pl` — runs saved queries and sends reminder emails
 - `collectstats.pl` — collects daily bug statistics snapshots
 - `clean-bug-user-last-visit.pl` — purges old last-visit records
-- `whineatnews.pl` — sends "bugzilla news" emails
+- `whineatnews.pl` — sends "mantis news" emails
 
 ---
 
@@ -361,18 +361,18 @@ HTTP Response returned immediately (fast)
 1. Browser sends HTTP GET /show_bug.cgi?id=12345
 2. Apache routes to mod_perl handler or CGI executor
 3. show_bug.cgi executes:
-   a. Bugzilla->init_page()
+   a. Mantis->init_page()
       - Read localconfig (db credentials, etc.)
-      - Connect to DB via Bugzilla::DB
+      - Connect to DB via Mantis::DB
       - Initialize Memcached connection
       - Load extensions
-   b. Bugzilla->login(LOGIN_REQUIRED)
+   b. Mantis->login(LOGIN_REQUIRED)
       - Auth::Login::Cookie tries session cookie
       - Auth::Login::APIKey tries X-BUGZILLA-API-KEY header
       - Auth::Login::CGI tries form params
       - Auth::Verify::DB checks bcrypt hash
       - Auth::Persist::Cookie sets/renews session cookie
-   c. $bug = Bugzilla::Bug->check(12345)
+   c. $bug = Mantis::Bug->check(12345)
       - Checks bug exists
       - Checks user has permission to view
       - Returns lazy-loading bug object
@@ -390,7 +390,7 @@ HTTP Response returned immediately (fast)
 
 ## 4. Configuration System
 
-**Location**: `Bugzilla/Config.pm`, `Bugzilla/Config/`
+**Location**: `Mantis/Config.pm`, `Mantis/Config/`
 
 Two types of configuration:
 
@@ -416,7 +416,7 @@ Security is layered at multiple levels:
 
 1. **Auth Layer**: login required for most actions; API keys for programmatic access
 2. **Permission Checks**: every object access goes through `can_see_bug()`, `can_edit_bug()` etc.
-3. **CSRF Tokens**: form submissions include tokens via `Bugzilla::Token`; validated on POST
+3. **CSRF Tokens**: form submissions include tokens via `Mantis::Token`; validated on POST
 4. **Group-based Access Control**: bugs can be restricted to groups; queries are SQL-filtered
 5. **Taint Mode**: Perl taint mode enabled; all user input is explicitly untainted before use
 6. **SQL Parameterization**: all queries use DBI placeholders; no string concatenation with user data
@@ -432,15 +432,15 @@ Security is layered at multiple levels:
 ```yaml
 # docker-compose.yml
 services:
-  bugzilla:
+  mantis:
     build: .                    # Ubuntu 24.04 LTS base
     ports: ["8080:80"]
     environment:
-      - BZ_DB_HOST=bugzilla5.db
-      - BZ_ADMIN_EMAIL=admin@bugzilla.test
+      - BZ_DB_HOST=mantis5.db
+      - BZ_ADMIN_EMAIL=admin@mantis.test
   
-  bugzilla5.db:
-    image: bugzilla/mariadb:latest
+  mantis5.db:
+    image: mantis/mariadb:latest
     volumes:
       - db_data:/var/lib/mysql
 ```
@@ -450,7 +450,7 @@ services:
 Linux (Ubuntu/Debian/RHEL)
   └── Apache HTTP Server 2.4+
         └── mod_perl 2.0
-              └── Bugzilla (Perl 5.14+)
+              └── Mantis (Perl 5.14+)
                     └── MariaDB / MySQL / PostgreSQL
 ```
 
@@ -477,7 +477,7 @@ Linux (Ubuntu/Debian/RHEL)
                                        │
               ┌────────────────────────▼──────────────────────┐
               │                   DB Layer                     │
-              │    Bugzilla::DB → DBI → MariaDB/MySQL/Pg      │
+              │    Mantis::DB → DBI → MariaDB/MySQL/Pg      │
               └───────────────────────────────────────────────┘
                     │                 │                 │
               ┌─────▼────┐    ┌───────▼──────┐  ┌─────▼────┐

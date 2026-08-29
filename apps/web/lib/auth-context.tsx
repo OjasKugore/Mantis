@@ -24,7 +24,7 @@ export const SEED_PERSONAS: Persona[] = [
   {
     key: 'admin',
     name: 'System Administrator',
-    email: 'admin@bugzilla.local',
+    email: 'admin@mantis.local',
     role: 'Admin',
     badge: '👑 Admin',
     avatarColor: 'from-amber-500 to-rose-600',

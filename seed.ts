@@ -82,7 +82,7 @@ async function seed() {
     // 5. Insert Users (Argon2id password: 'password123')
     const passwordHash = await hashPassword('password123');
     const usersData = [
-      { username: 'admin', email: 'admin@bugzilla.local', name: 'System Administrator', is_admin: true },
+      { username: 'admin', email: 'admin@mantis.local', name: 'System Administrator', is_admin: true },
       { username: 'alice_dev', email: 'alice@mozilla.com', name: 'Alice Developer', is_admin: false },
       { username: 'bob_qa', email: 'bob@mozilla.com', name: 'Bob QA Engineer', is_admin: false },
       { username: 'carol_sec', email: 'carol@mozilla.com', name: 'Carol Security Lead', is_admin: false },

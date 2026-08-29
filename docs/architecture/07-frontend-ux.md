@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Bugzilla's frontend is a **server-side rendered, form-based** interface using:
+Mantis's frontend is a **server-side rendered, form-based** interface using:
 - **Template Toolkit 3** for HTML generation
 - **Vanilla JavaScript** (no framework) for interactive elements
 - **Yahoo! UI Library (YUI 2)** for some advanced widgets
@@ -113,11 +113,11 @@ template/en/default/
 [% HOOK hook_name %]            — Extension hook point
 ```
 
-### 2.3 Custom TT Plugins (`Bugzilla::Template`)
+### 2.3 Custom TT Plugins (`Mantis::Template`)
 
-**Location**: `Bugzilla/Template.pm` and `Bugzilla/Template/`
+**Location**: `Mantis/Template.pm` and `Mantis/Template/`
 
-Custom plugins add Bugzilla-specific functionality to templates:
+Custom plugins add Mantis-specific functionality to templates:
 
 ```perl
 # Custom filters registered:
@@ -223,7 +223,7 @@ skins/
 
 ### 5.1 Bug View (`show_bug.cgi`)
 
-The most complex page in Bugzilla. Contents:
+The most complex page in Mantis. Contents:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -317,7 +317,7 @@ A text-link-based menu of admin sections:
 
 ```
 ┌────────────────────────────────────────┐
-│ Bugzilla Administration                │
+│ Mantis Administration                │
 ├────────────────────────────────────────┤
 │ Parameters     - System configuration  │
 │ Users          - User management       │

@@ -1,5 +1,5 @@
 {
-  "name": "@bugzilla/api",
+  "name": "@mantis/api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "seed": "tsx ../../seed.ts"
   },
   "dependencies": {
-    "@bugzilla/shared": "*",
+    "@mantis/shared": "*",
     "@fastify/cookie": "^9.3.1",
     "@fastify/cors": "^9.0.1",
     "@fastify/swagger": "^8.14.0",

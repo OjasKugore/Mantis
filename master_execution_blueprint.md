@@ -1,4 +1,4 @@
-# BugzillaRevamp: Master Execution Blueprint & Competitive Instruction Guide
+# Mantis: Master Execution Blueprint & Competitive Instruction Guide
 ### Alignment: 1:1 Seamless Synchronization with `implementation_plan.md`
 > **Document Version**: 3.0 (Synchronized Master Edition)  
 > **Date**: August 28, 2026  
@@ -13,7 +13,7 @@
 graph TB
     subgraph "The Competitive Battlefield"
         COMP["Competitor / Baseline Trackers<br/>• Generic Linear/Jira clone<br/>• Heavy BaaS glue (Supabase Auth/Storage/Realtime)<br/>• Standard RLS & basic relational links<br/>• Expected Score: ~71/100"]
-        BZ["BugzillaRevamp Modernization Platform<br/>• Self-contained Fastify 4 + PostgreSQL 16 + Next.js 14<br/>• 5 Core Algorithmic & Governance Moats<br/>• 4 Strategic High-Impact UX Absorptions<br/>• Target Score: 98/100"]
+        BZ["Mantis Modernization Platform<br/>• Self-contained Fastify 4 + PostgreSQL 16 + Next.js 14<br/>• 5 Core Algorithmic & Governance Moats<br/>• 4 Strategic High-Impact UX Absorptions<br/>• Target Score: 98/100"]
     end
 ```
 
@@ -270,7 +270,7 @@ flowchart TD
 
 | Timestamp | Screen / Action | Spoken Script & Key Value Demonstration |
 |---|---|---|
-| **0:00 – 0:45** | `http://localhost:3000` (Kanban Board) | *"Bugzilla manages the world's most critical open-source software, but its Perl architecture is 25 years old. We modernized it with Fastify, PostgreSQL 16, and Next.js. Notice our formal state machine: dragging from CONFIRMED to CLOSED fails with a 422 error because Bugzilla requires an explicit resolution code. Dragging to RESOLVED lets us pick 'FIXED', creating an immutable audit diff in PostgreSQL."* |
+| **0:00 – 0:45** | `http://localhost:3000` (Kanban Board) | *"Mantis manages the world's most critical open-source software, but its Perl architecture is 25 years old. We modernized it with Fastify, PostgreSQL 16, and Next.js. Notice our formal state machine: dragging from CONFIRMED to CLOSED fails with a 422 error because Mantis requires an explicit resolution code. Dragging to RESOLVED lets us pick 'FIXED', creating an immutable audit diff in PostgreSQL."* |
 | **0:45 – 1:30** | `/bugs/101/graph` (React Flow DAG) | *"Here is our premier algorithmic differentiator: the interactive Dependency Graph. Our backend executes Kahn's topological sort and the Critical Path Method in real-time, calculating earliest finish times and highlighting the exact bottleneck delaying release with pulsing animated red edges."* |
 | **1:30 – 2:00** | `/bugs/105` (Security Bug & CVSS) | *"For security vulnerabilities, we implemented the full FIRST.org CVSS v4.0 MacroVector engine. Selecting metrics updates the score arc dynamically to 9.3 CRITICAL. The bug is protected under an automated 90-day embargo countdown, and non-authorized users receive a strict 404 to prevent ID enumeration."* |
 | **2:00 – 2:30** | `/bugs/new` & AI Triage | *"We also absorbed the best modern UX patterns: as we type a new bug summary, PostgreSQL trigrams perform live typeahead duplicate detection. On long threads, our 1-Click Gemini 2.0 Flash assistant distills 30+ comments into root causes and next steps in 1.8 seconds. Our Milestone dashboard computes a mathematical 0–100% Release Readiness score."* |

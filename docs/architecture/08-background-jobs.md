@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Bugzilla uses an asynchronous background processing system to handle time-consuming tasks without blocking HTTP responses. The primary mechanism is **TheSchwartz** — a database-backed reliable job queue — supplemented by traditional Unix **cron jobs**.
+Mantis uses an asynchronous background processing system to handle time-consuming tasks without blocking HTTP responses. The primary mechanism is **TheSchwartz** — a database-backed reliable job queue — supplemented by traditional Unix **cron jobs**.
 
 ---
 
@@ -21,7 +21,7 @@ HTTP Request
 Business Logic (e.g., bug update)
      │
      ▼
-Bugzilla::BugMail::Send() called
+Mantis::BugMail::Send() called
      │ (doesn't send immediately)
      ▼
 TheSchwartz::Job created → inserted into ts_job table
@@ -39,7 +39,7 @@ Polls ts_job table every N seconds
 Grabs job (atomic UPDATE with grabbed_until)
      │
      ▼
-Executes Bugzilla::Job::Mailer worker
+Executes Mantis::Job::Mailer worker
      │
      ▼
 Email::Sender dispatches email
@@ -50,12 +50,12 @@ Job marked complete (ts_exitstatus)
 
 ### 2.2 Job Types
 
-**Location**: `Bugzilla/Job/`
+**Location**: `Mantis/Job/`
 
 | Job Class | Purpose | Triggers When |
 |---|---|---|
-| `Bugzilla::Job::BugMail` | Sends bug notification emails | Any bug change (create/update/flag/comment) |
-| `Bugzilla::Job::Mailer` | Generic email sending | Account confirmation, password reset, whine |
+| `Mantis::Job::BugMail` | Sends bug notification emails | Any bug change (create/update/flag/comment) |
+| `Mantis::Job::Mailer` | Generic email sending | Account confirmation, password reset, whine |
 
 ### 2.3 Running the Daemon
 
@@ -81,7 +81,7 @@ The daemon uses `Daemon::Generic` for process management (PID file, signals, etc
 ```sql
 -- Maps function names to numeric IDs for fast lookups
 funcid   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY
-funcname VARCHAR(255) NOT NULL UNIQUE   -- e.g., 'Bugzilla::Job::BugMail'
+funcname VARCHAR(255) NOT NULL UNIQUE   -- e.g., 'Mantis::Job::BugMail'
 ```
 
 #### `ts_job` — Pending Jobs
@@ -136,12 +136,12 @@ Within a window, multiple changes are batched into a single notification email r
 
 ## 3. Outbound Email System
 
-**Location**: `Bugzilla/Mailer.pm`, `Bugzilla/Sender/`
+**Location**: `Mantis/Mailer.pm`, `Mantis/Sender/`
 
 ### 3.1 Email Transport Stack
 
 ```perl
-Bugzilla::Mailer::MessageToMTA($message)
+Mantis::Mailer::MessageToMTA($message)
      │
      ▼
 Email::Sender::Simple->send($email, transport => $transport)
@@ -151,7 +151,7 @@ Email::Sender::Simple->send($email, transport => $transport)
      └── SMTP-SSL/TLS transport: encrypted SMTP
 ```
 
-**Transport selection**: Controlled by Bugzilla parameter `mail_delivery_method`:
+**Transport selection**: Controlled by Mantis parameter `mail_delivery_method`:
 - `Sendmail` — uses sendmail binary (most reliable for local delivery)
 - `SMTP` — connects to external SMTP server
 - `SMTPS` — SMTP with TLS
@@ -159,7 +159,7 @@ Email::Sender::Simple->send($email, transport => $transport)
 
 ### 3.2 BugMail Notification Logic
 
-**Location**: `Bugzilla/BugMail.pm`
+**Location**: `Mantis/BugMail.pm`
 
 The `BugMail::Send()` function:
 
@@ -188,14 +188,14 @@ The `BugMail::Send()` function:
 
 5. Sends multipart MIME email with proper headers:
    ```
-   X-Bugzilla-Reason: AssignedTo
-   X-Bugzilla-Type: changed
-   X-Bugzilla-Watch-Reason: Watcher developer@example.com
-   X-Bugzilla-Product: Firefox
-   X-Bugzilla-Component: Networking
-   X-Bugzilla-Keywords: crash, regression
-   X-Bugzilla-Status: IN_PROGRESS
-   X-Bugzilla-Priority: P1
+   X-Mantis-Reason: AssignedTo
+   X-Mantis-Type: changed
+   X-Mantis-Watch-Reason: Watcher developer@example.com
+   X-Mantis-Product: Firefox
+   X-Mantis-Component: Networking
+   X-Mantis-Keywords: crash, regression
+   X-Mantis-Status: IN_PROGRESS
+   X-Mantis-Priority: P1
    ```
 
 ### 3.3 Email Templates
@@ -214,7 +214,7 @@ The `BugMail::Send()` function:
 
 ### 3.4 MIME Handling
 
-**Module**: `Bugzilla::MIME` and `Email::MIME`
+**Module**: `Mantis::MIME` and `Email::MIME`
 
 Emails are built as multipart MIME messages:
 ```
@@ -229,14 +229,14 @@ Attachment data in email notifications is never included inline — only metadat
 
 ## 4. Inbound Email Processing (`email_in.pl`)
 
-This script allows users to interact with Bugzilla via email:
+This script allows users to interact with Mantis via email:
 
 ### 4.1 Setup
 
 ```bash
 # Configure MTA to pipe emails for bugs@ to email_in.pl
 # Example for Postfix /etc/aliases:
-bugs: |/path/to/bugzilla/email_in.pl
+bugs: |/path/to/mantis/email_in.pl
 
 # Run manually for testing:
 cat email.msg | perl email_in.pl
@@ -247,7 +247,7 @@ cat email.msg | perl email_in.pl
 The script parses MIME email and:
 
 1. **Creates a new bug** if:
-   - Email has `X-Bugzilla-Product` and `X-Bugzilla-Component` headers
+   - Email has `X-Mantis-Product` and `X-Mantis-Component` headers
    - OR headers are present in special `@` syntax in the body
 
 2. **Adds a comment** if:
@@ -257,13 +257,13 @@ The script parses MIME email and:
 ### 4.3 Email Headers for Bug Fields
 
 ```
-X-Bugzilla-Product: Firefox
-X-Bugzilla-Component: Networking
-X-Bugzilla-Version: 113.0
-X-Bugzilla-Severity: normal
-X-Bugzilla-Priority: Normal
-X-Bugzilla-Status: CONFIRMED
-X-Bugzilla-Assigned-To: developer@example.com
+X-Mantis-Product: Firefox
+X-Mantis-Component: Networking
+X-Mantis-Version: 113.0
+X-Mantis-Severity: normal
+X-Mantis-Priority: Normal
+X-Mantis-Status: CONFIRMED
+X-Mantis-Assigned-To: developer@example.com
 ```
 
 Or in body format:
@@ -304,8 +304,8 @@ WHERE ws.run_next <= NOW()
 
 **Cron setup:**
 ```bash
-# /etc/cron.d/bugzilla
-*/15 * * * * bugzilla /var/www/html/bugzilla/whine.pl
+# /etc/cron.d/mantis
+*/15 * * * * mantis /var/www/html/mantis/whine.pl
 ```
 
 ### 5.2 `collectstats.pl` — Historical Statistics Collector
@@ -314,7 +314,7 @@ WHERE ws.run_next <= NOW()
 
 ```bash
 # Run daily via cron:
-0 0 * * * bugzilla /var/www/html/bugzilla/collectstats.pl
+0 0 * * * mantis /var/www/html/mantis/collectstats.pl
 
 # What it does:
 # 1. Find all series in series table
@@ -332,14 +332,14 @@ These pre-aggregated counts power the graphical trend charts.
 
 ```bash
 # Run periodically:
-0 6 * * * bugzilla /var/www/html/bugzilla/clean-bug-user-last-visit.pl
+0 6 * * * mantis /var/www/html/mantis/clean-bug-user-last-visit.pl
 
 # Deletes records older than MAX_BUG_USER_LAST_VISIT_DAYS (default: 30 days)
 ```
 
 ### 5.4 `whineatnews.pl` — News Notifications
 
-**Purpose**: Sends "Bugzilla news" notifications to subscribed users (rarely used)
+**Purpose**: Sends "Mantis news" notifications to subscribed users (rarely used)
 
 ---
 
@@ -351,7 +351,7 @@ A bulk import tool for migrating bugs from other systems:
 perl importxml.pl bugdump.xml
 
 # Supports:
-# - Bugzilla XML export format
+# - Mantis XML export format
 # - Creates bugs, comments, attachments
 # - Maps users by email address
 # - Resolves product/component/version by name
@@ -404,7 +404,7 @@ perl sanitycheck.pl
 ## 9. Async Architecture Limitations
 
 ### Current Problems:
-1. **Single-server job queue**: TheSchwartz uses the Bugzilla DB; no horizontal scaling without a shared DB
+1. **Single-server job queue**: TheSchwartz uses the Mantis DB; no horizontal scaling without a shared DB
 2. **Polling-based**: Workers poll every few seconds, not event-driven
 3. **No job priority queuing**: All jobs treated equally except for manual priority field
 4. **No dead letter queue**: Failed jobs require manual inspection of `ts_error`

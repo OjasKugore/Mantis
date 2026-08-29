@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Bugzilla employs several caching and performance mechanisms to handle high-traffic deployments. These range from request-scoped memoization to distributed Memcached clusters to database-side indexing strategies.
+Mantis employs several caching and performance mechanisms to handle high-traffic deployments. These range from request-scoped memoization to distributed Memcached clusters to database-side indexing strategies.
 
 ---
 
@@ -10,12 +10,12 @@ Bugzilla employs several caching and performance mechanisms to handle high-traff
 
 ### 2.1 Request-Scoped Cache (`request_cache`)
 
-**Location**: `Bugzilla.pm` — `Bugzilla->request_cache`
+**Location**: `Mantis.pm` — `Mantis->request_cache`
 
 Every HTTP request gets a hash reference stored per-request in a process-local variable. This cache is cleared between requests (in mod_perl, via the cleanup handler).
 
 ```perl
-# Usage in Bugzilla.pm
+# Usage in Mantis.pm
 sub request_cache {
     my $class = shift;
     return $class->process_cache->{request_cache} //= {};
@@ -24,7 +24,7 @@ sub request_cache {
 
 Objects cached in `request_cache`:
 - `dbh` — the active database handle
-- `user` — the authenticated `Bugzilla::User` object
+- `user` — the authenticated `Mantis::User` object
 - `template` — the Template Toolkit instance
 - `cgi` — the CGI object
 - `fields` — active custom field definitions
@@ -36,7 +36,7 @@ Objects cached in `request_cache`:
 
 ### 2.2 Process-Level Cache (`process_cache`)
 
-**Location**: `Bugzilla.pm` — `Bugzilla->process_cache`
+**Location**: `Mantis.pm` — `Mantis->process_cache`
 
 A hash stored at the mod_perl process level, persisting across requests within the same Apache child process.
 
@@ -54,29 +54,29 @@ Used to cache:
 
 ### 2.3 Memcached Integration
 
-**Location**: `Bugzilla/Memcached.pm`  
+**Location**: `Mantis/Memcached.pm`  
 **Perl module**: `Cache::Memcached`
 
 Memcached is an optional distributed key-value cache. When configured, it sits between the application and the database.
 
-**Configuration** (in Bugzilla admin params):
+**Configuration** (in Mantis admin params):
 - `memcached_servers` — comma-separated list of `host:port` pairs
-- `memcached_namespace` — key prefix to avoid collisions between Bugzilla instances
+- `memcached_namespace` — key prefix to avoid collisions between Mantis instances
 
 **What gets cached in Memcached:**
 ```perl
-# From Bugzilla::Object base class:
+# From Mantis::Object base class:
 # Objects with USE_MEMCACHED => 1 are cached by ID and by name
 # Examples: Products, Components, Groups, Keywords, Milestones, Versions
 
 # Cache key pattern:
-"bugzilla:Product:id:42"
-"bugzilla:Product:name:Firefox"
+"mantis:Product:id:42"
+"mantis:Product:name:Firefox"
 ```
 
-**Cache invalidation**: On object update/delete, the `Bugzilla::Object` class automatically clears the relevant Memcached keys.
+**Cache invalidation**: On object update/delete, the `Mantis::Object` class automatically clears the relevant Memcached keys.
 
-**Note**: `Bugzilla::Bug` has `USE_MEMCACHED => 0` — bugs are too frequently updated and have too complex a permission model to cache globally. However, individual user last-visit data (`bug_user_last_visit`) is not cached either.
+**Note**: `Mantis::Bug` has `USE_MEMCACHED => 0` — bugs are too frequently updated and have too complex a permission model to cache globally. However, individual user last-visit data (`bug_user_last_visit`) is not cached either.
 
 ### 2.4 Perl Memoize
 
@@ -85,7 +85,7 @@ Memcached is an optional distributed key-value cache. When configured, it sits b
 Several pure functions are memoized at the Perl level (in-process, per-request or per-process):
 
 ```perl
-# In Bugzilla/Constants.pm:
+# In Mantis/Constants.pm:
 use Memoize;
 memoize('bz_locations');
 
@@ -156,27 +156,27 @@ FULLTEXT INDEX bugs_fulltext_comments_noprivate_idx (comments_noprivate)
 
 ### 3.3 Lazy Loading
 
-All Bugzilla domain objects use **lazy loading** for related data:
+All Mantis domain objects use **lazy loading** for related data:
 
 ```perl
 # Bug.pm - comments are loaded only when accessed
 sub comments {
     my ($self) = @_;
     return $self->{comments} if exists $self->{comments};
-    $self->{comments} = Bugzilla::Comment->match({ bug_id => $self->id });
+    $self->{comments} = Mantis::Comment->match({ bug_id => $self->id });
     return $self->{comments};
 }
 ```
 
-This means retrieving `Bugzilla::Bug->new(12345)` executes only ONE query (the `SELECT * FROM bugs WHERE bug_id = 12345`). Comments, attachments, flags, and other related data are fetched only if accessed.
+This means retrieving `Mantis::Bug->new(12345)` executes only ONE query (the `SELECT * FROM bugs WHERE bug_id = 12345`). Comments, attachments, flags, and other related data are fetched only if accessed.
 
 ### 3.4 Bulk Operations
 
-For bulk bug list loading, `Bugzilla::Object->new_from_list()` loads multiple objects with a single `SELECT ... WHERE id IN (...)` query rather than N separate queries.
+For bulk bug list loading, `Mantis::Object->new_from_list()` loads multiple objects with a single `SELECT ... WHERE id IN (...)` query rather than N separate queries.
 
 ```perl
 # Efficient bulk load
-my $bugs = Bugzilla::Bug->new_from_list(\@bug_ids);
+my $bugs = Mantis::Bug->new_from_list(\@bug_ids);
 
 # Internally generates:
 # SELECT * FROM bugs WHERE bug_id IN (1, 2, 3, ...)
@@ -190,7 +190,7 @@ my $bugs = Bugzilla::Bug->new_from_list(\@bug_ids);
 
 **Constant**: `CONCATENATE_ASSETS = 1` (in `Constants.pm`)
 
-When enabled, Bugzilla concatenates multiple CSS and JavaScript files into a single file per page load, reducing HTTP requests:
+When enabled, Mantis concatenates multiple CSS and JavaScript files into a single file per page load, reducing HTTP requests:
 
 ```
 Normal:      page.css + global.css + bug.css = 3 requests
@@ -236,12 +236,12 @@ Apache2::SizeLimit->set_max_requests_per_child(500);  # Recycle after 500 reques
 
 ### mod_perl Cleanup Handler
 
-Between requests in mod_perl, Bugzilla must reset request-scoped state:
+Between requests in mod_perl, Mantis must reset request-scoped state:
 
 ```perl
 # mod_perl.pl registers this cleanup handler
 sub cleanup_handler {
-    Bugzilla::delete_request_cache();
+    Mantis::delete_request_cache();
 }
 ```
 
@@ -253,7 +253,7 @@ This clears `request_cache` while keeping `process_cache` (e.g., loaded extensio
 
 ### 6.1 Boolean Chart Query Optimization
 
-The search engine (`Bugzilla::Search`) generates SQL with careful attention to:
+The search engine (`Mantis::Search`) generates SQL with careful attention to:
 - **Security JOINs**: Always joining `bug_group_map` for group access filtering
 - **Lazy JOINs**: Only JOINing additional tables when the query actually filters on those fields
 - **DISTINCT**: Using `SELECT DISTINCT` to avoid duplicate results from multiple JOINs
@@ -271,7 +271,7 @@ The `bugs_fulltext` table is maintained via triggers/application logic whenever 
 
 ### 6.3 Quicksearch
 
-`Bugzilla::Search::Quicksearch` provides a simplified search syntax:
+`Mantis::Search::Quicksearch` provides a simplified search syntax:
 
 ```
 crash                 → searches short_desc + comments for "crash"
@@ -304,7 +304,7 @@ This means chart rendering queries `series_data` (a small table with pre-aggrega
 
 ### 7.2 Duplicate Detection
 
-`Bugzilla::Bug->possible_duplicates()` uses full-text search to find potential duplicates when submitting a new bug. It searches `bugs_fulltext` using the new bug's summary text, returning up to `MAX_POSSIBLE_DUPLICATES` results.
+`Mantis::Bug->possible_duplicates()` uses full-text search to find potential duplicates when submitting a new bug. It searches `bugs_fulltext` using the new bug's summary text, returning up to `MAX_POSSIBLE_DUPLICATES` results.
 
 ---
 

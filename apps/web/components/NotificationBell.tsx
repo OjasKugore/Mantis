@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { Notification } from '@bugzilla/shared';
+import { Notification } from '@mantis/shared';
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);

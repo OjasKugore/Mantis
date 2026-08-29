@@ -15,6 +15,7 @@ import { analyticsRoutes } from './routes/analytics.js';
 import { aiTriageRoutes } from './routes/aiTriage.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { liveUpdateRoutes } from './routes/liveUpdates.js';
+import { oauthRoutes } from './routes/oauth.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = fastify({
@@ -37,7 +38,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(fastifySwagger, {
     openapi: {
       info: {
-        title: 'BugzillaRevamp API',
+        title: 'Mantis API',
         description: 'Modernized Enterprise Defect, Vulnerability & Governance Platform API',
         version: '1.0.0',
       },
@@ -91,6 +92,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(aiTriageRoutes, { prefix: '/api/v1' });
   await app.register(webhookRoutes, { prefix: '/api/v1' });
   await app.register(liveUpdateRoutes, { prefix: '/api/v1' });
+  await app.register(oauthRoutes, { prefix: '/api/v1' });
 
   return app;
 }

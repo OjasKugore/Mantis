@@ -1,7 +1,7 @@
-# BugzillaRevamp — Full Implementation Plan
+# Mantis — Full Implementation Plan
 ### Hard Deadline: August 30, 2026 at 11:59 PM IST (72-Hour Sprint)
 
-> This plan is the single source of truth for building the BugzillaRevamp. Every feature includes step-by-step build instructions, exact TypeScript/SQL stubs, UI component hierarchy, edge cases to handle, and a named test for every assertion. Each day ends with a mandatory test gate — zero regressions before the next day starts.
+> This plan is the single source of truth for building the Mantis. Every feature includes step-by-step build instructions, exact TypeScript/SQL stubs, UI component hierarchy, edge cases to handle, and a named test for every assertion. Each day ends with a mandatory test gate — zero regressions before the next day starts.
 
 ---
 
@@ -163,7 +163,7 @@ clonefest-2/
 ## Day 1 (Aug 28) — Core Foundation (Sequential 3-Person Division)
 
 ### Goal
-Deliver a fully functional Bugzilla-compatible core with a modern stack. Every API accessible, every state machine rule enforced, every field mutation audited, and full security group isolation active. **All 21 Day 1 tests green before midnight.**
+Deliver a fully functional Mantis-compatible core with a modern stack. Every API accessible, every state machine rule enforced, every field mutation audited, and full security group isolation active. **All 21 Day 1 tests green before midnight.**
 
 ---
 
@@ -206,18 +206,18 @@ version: "3.9"
 services:
   db:
     image: postgres:16-alpine
-    environment: { POSTGRES_DB: bugzilla, POSTGRES_USER: bz, POSTGRES_PASSWORD: bz }
+    environment: { POSTGRES_DB: mantis, POSTGRES_USER: bz, POSTGRES_PASSWORD: bz }
     volumes: [db_data:/var/lib/postgresql/data]
     ports: ["5432:5432"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bz -d bugzilla"]
+      test: ["CMD-SHELL", "pg_isready -U bz -d mantis"]
       interval: 5s
       timeout: 5s
       retries: 10
   api:
     build: ./apps/api
     environment:
-      DATABASE_URL: postgresql://bz:bz@db:5432/bugzilla
+      DATABASE_URL: postgresql://bz:bz@db:5432/mantis
       SESSION_SECRET: change-me-in-production-min-32-chars
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-demo-secret}
@@ -2086,7 +2086,7 @@ flowchart LR
 
 ##### Feature 3.1 — PostgreSQL Full-Text Search & Live Typeahead Duplicate Detection
 
-**Bugzilla Gap Closed**: `LIKE '%query%'` forces full table scans. `tsvector` GIN enables sub-20ms ranked stemmed search. Duplicates are filed unknowingly and only triaged after submission.
+**Mantis Gap Closed**: `LIKE '%query%'` forces full table scans. `tsvector` GIN enables sub-20ms ranked stemmed search. Duplicates are filed unknowingly and only triaged after submission.
 
 **1. Full-Text Search Route** (`GET /api/v1/bugs/search?q=<query>&limit=25&offset=0`):
 ```typescript
@@ -2134,7 +2134,7 @@ app.get('/api/v1/bugs/duplicates', {
 
 ##### Feature 3.2 — Explainable Release Readiness Scoring (0–100%)
 
-**Bugzilla Gap Closed**: Engineering leads have no automated metric to know if a release milestone is blocked by critical path dependencies or severe security bugs.
+**Mantis Gap Closed**: Engineering leads have no automated metric to know if a release milestone is blocked by critical path dependencies or severe security bugs.
 
 **Backend Endpoint (`apps/api/src/routes/analytics.ts` -> `GET /api/v1/milestones/:id/readiness`)**:
 ```typescript
@@ -2189,7 +2189,7 @@ export async function calculateMilestoneReadiness(milestoneId: string) {
 
 ##### Feature 3.3 — Engineering Velocity & MTTR Analytics (Pure SQL)
 
-**Bugzilla Gap Closed**: No native insights into resolution velocity or Mean Time To Resolve (MTTR).
+**Mantis Gap Closed**: No native insights into resolution velocity or Mean Time To Resolve (MTTR).
 
 **Backend Endpoint (`apps/api/src/routes/analytics.ts` -> `GET /api/v1/analytics/velocity`)**:
 ```typescript
@@ -2281,7 +2281,7 @@ PERSON A COMPLETION CHECKLIST:
 
 ##### Feature 3.4 — 1-Click AI Triage Assistant
 
-**Bugzilla Gap Closed**: Triage leads manually read 50+ comment threads. AI distills them into structured context in ~2 seconds.
+**Mantis Gap Closed**: Triage leads manually read 50+ comment threads. AI distills them into structured context in ~2 seconds.
 
 **`apps/api/src/services/aiTriage.ts`**:
 ```typescript
@@ -2311,7 +2311,7 @@ export async function callLLMTriage(bug: Bug, comments: Comment[]): Promise<Tria
 
 ##### Feature 3.5 — Git / GitHub Webhook Integration
 
-**Bugzilla Gap Closed**: Zero SCM awareness. Bugs never auto-close when fixes land.
+**Mantis Gap Closed**: Zero SCM awareness. Bugs never auto-close when fixes land.
 
 **`apps/api/src/lib/hmac.ts`**:
 ```typescript
@@ -2337,7 +2337,7 @@ return { changes: changes.rows, newCommentIds: newComments.rows.map(r => r.id) }
 
 **Swagger UI**:
 ```typescript
-await app.register(require('@fastify/swagger'), { openapi: { info: { title: 'BugzillaRevamp API', version: '1.0.0' } } });
+await app.register(require('@fastify/swagger'), { openapi: { info: { title: 'Mantis API', version: '1.0.0' } } });
 await app.register(require('@fastify/swagger-ui'), { routePrefix: '/docs', uiConfig: { docExpansion: 'list' } });
 ```
 
@@ -2389,14 +2389,14 @@ PERSON B COMPLETION CHECKLIST:
 
 ##### Feature 3.7 — Command Palette & Keyboard Shortcuts
 
-**Bugzilla Gap Closed**: Zero keyboard navigation. Every action requires a page reload.
+**Mantis Gap Closed**: Zero keyboard navigation. Every action requires a page reload.
 
 **`apps/web/components/CommandPalette.tsx`**: Uses `cmdk` to provide instant navigation (`/bugs/104`, `/kanban`, `/bugs/new`), status actions (`status:resolved`), and search. 
 **Keyboard shortcuts**: Global listener for `j`/`k` (navigate lists), `Enter` (open bug), `/` (focus search), `?` (help modal), `a` (assign), `c` (comment).
 
 ##### Feature 3.8 — Drag-and-Drop Kanban Status Board
 
-**Bugzilla Gap Closed**: No board view. Teams manage status through individual pages only.
+**Mantis Gap Closed**: No board view. Teams manage status through individual pages only.
 
 **`apps/web/components/KanbanBoard.tsx`**: Uses `@dnd-kit/core`. Optimistically moves cards between status columns, triggering `PATCH /api/v1/bugs/:id/status`. Handles state machine rejections by rolling back visually and showing a toast.
 
@@ -2464,7 +2464,7 @@ In standard software development workflows, defect tracking suffers from two maj
 1. **Manual Ingestion Overhead**: Engineers or QA testers must manually copy stack traces, logs, and system details from terminal outputs into web forms.
 2. **Asynchronous Context Disconnect (Web vs. Terminal)**: Once a bug is filed, its lifecycle updates (status transitions `UNCONFIRMED` $\rightarrow$ `IN_PROGRESS` $\rightarrow$ `RESOLVED`, reviewer comments, and flag assignments) occur asynchronously on the web interface. Developers working inside a CLI environment lose visibility unless they constantly switch to a web browser.
 
-`bz-monitor` operates as a **git-style bi-directional synchronization and monitoring engine**. It passively intercepts runtime/test failures to construct and stage `POST /api/v1/bugs` JSON payloads, while simultaneously providing Git-equivalent state management (`bz-monitor status`, `bz-monitor pull`, `bz-monitor log`, `bz-monitor diff`, `bz-monitor comment`, `bz-monitor resolve`) that synchronizes remote Bugzilla web state directly into the local workspace terminal.
+`bz-monitor` operates as a **git-style bi-directional synchronization and monitoring engine**. It passively intercepts runtime/test failures to construct and stage `POST /api/v1/bugs` JSON payloads, while simultaneously providing Git-equivalent state management (`bz-monitor status`, `bz-monitor pull`, `bz-monitor log`, `bz-monitor diff`, `bz-monitor comment`, `bz-monitor resolve`) that synchronizes remote Mantis web state directly into the local workspace terminal.
 
 ### 2. Architecture & Data Flow
 ```mermaid
@@ -2478,7 +2478,7 @@ flowchart TD
 
     subgraph Bi-Directional State Synchronization Engine
         B2 --> C1["bz-monitor push"]
-        C1 -->|"POST /api/v1/bugs"| D1["Bugzilla Web Backend at http://localhost:3001"]
+        C1 -->|"POST /api/v1/bugs"| D1["Mantis Web Backend at http://localhost:3001"]
         D1 -->|"201 Created: bug_id"| C2["Update Local State Index in .bz-monitor/state.json"]
         
         D1 -->|"GET /api/v1/bugs?updated_since=..."| C3["bz-monitor pull / sync"]

@@ -35,7 +35,9 @@ export async function initInMemoryFallbackDb() {
       display_name VARCHAR(255) NOT NULL,
       username VARCHAR(64) NOT NULL UNIQUE,
       avatar_url TEXT,
-      password_hash VARCHAR(255) NOT NULL,
+      password_hash VARCHAR(255),
+      github_id VARCHAR(255) UNIQUE,
+      google_id VARCHAR(255) UNIQUE,
       is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -260,7 +262,7 @@ async function seedFallbackData() {
 
   // 3. Users
   const usersData = [
-    { username: 'admin', email: 'admin@bugzilla.local', name: 'System Administrator', is_admin: true },
+    { username: 'admin', email: 'admin@mantis.local', name: 'System Administrator', is_admin: true },
     { username: 'alice_dev', email: 'alice@mozilla.com', name: 'Alice Developer', is_admin: false },
     { username: 'bob_qa', email: 'bob@mozilla.com', name: 'Bob QA Engineer', is_admin: false },
     { username: 'carol_sec', email: 'carol@mozilla.com', name: 'Carol Security Lead', is_admin: false },

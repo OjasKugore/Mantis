@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AuthBar } from '@/components/AuthBar';
-import { Bug } from '@bugzilla/shared';
+import { Bug } from '@mantis/shared';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 

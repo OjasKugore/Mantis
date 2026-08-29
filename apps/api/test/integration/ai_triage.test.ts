@@ -11,7 +11,7 @@ import {
   createTestGroup,
 } from '../helpers/setup.js';
 import { buildTriagePrompt, callLLMTriage } from '../../src/services/aiTriage.js';
-import { Bug, BugComment } from '@bugzilla/shared';
+import { Bug, BugComment } from '@mantis/shared';
 
 describe('AI Triage Assistant Integration Tests (T3.9 – T3.13)', () => {
   let app: FastifyInstance;

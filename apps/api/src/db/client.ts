@@ -7,7 +7,7 @@ const { Pool } = pg;
 
 export let pool = new Pool({
   connectionString:
-    process.env.DATABASE_URL || 'postgresql://bz:bz@localhost:5432/bugzilla',
+    process.env.DATABASE_URL || 'postgresql://bz:bz@localhost:5432/mantis',
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

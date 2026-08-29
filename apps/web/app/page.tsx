@@ -1,304 +1,222 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { DependencyGraph } from '@/components/DependencyGraph';
-import { CvssModal } from '@/components/CvssModal';
-import { EmbargoCountdown } from '@/components/EmbargoCountdown';
-import { NotificationBell } from '@/components/NotificationBell';
-import { AuthBar } from '@/components/AuthBar';
 
-interface BugItem {
-  id: number;
-  summary: string;
-  status: string;
-  priority: string;
-  severity: string;
-  product_name?: string;
-  component_name?: string;
-  is_embargoed?: boolean;
-  embargo_until?: string;
-  cvss_score?: number;
-  cvss_severity?: string;
-}
-
-const STATUS_BADGES: Record<string, { bg: string; text: string; border: string }> = {
-  UNCONFIRMED: { bg: 'bg-slate-800/80', text: 'text-slate-300', border: 'border-slate-700' },
-  CONFIRMED:   { bg: 'bg-blue-950/80',  text: 'text-blue-300',  border: 'border-blue-800' },
-  IN_PROGRESS: { bg: 'bg-purple-950/80',text: 'text-purple-300',border: 'border-purple-800' },
-  RESOLVED:    { bg: 'bg-emerald-950/80', text: 'text-emerald-300', border: 'border-emerald-800' },
-  VERIFIED:    { bg: 'bg-cyan-950/80',   text: 'text-cyan-300',   border: 'border-cyan-800' },
-  CLOSED:      { bg: 'bg-slate-900',     text: 'text-slate-400',  border: 'border-slate-800' },
-};
-
-const PRIORITY_BADGES: Record<string, string> = {
-  P1: 'text-red-400 bg-red-950/60 border-red-800/60',
-  P2: 'text-orange-400 bg-orange-950/60 border-orange-800/60',
-  P3: 'text-amber-400 bg-amber-950/60 border-amber-800/60',
-  P4: 'text-slate-400 bg-slate-800/60 border-slate-700/60',
-  P5: 'text-slate-500 bg-slate-900 border-slate-800',
-};
-
-export default function Home() {
-  const [bugs, setBugs] = useState<BugItem[]>([]);
-  const [selectedBugId, setSelectedBugId] = useState<number>(1);
-  const [showCvssModal, setShowCvssModal] = useState<boolean>(false);
-  const [apiOnline, setApiOnline] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+export default function LandingPage() {
+  const [isPlayingDemo, setIsPlayingDemo] = useState(false);
 
   useEffect(() => {
-    // Health check
-    fetch('http://localhost:3001/health')
-      .then(res => res.ok ? setApiOnline(true) : setApiOnline(false))
-      .catch(() => setApiOnline(false));
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1,
+    };
 
-    // Fetch bugs
-    fetch('http://localhost:3001/api/v1/bugs?limit=10')
-      .then(res => res.json())
-      .then(data => {
-        if (data.bugs) {
-          setBugs(data.bugs);
-          if (data.bugs.length > 0) {
-            setSelectedBugId(Number(data.bugs[0].id));
-          }
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          obs.unobserve(entry.target);
         }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      });
+    }, observerOptions);
+
+    const elements = document.querySelectorAll('.reveal-on-scroll');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => {
+      elements.forEach((el) => observer.unobserve(el));
+    };
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white font-sans antialiased">
-      {/* Navigation Bar */}
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-rose-500 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20">
-                BZ
-              </div>
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                Bugzilla<span className="text-indigo-400 font-extrabold">Revamp</span>
+    <div className="min-h-screen flex flex-col font-body-sm text-body-sm antialiased selection:bg-primary-container selection:text-on-primary-container bg-surface text-on-surface">
+      {/* TopNavBar */}
+      <header className="bg-surface/80 backdrop-blur-md w-full top-0 sticky z-50 border-b border-outline-variant/30 opacity-0-init animate-fade-in-up delay-100">
+        <div className="flex justify-between items-center w-full px-margin-sm md:px-margin-lg py-4 max-w-[1280px] mx-auto">
+          <div className="flex items-center gap-8">
+            <Link
+              href="/"
+              className="flex items-center gap-3 font-display-lg text-display-lg font-bold tracking-tighter text-on-surface text-2xl"
+            >
+              <span className="w-8 h-8 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-black text-sm shadow-md">
+                M
               </span>
-            </div>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-indigo-500/30 bg-indigo-950/40 text-indigo-300">
-              v3.0 Platform
-            </span>
+              Mantis
+            </Link>
+            <nav className="hidden md:flex gap-6">
+              <Link
+                className="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-label-caps text-label-caps uppercase"
+                href="/dashboard"
+              >
+                Dashboard
+              </Link>
+              <a
+                className="text-on-surface-variant font-medium hover:text-primary-container transition-colors duration-200 font-label-caps text-label-caps uppercase"
+                href="http://localhost:3001/docs"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Docs
+              </a>
+            </nav>
           </div>
 
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-slate-800 bg-slate-900/60 text-xs">
-              <span className={`w-2 h-2 rounded-full ${apiOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span className="text-slate-400 font-medium">Fastify API: {apiOnline ? 'Online (:3001)' : 'Connecting...'}</span>
-            </div>
-
-            <a
-              href="http://localhost:3001/docs"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3.5 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition"
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="text-on-surface-variant hover:text-primary-container transition-colors font-label-caps text-label-caps uppercase font-bold"
             >
-              📚 Swagger Docs
-            </a>
-            
-            <AuthBar />
-            <NotificationBell />
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-primary-container text-on-primary-container px-4 py-2 rounded font-label-caps text-label-caps uppercase font-bold hover:bg-opacity-90 transition-all shadow-sm"
+            >
+              Get Started
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="flex-grow flex flex-col items-center">
         {/* Hero Section */}
-        <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950 p-8 shadow-2xl">
-          <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold tracking-wide uppercase">
-              ⚡ 5 Core Algorithmic Moats Active
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              Enterprise Defect & Vulnerability Governance Platform
-            </h1>
-            <p className="text-slate-400 text-base leading-relaxed">
-              Replacing legacy CGI with Kahn&apos;s Critical Path DAG visualizer, FIRST.org CVSS v4.0 MacroVectors, 
-              zero-leakage 404 security group secrecy, and real-time collaboration.
-            </p>
+        <section className="w-full max-w-[1280px] mx-auto px-margin-sm md:px-margin-lg pb-16 flex flex-col items-center text-center pt-32">
+          <h1 className="font-display-lg text-display-lg md:text-[72px] md:leading-[1.1] text-on-surface max-w-4xl mb-8 tracking-tight font-bold opacity-0-init animate-fade-in-up delay-300">
+            Stealthy monitoring, precise triage.
+          </h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant/80 max-w-2xl mb-12 leading-relaxed opacity-0-init animate-fade-in-up delay-500">
+            The stealthy, data-rich command center for engineering teams to monitor, log, and resolve issues in real-time. Signal instantly distinguishable from noise.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 mb-20 opacity-0-init animate-fade-in-up delay-700">
+            <Link
+              href="/signup"
+              className="bg-primary-container text-on-primary-container px-8 py-3 rounded-DEFAULT font-label-caps text-label-caps uppercase font-bold hover:bg-opacity-90 transition-all flex items-center justify-center gap-2"
+            >
+              Get Started Free
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </Link>
+            <button
+              onClick={() => setIsPlayingDemo(!isPlayingDemo)}
+              className="glass-panel text-on-surface px-8 py-3 rounded-DEFAULT font-label-caps text-label-caps uppercase font-bold hover:bg-black/5 transition-all flex items-center justify-center gap-2"
+            >
+              {isPlayingDemo ? 'Pause Preview' : 'Watch Demo'}
+              <span className="material-symbols-outlined text-[16px]">
+                {isPlayingDemo ? 'pause_circle' : 'play_circle'}
+              </span>
+            </button>
           </div>
 
-          {/* Quick Action Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-            <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/50 flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Graph CPM Engine</div>
-                <div className="text-sm font-semibold text-slate-200">Interactive Critical Path DAG</div>
-                <div className="text-xs text-slate-400 mt-1">Kahn&apos;s topological sort with dynamic Earliest Finish Time (EFT) analysis.</div>
+          {/* Dashboard Preview */}
+          <div className="w-full relative group reveal-on-scroll is-visible">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary-container/20 to-secondary/20 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div
+              onClick={() => setIsPlayingDemo(!isPlayingDemo)}
+              className="relative glass-panel rounded-xl overflow-hidden shadow-2xl aspect-video bg-surface-container flex items-center justify-center group/video cursor-pointer"
+            >
+              {/* Abstract UI Shimmer Background */}
+              <div className="absolute inset-0 opacity-50">
+                <div className="w-full h-full bg-gradient-to-br from-primary-container/10 via-transparent to-secondary/10 animate-pulse"></div>
               </div>
-              <a
-                href={`/bugs/${selectedBugId}/graph`}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition"
-              >
-                Open Full DAG Viewer →
-              </a>
-            </div>
 
-            <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/50 flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">FIRST.org CVSS v4.0</div>
-                <div className="text-sm font-semibold text-slate-200">Vulnerability Calculator</div>
-                <div className="text-xs text-slate-400 mt-1">MacroVector lookup with real-time SVG animated score arc.</div>
+              {/* Decorative Mock Dashboard Blueprint inside the frame */}
+              <div className="absolute inset-4 rounded-lg border border-outline-variant/20 bg-surface-container-lowest/40 backdrop-blur-sm p-6 flex flex-col gap-4 text-left pointer-events-none opacity-40 group-hover/video:opacity-60 transition-opacity">
+                <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-error/60 inline-block"></span>
+                    <span className="w-3 h-3 rounded-full bg-tertiary-container/60 inline-block"></span>
+                    <span className="w-3 h-3 rounded-full bg-primary-container/60 inline-block"></span>
+                    <span className="font-label-code text-label-code text-on-surface-variant ml-2 font-mono">mantis://workspace/cluster-01</span>
+                  </div>
+                  <span className="font-label-caps text-label-caps px-2 py-0.5 rounded bg-primary-container/20 text-on-primary-container uppercase font-bold">Live Stream</span>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-3 rounded bg-surface-container-low/60 border border-outline-variant/10">
+                    <div className="text-xs text-on-surface-variant font-medium">Active Anomalies</div>
+                    <div className="text-2xl font-bold text-on-surface mt-1">04</div>
+                  </div>
+                  <div className="p-3 rounded bg-surface-container-low/60 border border-outline-variant/10">
+                    <div className="text-xs text-on-surface-variant font-medium">Critical Path EFT</div>
+                    <div className="text-2xl font-bold text-primary mt-1">98.4%</div>
+                  </div>
+                  <div className="p-3 rounded bg-surface-container-low/60 border border-outline-variant/10">
+                    <div className="text-xs text-on-surface-variant font-medium">Quarantined Bugs</div>
+                    <div className="text-2xl font-bold text-tertiary mt-1">12</div>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => setShowCvssModal(true)}
-                className="mt-4 text-left inline-flex items-center gap-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 transition"
-              >
-                Launch CVSS Calculator Modal →
-              </button>
-            </div>
 
-            <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/50 flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">Security Isolation</div>
-                <div className="text-sm font-semibold text-slate-200">90-Day Embargo Countdown</div>
-                <div className="text-xs text-slate-400 mt-1">Automatic quarantine & strict 404 secrecy for unauthorized users.</div>
-              </div>
-              <div className="mt-4">
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/60 text-amber-300 border border-amber-800/50">
-                  🔒 Zero-Leakage 404 Enforced
+              {/* Play Button Overlay */}
+              <div className="relative z-10 flex flex-col items-center gap-4 transition-all duration-300 group-hover/video:scale-110">
+                <div className="w-20 h-20 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl glow-active">
+                  <span className="material-symbols-outlined text-[48px]">
+                    {isPlayingDemo ? 'pause' : 'play_arrow'}
+                  </span>
+                </div>
+                <span className="font-label-caps text-label-caps uppercase font-bold tracking-widest text-on-surface-variant">
+                  {isPlayingDemo ? 'Interactive Preview Active' : 'Watch Demo'}
                 </span>
               </div>
+
+              {/* Subtle Progress Bar */}
+              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-outline-variant/20">
+                <div className={`h-full bg-primary-container transition-all duration-1000 ${isPlayingDemo ? 'w-full' : 'w-1/3'}`}></div>
+              </div>
+
+              {/* Hover State Overlay */}
+              <div className="absolute inset-0 bg-on-surface/5 opacity-0 group-hover/video:opacity-100 transition-opacity duration-300"></div>
             </div>
           </div>
-        </section>
-
-        {/* Live Embargo Banner Demonstration */}
-        <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Live Security Embargo Banner Demo</h3>
-          <EmbargoCountdown embargoUntil={new Date(Date.now() + 87 * 24 * 60 * 60 * 1000).toISOString()} />
-        </section>
-
-        {/* Interactive Critical Path DAG Visualizer Section */}
-        <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                <span>🕸️</span> Live Dependency Graph (Bug #{selectedBugId})
-              </h2>
-              <p className="text-xs text-slate-400">Pulsing red edges represent the longest critical path bottleneck.</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label htmlFor="bug-select" className="text-xs text-slate-400 font-semibold">Select Root Bug:</label>
-              <select
-                id="bug-select"
-                value={selectedBugId}
-                onChange={(e) => setSelectedBugId(Number(e.target.value))}
-                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-indigo-500"
-              >
-                {bugs.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    #{b.id} — {b.summary.slice(0, 32)}...
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <DependencyGraph bugId={selectedBugId} />
-        </section>
-
-        {/* Bug Queue Explorer */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                <span>📋</span> Master Bug Queue ({bugs.length} Sample Bugs Seeded)
-              </h2>
-              <p className="text-xs text-slate-400">Sourced from the PostgreSQL master seed dataset.</p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="p-12 text-center text-slate-500 text-sm">Loading bugs from database...</div>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40 shadow-xl">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
-                  <tr>
-                    <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Summary</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Priority</th>
-                    <th className="px-4 py-3">Severity</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 font-medium">
-                  {bugs.map((b) => {
-                    const statusStyle = STATUS_BADGES[b.status] || STATUS_BADGES['CLOSED'];
-                    const priorityStyle = PRIORITY_BADGES[b.priority] || PRIORITY_BADGES['P5'];
-
-                    return (
-                      <tr key={b.id} className="hover:bg-slate-800/40 transition">
-                        <td className="px-4 py-3 font-mono text-slate-400">
-                          <Link href={`/bugs/${b.id}`} className="hover:text-indigo-400 font-semibold underline">
-                            #{b.id}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-slate-200 font-semibold max-w-md truncate">
-                          <Link href={`/bugs/${b.id}`} className="hover:text-indigo-300 transition">
-                            {b.summary}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
-                            {b.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${priorityStyle}`}>
-                            {b.priority}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-400">{b.severity}</td>
-                        <td className="px-4 py-3 text-right space-x-2">
-                          <Link
-                            href={`/bugs/${b.id}`}
-                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 text-[11px] font-semibold border border-slate-700 transition"
-                          >
-                            Details
-                          </Link>
-                          <button
-                            onClick={() => setSelectedBugId(Number(b.id))}
-                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold border border-slate-700 transition"
-                          >
-                            DAG
-                          </button>
-                          <Link
-                            href={`/bugs/${b.id}/graph`}
-                            className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold transition"
-                          >
-                            Graph →
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </section>
       </main>
 
-      {/* CVSS Modal Popup */}
-      {showCvssModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <CvssModal
-            bugId={selectedBugId}
-            onClose={() => setShowCvssModal(false)}
-            onSave={() => setShowCvssModal(false)}
-          />
+      {/* Footer */}
+      <footer className="bg-surface-container-low text-on-surface-variant w-full py-12 border-t border-outline-variant/20 reveal-on-scroll is-visible">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-sm md:px-margin-lg max-w-[1280px] mx-auto font-body-sm text-body-sm">
+          <div className="col-span-1 md:col-span-2 mb-8 md:mb-0">
+            <div className="flex items-center gap-2 font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
+              <span className="w-6 h-6 rounded bg-primary-container text-on-primary-container flex items-center justify-center font-black text-xs">
+                M
+              </span>
+              Mantis
+            </div>
+            <p className="text-on-surface-variant mb-4 max-w-xs">The command center for elite engineering teams.</p>
+            <div className="font-label-caps text-label-caps">© 2024 Mantis Inc. All rights reserved.</div>
+          </div>
+          <div className="col-span-1 flex flex-col gap-3 font-label-caps text-label-caps uppercase">
+            <span className="text-on-surface font-bold mb-1">Product</span>
+            <Link className="hover:text-primary-container transition-colors" href="/dashboard">
+              Dashboard
+            </Link>
+            <a className="hover:text-primary-container transition-colors" href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
+              Docs &amp; API
+            </a>
+            <Link className="hover:text-primary-container transition-colors" href="/signup">
+              Get Started
+            </Link>
+            <Link className="hover:text-primary-container transition-colors" href="/dashboard">
+              DAG Explorer
+            </Link>
+          </div>
+          <div className="col-span-1 flex flex-col gap-3 font-label-caps text-label-caps uppercase">
+            <span className="text-on-surface font-bold mb-1">Legal</span>
+            <a className="hover:text-primary-container transition-colors" href="#">
+              Privacy Policy
+            </a>
+            <a className="hover:text-primary-container transition-colors" href="#">
+              Terms of Service
+            </a>
+            <a className="hover:text-primary-container transition-colors" href="#">
+              Security
+            </a>
+            <a className="hover:text-primary-container transition-colors" href="#">
+              Status
+            </a>
+          </div>
         </div>
-      )}
+      </footer>
     </div>
   );
 }
+
