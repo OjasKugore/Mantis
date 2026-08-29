@@ -48,6 +48,8 @@ export async function GET(request: Request) {
       } else {
         conditions.push('1=0');
       }
+    } else if (scope === 'demo') {
+      conditions.push(`(b.id <= 24 OR b.reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local'))`);
     }
 
     if (searchParams.get('status')) {

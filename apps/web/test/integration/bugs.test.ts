@@ -47,4 +47,18 @@ describe('Bugs Route Handlers Integration', () => {
     expect(data.bugs).toBeDefined();
     expect(Array.isArray(data.bugs)).toBe(true);
   });
+
+  it('should enforce judge demo isolation when scope=demo is requested', async () => {
+    const req = new Request('http://localhost:3000/api/v1/bugs?scope=demo&limit=50');
+    const res = await getBugs(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.bugs).toBeDefined();
+    expect(data.bugs.length).toBeGreaterThan(0);
+    // Ensure all returned bugs are within demo boundary (id <= 24)
+    for (const b of data.bugs) {
+      expect(b.id).toBeLessThanOrEqual(24);
+    }
+  });
 });

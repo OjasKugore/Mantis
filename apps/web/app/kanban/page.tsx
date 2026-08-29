@@ -44,7 +44,7 @@ export default function KanbanPage() {
   };
 
   const fetchBugs = () => {
-    const scopeParam = user && !isDemoUser(user) ? '?scope=user&limit=100' : '?limit=100';
+    const scopeParam = user && !isDemoUser(user) ? '?scope=user&limit=100' : '?scope=demo&limit=100';
     fetch(`${API_BASE}/api/v1/bugs${scopeParam}`, {
       credentials: 'include',
     })

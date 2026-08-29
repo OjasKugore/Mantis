@@ -24,6 +24,8 @@ export async function GET(request: Request) {
       } else {
         query += ` AND 1=0`;
       }
+    } else if (scope === 'demo') {
+      query += ` AND (id <= 24 OR reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local'))`;
     }
 
     const { rows } = await db.query(query, params);

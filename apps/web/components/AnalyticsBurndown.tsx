@@ -32,7 +32,7 @@ export function AnalyticsBurndown() {
   const fetchBurndown = async (m: string) => {
     setLoading(true);
     try {
-      const scopeParam = user && !isDemoUser(user) ? '&scope=user' : '';
+      const scopeParam = user && !isDemoUser(user) ? '&scope=user' : '&scope=demo';
       const res = await fetch(`${API_BASE}/api/v1/analytics/burndown?milestone=${encodeURIComponent(m)}${scopeParam}`, {
         credentials: 'include',
       });

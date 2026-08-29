@@ -70,7 +70,7 @@ export default function DashboardPage() {
       .catch(() => setApiOnline(false));
 
     // Fetch bugs with scope
-    const scopeParam = user && !isDemoUser(user) ? '?scope=user&limit=50' : '?limit=50';
+    const scopeParam = user && !isDemoUser(user) ? '?scope=user&limit=50' : '?scope=demo&limit=50';
     fetch(`/api/v1/bugs${scopeParam}`, {
       credentials: 'include',
     })
