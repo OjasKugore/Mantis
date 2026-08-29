@@ -8,7 +8,7 @@ import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
 import { BugStatus } from '@mantis/shared';
 import { applyBugStatusChange } from '@/lib/status-transition';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function KanbanPage() {
   const [bugs, setBugs] = useState<KanbanBug[]>([]);
@@ -38,7 +38,7 @@ export default function KanbanPage() {
 
   useEffect(() => {
     fetchBugs();
-  }, []);
+  }, [user]);
 
   const handleStatusChange = async (bugId: number, newStatus: BugStatus) => {
     const currentBug = bugs.find((b) => b.id === bugId);

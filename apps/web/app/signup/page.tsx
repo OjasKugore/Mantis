@@ -15,7 +15,7 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
   const handleOAuthLogin = (provider: 'github' | 'google') => {
     window.location.href = `${apiBase}/api/v1/oauth/${provider}`;

@@ -41,12 +41,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Health check
-    fetch('http://localhost:3001/health')
+    fetch('/health')
       .then((res) => (res.ok ? setApiOnline(true) : setApiOnline(false)))
       .catch(() => setApiOnline(false));
 
-    // Fetch bugs
-    fetch('http://localhost:3001/api/v1/bugs?limit=50')
+    // Fetch bugs with current persona permissions
+    fetch('/api/v1/bugs?limit=50', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (data.bugs) {
@@ -58,7 +58,7 @@ export default function DashboardPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const filteredBugs = bugs.filter(
     (b) =>
@@ -289,14 +289,12 @@ export default function DashboardPage() {
 
           {/* Center: Top Nav Links */}
           <nav className="hidden lg:flex items-center gap-6">
-            <a
+            <Link
               className="text-on-surface-variant hover:text-primary transition-all font-body-sm text-body-sm cursor-pointer opacity-80 hover:opacity-100"
-              href="http://localhost:3001/docs"
-              target="_blank"
-              rel="noreferrer"
+              href="/dashboard"
             >
-              API Docs
-            </a>
+              Dashboard
+            </Link>
           </nav>
 
           {/* Right: Actions & Profile */}
@@ -330,8 +328,8 @@ export default function DashboardPage() {
                       {SEED_PERSONAS.map((p) => (
                         <button
                           key={p.key}
-                          onClick={() => {
-                            quickLogin(p.key);
+                          onClick={async () => {
+                            await quickLogin(p.key);
                             setProfileDropdownOpen(false);
                           }}
                           className="text-left px-2 py-1 rounded bg-surface-container-low hover:bg-primary-container/20 text-[11px] font-medium transition"
@@ -348,8 +346,8 @@ export default function DashboardPage() {
                       Sign In
                     </Link>
                     <button
-                      onClick={() => {
-                        logout();
+                      onClick={async () => {
+                        await logout();
                         setProfileDropdownOpen(false);
                       }}
                       className="text-xs text-error font-bold hover:underline font-label-caps uppercase"

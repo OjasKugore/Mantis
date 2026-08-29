@@ -8,7 +8,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { CvssModal } from '@/components/CvssModal';
 import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function NewBugPage() {
   const router = useRouter();

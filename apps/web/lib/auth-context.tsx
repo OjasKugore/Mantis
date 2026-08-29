@@ -78,7 +78,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setUser(data);
+        setUser(data.user || data);
       } else {
         setUser(null);
       }
@@ -118,14 +118,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
+        const data = await res.json();
+        setUser(data.user || data);
         return { success: true };
       } else {
         const err = await res.json();
         return { success: false, error: err.message || 'Invalid credentials' };
       }
-    } catch (err) {
+    } catch {
       return { success: false, error: 'Network error connecting to auth server' };
     }
   };
@@ -140,14 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
+        const data = await res.json();
+        setUser(data.user || data);
         return { success: true };
       } else {
         const err = await res.json();
         return { success: false, error: err.message || 'Signup failed' };
       }
-    } catch (err) {
+    } catch {
       return { success: false, error: 'Network error during signup' };
     }
   };
@@ -166,9 +166,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const quickLogin = async (personaKey: string) => {
-    const persona = SEED_PERSONAS.find((p) => p.key === personaKey);
-    if (!persona) return { success: false, error: 'Unknown persona' };
-    return login(persona.email, 'password123');
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/quick-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ persona: personaKey }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user || data);
+        return { success: true };
+      } else {
+        const err = await res.json();
+        return { success: false, error: err.message || 'Quick login failed' };
+      }
+    } catch {
+      return { success: false, error: 'Network error connecting to auth server' };
+    }
   };
 
   return (

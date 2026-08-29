@@ -30,7 +30,7 @@ interface Props {
   bugId: number;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 const SEED_USERS = [
   { id: '11111111-1111-1111-1111-111111111111', name: 'Alice Developer', username: 'alice_dev' },
@@ -87,6 +87,7 @@ export function FlagsCard({ bugId }: Props) {
     setActionError(null);
 
     try {
+      const selectedUser = SEED_USERS.find((u) => u.id === selectedUserId);
       const res = await fetch(`${API_BASE}/api/v1/bugs/${bugId}/flags`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +95,7 @@ export function FlagsCard({ bugId }: Props) {
         body: JSON.stringify({
           type_id: Number(selectedTypeId),
           status: '?',
-          requestee_id: selectedUserId || undefined,
+          requestee_username: selectedUser ? selectedUser.username : undefined,
         }),
       });
 

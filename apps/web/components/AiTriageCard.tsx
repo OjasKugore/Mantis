@@ -19,7 +19,7 @@ interface Props {
   onInsertComment?: (text: string) => void;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export function AiTriageCard({
   bugId,
@@ -52,7 +52,10 @@ export function AiTriageCard({
       }
 
       const data = await res.json();
-      if (data.fallback || !data.result) {
+      const triageObj = data.result || data;
+      if (triageObj && triageObj.summary && Array.isArray(triageObj.next_steps)) {
+        setTriage(triageObj);
+      } else {
         setTriage({
           summary: `Automatic heuristic analysis: Investigating defect #${bugId}. Stack traces and discussion indicate potential component isolation and state desynchronization.`,
           suggested_priority: currentPriority === 'P1' ? 'P1' : 'P2',
@@ -64,8 +67,6 @@ export function AiTriageCard({
             'Request peer review approval from component owner.',
           ],
         });
-      } else {
-        setTriage(data.result);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to generate AI Triage');

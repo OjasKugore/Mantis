@@ -16,29 +16,20 @@ services:
       timeout: 5s
       retries: 10
 
-  api:
-    build: ./apps/api
+  web:
+    build: ./apps/web
     environment:
       DATABASE_URL: postgresql://bz:bz@db:5432/bugzilla
       SESSION_SECRET: change-me-in-production-min-32-chars-secret-key-12345
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-demo-secret}
-      NODE_ENV: development
-      PORT: 3001
-    ports:
-      - "3001:3001"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  web:
-    build: ./apps/web
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: production
+      PORT: 3000
     ports:
       - "3000:3000"
     depends_on:
-      - api
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:

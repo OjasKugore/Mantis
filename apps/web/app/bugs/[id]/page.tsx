@@ -57,7 +57,7 @@ interface BugDetail {
   activity?: ActivityItem[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function BugDetailPage({ params }: { params: { id: string } }) {
   const bugId = Number(params.id);

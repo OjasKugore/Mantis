@@ -30,7 +30,7 @@ interface Props {
   bugId: number;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export function GitHubScmCard({ bugId }: Props) {
   const [commits, setCommits] = useState<Commit[]>([]);

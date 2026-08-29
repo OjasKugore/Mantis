@@ -33,7 +33,7 @@ export function findTransitionPath(from: BugStatus, to: BugStatus): BugStatus[] 
   return null;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 /**
  * Applies a status change for a bug, executing intermediate transitions if necessary.

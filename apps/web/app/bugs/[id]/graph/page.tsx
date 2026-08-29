@@ -82,8 +82,8 @@ export default function BugGraphPage({ params }: Props) {
                     {SEED_PERSONAS.map((p) => (
                       <button
                         key={p.key}
-                        onClick={() => {
-                          quickLogin(p.key);
+                        onClick={async () => {
+                          await quickLogin(p.key);
                           setProfileDropdownOpen(false);
                         }}
                         className="text-left px-2 py-1.5 rounded bg-surface-container-low hover:bg-primary-container/20 text-[11px] font-medium transition"
@@ -104,8 +104,8 @@ export default function BugGraphPage({ params }: Props) {
                     Sign In
                   </Link>
                   <button
-                    onClick={() => {
-                      logout();
+                    onClick={async () => {
+                      await logout();
                       setProfileDropdownOpen(false);
                     }}
                     className="text-xs text-error font-bold hover:underline font-label-caps uppercase"
