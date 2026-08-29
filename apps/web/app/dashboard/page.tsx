@@ -69,16 +69,11 @@ export default function DashboardPage() {
       .then((res) => (res.ok ? setApiOnline(true) : setApiOnline(false)))
       .catch(() => setApiOnline(false));
 
-<<<<<<< HEAD
-    // Fetch bugs with current persona permissions
-    fetch('/api/v1/bugs?limit=50', { credentials: 'include' })
-=======
     // Fetch bugs with scope
     const scopeParam = user && !isDemoUser(user) ? '?scope=user&limit=50' : '?limit=50';
-    fetch(`http://localhost:3001/api/v1/bugs${scopeParam}`, {
+    fetch(`/api/v1/bugs${scopeParam}`, {
       credentials: 'include',
     })
->>>>>>> 00e154e4aed088547ca5b80484a2f38587cbf501
       .then((res) => res.json())
       .then((data) => {
         if (data.bugs) {
