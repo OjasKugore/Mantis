@@ -193,6 +193,33 @@ export async function setupTestEnvironment() {
       created_by UUID,
       PRIMARY KEY (blocking_bug_id, blocked_bug_id)
     );
+
+    CREATE TABLE IF NOT EXISTS bug_commits (
+      id SERIAL PRIMARY KEY,
+      bug_id INTEGER NOT NULL,
+      repo_full_name VARCHAR(256) NOT NULL,
+      commit_sha VARCHAR(40) NOT NULL,
+      commit_message TEXT NOT NULL,
+      author_name VARCHAR(256),
+      author_email VARCHAR(256),
+      committed_at TIMESTAMPTZ,
+      html_url TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (bug_id, commit_sha)
+    );
+
+    CREATE TABLE IF NOT EXISTS bug_pull_requests (
+      id SERIAL PRIMARY KEY,
+      bug_id INTEGER NOT NULL,
+      repo_full_name VARCHAR(256) NOT NULL,
+      pr_number INTEGER NOT NULL,
+      pr_title TEXT NOT NULL,
+      pr_state VARCHAR(16) NOT NULL,
+      pr_url TEXT NOT NULL,
+      merged_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (bug_id, repo_full_name, pr_number)
+    );
   `);
 
   const pgAdapter = memDb.adapters.createPg();
