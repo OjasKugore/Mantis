@@ -62,6 +62,7 @@ const QueryBugsSchema = z.object({
   severity: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(25),
+  scope: z.enum(['all', 'user', 'demo']).optional().default('all'),
 });
 
 export async function bugRoutes(app: FastifyInstance) {
@@ -169,7 +170,7 @@ export async function bugRoutes(app: FastifyInstance) {
       });
     }
 
-    const { status, product_id, component_id, assignee_id, reporter_id, priority, severity, page, limit } =
+    const { status, product_id, component_id, assignee_id, reporter_id, priority, severity, page, limit, scope } =
       parseResult.data;
 
     // Optional user authentication via session cookie
@@ -190,6 +191,17 @@ export async function bugRoutes(app: FastifyInstance) {
     const conditions: string[] = ['1=1'];
     const params: any[] = [];
     let paramIndex = 1;
+
+    // If scope is 'user', restrict to defects associated with this user
+    if (scope === 'user') {
+      if (userId) {
+        conditions.push(`(b.reporter_id = $${paramIndex} OR b.assignee_id = $${paramIndex})`);
+        params.push(userId);
+        paramIndex++;
+      } else {
+        conditions.push('1=0');
+      }
+    }
 
     if (status) {
       conditions.push(`b.status = $${paramIndex++}`);
