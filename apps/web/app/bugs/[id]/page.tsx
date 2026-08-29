@@ -1,12 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { CvssModal } from '@/components/CvssModal';
 import { CommentEditor } from '@/components/CommentEditor';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AuthBar } from '@/components/AuthBar';
+import { AiTriageCard } from '@/components/AiTriageCard';
+import { GitHubScmCard } from '@/components/GitHubScmCard';
+import { FlagsCard } from '@/components/FlagsCard';
+import {
+  ShieldAlert,
+  Radio,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  GitPullRequest,
+  Flag,
+  Share2,
+  Clock,
+  User,
+  Layers,
+  Tag,
+  Calendar,
+  ExternalLink,
+} from 'lucide-react';
 
 interface ActivityItem {
   id: number;
@@ -81,15 +100,22 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [sseConnected, setSseConnected] = useState(false);
+  const [livePulse, setLivePulse] = useState(false);
+  const [activeTab, setActiveTab] = useState<'activity' | 'ai' | 'scm' | 'flags'>('activity');
 
-  const fetchBug = () => {
-    setLoading(true);
+  const fetchBug = (silent = false) => {
+    if (!silent) setLoading(true);
     fetch(`${API_BASE}/api/v1/bugs/${bugId}`, {
       credentials: 'include',
     })
       .then(async (res) => {
         if (!res.ok) {
-          throw new Error(res.status === 404 ? 'Bug not found (or protected under zero-leakage embargo)' : 'Failed to fetch bug');
+          throw new Error(
+            res.status === 404
+              ? 'Bug not found (or protected under confidential security group)'
+              : 'Failed to fetch bug'
+          );
         }
         return res.json();
       })
@@ -105,6 +131,39 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     fetchBug();
+  }, [bugId]);
+
+  // ── ⚡ Real-Time Collaboration (SSE Stream) ──────────────────────────────────
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(`${API_BASE}/api/v1/bugs/${bugId}/live`, {
+        withCredentials: true,
+      });
+
+      eventSource.addEventListener('connected', () => {
+        setSseConnected(true);
+      });
+
+      eventSource.addEventListener('update', (e) => {
+        setLivePulse(true);
+        setTimeout(() => setLivePulse(false), 2000);
+        // Refresh bug state seamlessly
+        fetchBug(true);
+      });
+
+      eventSource.onerror = () => {
+        setSseConnected(false);
+      };
+    } catch {
+      setSseConnected(false);
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, [bugId]);
 
   const handleStatusTransition = async (newStatus: string, resolution?: string) => {
@@ -128,7 +187,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
       setActionMessage(`✅ Successfully transitioned to ${newStatus}`);
       setTimeout(() => setActionMessage(null), 3000);
-      fetchBug();
+      fetchBug(true);
     } catch {
       setActionMessage('Failed to update status.');
     }
@@ -148,7 +207,9 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
       if (res.ok) {
         setNewComment('');
-        fetchBug();
+        fetchBug(true);
+        setActionMessage('✅ Comment posted.');
+        setTimeout(() => setActionMessage(null), 2500);
       } else {
         setActionMessage('Failed to post comment');
       }
@@ -179,7 +240,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
           </div>
           <h2 className="text-xl font-bold text-white">Bug #{bugId} Unavailable</h2>
           <p className="text-slate-400 text-xs leading-relaxed">
-            {error || 'This bug does not exist or is currently restricted under a 90-day Zero-Leakage Security Embargo.'}
+            {error || 'This bug does not exist or is currently restricted under security embargo.'}
           </p>
           <Link
             href="/"
@@ -211,6 +272,22 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
             <span className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-800 text-slate-300">
               Bug #{bug.id}
             </span>
+
+            {/* ⚡ Live SSE Indicator */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px]">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  livePulse
+                    ? 'bg-amber-400 animate-ping'
+                    : sseConnected
+                    ? 'bg-emerald-400 animate-pulse'
+                    : 'bg-slate-600'
+                }`}
+              />
+              <span className="text-slate-400 font-mono">
+                {livePulse ? 'Syncing...' : sseConnected ? 'Live SSE' : 'Offline'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -235,8 +312,9 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* Action Flash Alert */}
         {actionMessage && (
-          <div className="p-3 rounded-xl border border-indigo-800 bg-indigo-950/80 text-indigo-200 text-xs font-semibold transition animate-fade-in">
-            {actionMessage}
+          <div className="p-3 rounded-xl border border-indigo-800 bg-indigo-950/80 text-indigo-200 text-xs font-semibold transition animate-fade-in flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{actionMessage}</span>
           </div>
         )}
 
@@ -332,53 +410,138 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Comments & Activity Stream */}
-            <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Activity & Audit Timeline</h2>
-              
-              {bug.activity && bug.activity.length > 0 ? (
-                <div className="space-y-3">
-                  {bug.activity.map((act) => (
-                    <div key={act.id} className="p-3.5 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-slate-400">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px]">
-                            {act.who_name ? act.who_name[0] : 'U'}
-                          </span>
-                          <span className="font-semibold text-slate-200">{act.who_name || 'System User'}</span>
-                          <span className="text-slate-500 font-mono text-[10px]">@{act.who_username || 'system'}</span>
-                        </div>
-                        <span className="text-[10px] text-slate-500">{new Date(act.changed_at).toLocaleString()}</span>
-                      </div>
-                      
-                      <div className="text-slate-300 pl-7 prose prose-sm prose-invert max-w-none">
-                        {act.comment ? (
-                          <div dangerouslySetInnerHTML={{ __html: act.comment }} />
-                        ) : (
-                          <p className="text-slate-400">
-                            Changed <span className="font-mono text-indigo-300">{act.field}</span> from{' '}
-                            <span className="text-slate-500">{act.old_value || 'none'}</span> →{' '}
-                            <span className="text-slate-200 font-semibold">{act.new_value}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-6 text-slate-500 text-xs">No prior activity logged.</div>
+            {/* Feature Tabs: Activity | AI Triage | GitHub SCM | Flags */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-800 text-xs pb-1">
+                <button
+                  onClick={() => setActiveTab('activity')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
+                    activeTab === 'activity'
+                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Timeline ({bug.activity?.length || 0})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('ai')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
+                    activeTab === 'ai'
+                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>AI Triage</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('scm')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
+                    activeTab === 'scm'
+                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <GitPullRequest className="w-3.5 h-3.5 text-slate-400" />
+                  <span>GitHub SCM</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('flags')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
+                    activeTab === 'flags'
+                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Flag className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Flags</span>
+                </button>
+              </div>
+
+              {/* Tab Content 1: AI Triage Assistant */}
+              {activeTab === 'ai' && (
+                <AiTriageCard
+                  bugId={bug.id}
+                  currentPriority={bug.priority}
+                  currentComponent={bug.component_name}
+                  onApplyTriage={(p, c) => {
+                    setActionMessage(`Applied AI suggestions: Priority ${p}`);
+                    setTimeout(() => setActionMessage(null), 3000);
+                  }}
+                  onInsertComment={(txt) => {
+                    setNewComment(txt);
+                    setActiveTab('activity');
+                  }}
+                />
               )}
 
-              {/* Add Comment Form */}
-              <div className="pt-4 border-t border-slate-800 space-y-3">
-                <label className="text-xs font-semibold text-slate-300 block">Add Comment / Mention Collaborators</label>
-                <CommentEditor 
-                  value={newComment} 
-                  onChange={setNewComment} 
-                  onSubmit={handleAddComment} 
-                  isSubmitting={submittingComment} 
-                />
-              </div>
+              {/* Tab Content 2: GitHub SCM */}
+              {activeTab === 'scm' && <GitHubScmCard bugId={bug.id} />}
+
+              {/* Tab Content 3: Flags */}
+              {activeTab === 'flags' && <FlagsCard bugId={bug.id} />}
+
+              {/* Tab Content 4: Comments & Activity Stream */}
+              {activeTab === 'activity' && (
+                <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Activity & Audit Timeline</h2>
+                    {sseConnected && (
+                      <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Stream Connected
+                      </span>
+                    )}
+                  </div>
+
+                  {bug.activity && bug.activity.length > 0 ? (
+                    <div className="space-y-3">
+                      {bug.activity.map((act) => (
+                        <div key={act.id} className="p-3.5 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between text-slate-400">
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px]">
+                                {act.who_name ? act.who_name[0] : 'U'}
+                              </span>
+                              <span className="font-semibold text-slate-200">{act.who_name || 'System User'}</span>
+                              <span className="text-slate-500 font-mono text-[10px]">@{act.who_username || 'system'}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500">{new Date(act.changed_at).toLocaleString()}</span>
+                          </div>
+
+                          <div className="text-slate-300 pl-7 prose prose-sm prose-invert max-w-none">
+                            {act.comment ? (
+                              <div dangerouslySetInnerHTML={{ __html: act.comment }} />
+                            ) : (
+                              <p className="text-slate-400">
+                                Changed <span className="font-mono text-indigo-300">{act.field}</span> from{' '}
+                                <span className="text-slate-500">{act.old_value || 'none'}</span> →{' '}
+                                <span className="text-slate-200 font-semibold">{act.new_value}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-6 text-slate-500 text-xs">No prior activity logged.</div>
+                  )}
+
+                  {/* Add Comment Form */}
+                  <div className="pt-4 border-t border-slate-800 space-y-3">
+                    <label className="text-xs font-semibold text-slate-300 block">Add Comment / Mention Collaborators</label>
+                    <CommentEditor
+                      value={newComment}
+                      onChange={setNewComment}
+                      onSubmit={handleAddComment}
+                      isSubmitting={submittingComment}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -387,7 +550,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
             {/* Governance Attributes Card */}
             <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Governance Attributes</h3>
-              
+
               <div className="space-y-3 text-xs">
                 <div>
                   <span className="text-slate-500 block text-[10px] uppercase">Assignee</span>
@@ -476,7 +639,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
             onClose={() => setShowCvssModal(false)}
             onSave={() => {
               setShowCvssModal(false);
-              fetchBug();
+              fetchBug(true);
             }}
           />
         </div>

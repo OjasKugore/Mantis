@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DependencyGraph } from '@/components/DependencyGraph';
-import { CvssModal } from '@/components/CvssModal';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { NotificationBell } from '@/components/NotificationBell';
+import { AnalyticsBurndown } from '@/components/AnalyticsBurndown';
 import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
 
 interface BugItem {
@@ -26,11 +26,10 @@ export default function DashboardPage() {
   const { user, quickLogin, logout } = useAuth();
   const [bugs, setBugs] = useState<BugItem[]>([]);
   const [selectedBugId, setSelectedBugId] = useState<number>(1);
-  const [showCvssModal, setShowCvssModal] = useState<boolean>(false);
   const [apiOnline, setApiOnline] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'governance'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics' | 'governance'>('queue');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -178,6 +177,24 @@ export default function DashboardPage() {
             </button>
 
             <button
+              onClick={() => setActiveTab('analytics')}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
+                activeTab === 'analytics'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
+                trending_down
+              </span>
+              {sidebarOpen && (
+                <span className="font-label-caps text-label-caps tracking-wide uppercase">
+                  Sprint Burndown
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={() => setActiveTab('governance')}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
                 activeTab === 'governance'
@@ -258,13 +275,6 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4 relative">
             <div className="flex items-center gap-2 border-r border-outline-variant/30 pr-4">
               <NotificationBell />
-              <button
-                onClick={() => setShowCvssModal(true)}
-                title="CVSS Calculator"
-                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">calculate</span>
-              </button>
             </div>
 
             {/* Profile Avatar / Dropdown Trigger */}
@@ -539,6 +549,12 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {activeTab === 'analytics' && (
+            <div className="space-y-6 flex-1 overflow-y-auto">
+              <AnalyticsBurndown />
+            </div>
+          )}
+
           {activeTab === 'governance' && (
             <div className="space-y-6">
               <div>
@@ -558,35 +574,11 @@ export default function DashboardPage() {
                   </h3>
                   <EmbargoCountdown embargoUntil={new Date(Date.now() + 87 * 24 * 60 * 60 * 1000).toISOString()} />
                 </div>
-
-                <div className="border-t border-outline-variant/20 pt-6 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-on-surface">FIRST.org CVSS v4.0 Vulnerability Calculator</h4>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Calculate MacroVectors with real-time SVG animated score arcs.</p>
-                  </div>
-                  <button
-                    onClick={() => setShowCvssModal(true)}
-                    className="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container font-label-caps uppercase font-bold text-xs hover:bg-opacity-90 transition shadow-md"
-                  >
-                    Launch CVSS Calculator Modal →
-                  </button>
-                </div>
               </div>
             </div>
           )}
         </main>
       </div>
-
-      {/* CVSS Modal Popup */}
-      {showCvssModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <CvssModal
-            bugId={selectedBugId}
-            onClose={() => setShowCvssModal(false)}
-            onSave={() => setShowCvssModal(false)}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -22,6 +22,10 @@ const CreateBugSchema = z.object({
   estimated_time: z.number().nonnegative().default(0),
   remaining_time: z.number().nonnegative().default(0),
   deadline: z.string().datetime().optional().nullable(),
+  is_embargoed: z.boolean().optional().default(false),
+  cvss_score: z.number().optional().nullable(),
+  cvss_vector: z.string().optional().nullable(),
+  cvss_severity: z.string().optional().nullable(),
 });
 
 const UpdateBugSchema = z.object({
@@ -101,18 +105,20 @@ export async function bugRoutes(app: FastifyInstance) {
 
     const component = componentRes.rows[0];
     const assigneeId = data.assignee_id !== undefined ? data.assignee_id : component.default_owner_id;
+    const embargoUntil = data.is_embargoed ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) : null;
 
     const { rows } = await db.query(
       `INSERT INTO bugs (
         summary, description, status, resolution, priority, severity,
         product_id, component_id, version, target_milestone,
-        reporter_id, assignee_id, qa_contact_id, estimated_time, remaining_time, deadline
+        reporter_id, assignee_id, qa_contact_id, estimated_time, remaining_time, deadline,
+        is_embargoed, embargo_until, cvss_score, cvss_vector, cvss_severity
       )
-      VALUES ($1, $2, 'UNCONFIRMED', '', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ($1, $2, 'UNCONFIRMED', '', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING id, summary, description, status, resolution, priority, severity,
                 product_id, component_id, version, target_milestone,
                 reporter_id, assignee_id, qa_contact_id, estimated_time, remaining_time,
-                deadline, is_embargoed, created_at, updated_at`,
+                deadline, is_embargoed, embargo_until, cvss_score, cvss_vector, cvss_severity, created_at, updated_at`,
       [
         data.summary,
         data.description,
@@ -128,6 +134,11 @@ export async function bugRoutes(app: FastifyInstance) {
         data.estimated_time,
         data.remaining_time,
         data.deadline ?? null,
+        data.is_embargoed,
+        embargoUntil,
+        data.cvss_score ?? null,
+        data.cvss_vector ?? null,
+        data.cvss_severity ?? null,
       ]
     );
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bug, BugPriority, BugSeverity } from '@mantis/shared';
 import { NotificationBell } from '@/components/NotificationBell';
+import { CvssModal } from '@/components/CvssModal';
 import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -19,6 +20,10 @@ export default function NewBugPage() {
   const [priority, setPriority] = useState<BugPriority>('P3');
   const [severity, setSeverity] = useState<BugSeverity>('normal');
   const [isEmbargoed, setIsEmbargoed] = useState(false);
+  const [cvssScore, setCvssScore] = useState<number | null>(null);
+  const [cvssVector, setCvssVector] = useState<string | null>(null);
+  const [cvssSeverity, setCvssSeverity] = useState<string | null>(null);
+  const [showCvssModal, setShowCvssModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
@@ -74,6 +79,9 @@ export default function NewBugPage() {
           priority,
           severity,
           is_embargoed: isEmbargoed,
+          cvss_score: cvssScore,
+          cvss_vector: cvssVector,
+          cvss_severity: cvssSeverity,
         }),
       });
 
@@ -151,16 +159,6 @@ export default function NewBugPage() {
             {sidebarOpen && <span className="font-body-md text-body-md">Governance</span>}
           </Link>
         </nav>
-
-        <div className="p-4 mt-auto">
-          <Link
-            href="/bugs/new"
-            className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-3 rounded-xl font-body-md text-body-md font-medium hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <span className="material-symbols-outlined">add</span>
-            {sidebarOpen && 'New Issue'}
-          </Link>
-        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -494,7 +492,63 @@ export default function NewBugPage() {
                   <label className="font-body-md text-body-md font-medium text-error cursor-pointer select-none" htmlFor="security_toggle">
                     Restrict as Security Bug (Zero-Leakage Embargo)
                   </label>
+                  <p className="text-xs text-on-surface-variant/70 mt-0.5">
+                    Automatically applies 90-day embargo and isolates visibility to security-team members.
+                  </p>
                 </div>
+              </div>
+
+              {/* CVSS v4.0 Vulnerability Score Card */}
+              <div className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-[20px]">calculate</span>
+                    <label className="font-body-md text-body-md font-bold text-on-surface">
+                      CVSS v4.0 Vulnerability Score (Optional)
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCvssModal(true)}
+                    className="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-label-caps text-xs uppercase font-bold hover:bg-opacity-90 transition shadow-sm"
+                  >
+                    {cvssScore ? 'Recalculate Score →' : 'Launch CVSS Calculator →'}
+                  </button>
+                </div>
+
+                {cvssScore ? (
+                  <div className="p-3 bg-surface-container-lowest rounded-lg border border-outline-variant/40 flex items-center justify-between animate-fade-in">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-extrabold font-mono text-primary">
+                          {cvssScore.toFixed(1)}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-error-container text-error">
+                          {cvssSeverity || 'HIGH'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono text-on-surface-variant/80 truncate max-w-md">
+                        {cvssVector}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCvssScore(null);
+                        setCvssVector(null);
+                        setCvssSeverity(null);
+                      }}
+                      className="text-xs text-on-surface-variant hover:text-error transition"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-on-surface-variant/70">
+                    Calculate vulnerability MacroVectors (Attack Vector, Complexity, Impact) to automatically attach CVSS severity ratings to this defect.
+                  </p>
+                )}
               </div>
 
               {/* Description */}
@@ -527,6 +581,26 @@ export default function NewBugPage() {
           </div>
         </div>
       </main>
+
+      {/* CVSS Modal */}
+      {showCvssModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <CvssModal
+            onClose={() => setShowCvssModal(false)}
+            onApplyScore={(score, vector, severity) => {
+              setCvssScore(score);
+              setCvssVector(vector);
+              setCvssSeverity(severity);
+              if (score >= 7.0) {
+                setIsEmbargoed(true);
+                setPriority('P1');
+                setSeverity('critical');
+              }
+              setShowCvssModal(false);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
