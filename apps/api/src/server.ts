@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { buildApp } from './app.js';
 import { runMigrations } from './db/migrate.js';
+import { initInMemoryFallbackDb } from './db/initFallback.js';
 
 dotenv.config();
 
@@ -9,11 +10,23 @@ const host = process.env.HOST || '0.0.0.0';
 
 async function start() {
   try {
+    let dbReady = false;
     if (process.env.AUTO_MIGRATE !== 'false') {
       try {
         await runMigrations();
+        dbReady = true;
       } catch (err) {
-        console.warn('Auto migration warning (will continue booting):', (err as Error).message);
+        console.warn('PostgreSQL connection failed. Activating high-performance in-memory database fallback...');
+        await initInMemoryFallbackDb();
+        dbReady = true;
+      }
+    }
+
+    if (!dbReady) {
+      try {
+        await initInMemoryFallbackDb();
+      } catch (err) {
+        console.warn('DB initialization notice:', (err as Error).message);
       }
     }
 
