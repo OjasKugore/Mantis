@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DependencyGraph } from '@/components/DependencyGraph';
 import { CvssModal } from '@/components/CvssModal';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface BugItem {
   id: number;
@@ -98,6 +99,8 @@ export default function Home() {
             >
               📚 Swagger Docs
             </a>
+            
+            <NotificationBell />
           </div>
         </div>
       </header>

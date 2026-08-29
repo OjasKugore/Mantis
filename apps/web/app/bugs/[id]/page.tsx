@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { CvssModal } from '@/components/CvssModal';
+import { CommentEditor } from '@/components/CommentEditor';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface ActivityItem {
   id: number;
@@ -128,8 +130,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
     setSubmittingComment(true);
@@ -137,7 +138,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
       const res = await fetch(`${API_BASE}/api/v1/bugs/${bugId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment: newComment }),
+        body: JSON.stringify({ body: newComment, format: 'markdown' }),
       });
 
       if (res.ok) {
@@ -220,6 +221,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
             >
               🛡️ CVSS Calculator
             </button>
+            <NotificationBell />
           </div>
         </div>
       </header>
@@ -343,9 +345,9 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
                         <span className="text-[10px] text-slate-500">{new Date(act.changed_at).toLocaleString()}</span>
                       </div>
                       
-                      <div className="text-slate-300 pl-7">
+                      <div className="text-slate-300 pl-7 prose prose-sm prose-invert max-w-none">
                         {act.comment ? (
-                          <p>{act.comment}</p>
+                          <div dangerouslySetInnerHTML={{ __html: act.comment }} />
                         ) : (
                           <p className="text-slate-400">
                             Changed <span className="font-mono text-indigo-300">{act.field}</span> from{' '}
@@ -362,25 +364,15 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
               )}
 
               {/* Add Comment Form */}
-              <form onSubmit={handleAddComment} className="pt-4 border-t border-slate-800 space-y-3">
+              <div className="pt-4 border-t border-slate-800 space-y-3">
                 <label className="text-xs font-semibold text-slate-300 block">Add Comment / Mention Collaborators</label>
-                <textarea
-                  rows={3}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Type a comment or @mention a developer (e.g. @alice_dev)..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition resize-none"
+                <CommentEditor 
+                  value={newComment} 
+                  onChange={setNewComment} 
+                  onSubmit={handleAddComment} 
+                  isSubmitting={submittingComment} 
                 />
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={submittingComment || !newComment.trim()}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition"
-                  >
-                    {submittingComment ? 'Posting...' : 'Post Comment'}
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
           </div>
 
