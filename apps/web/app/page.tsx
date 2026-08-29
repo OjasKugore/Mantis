@@ -55,6 +55,12 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-body-md selection:bg-primary-container selection:text-on-primary-container relative">
+      {/* Top Notification Banner for Judges & Evaluators */}
+      <div className="bg-[#4a5e3a] text-white text-xs py-2 px-4 text-center flex items-center justify-center gap-2 border-b border-[#3d4e2f]/40">
+        <span className="font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded text-[10px]">Clonefest Evaluator</span>
+        <span>Judges and evaluators can use the <strong className="text-[#d8ebd0] font-bold">Judge Demo</strong> option to evaluate seeded workflows.</span>
+      </div>
+
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/30 transition-all duration-300">
         <div className="max-w-[1280px] mx-auto px-margin-sm md:px-margin-lg h-16 flex items-center justify-between">
@@ -114,17 +120,9 @@ export default function LandingPage() {
                   {/* Title and Description */}
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-3 mb-3">
-                      {/* Lightning Icon */}
-                      <svg className="w-5 h-5 text-[#87a96b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                      </svg>
                       <h2 className="text-sm sm:text-base font-bold tracking-widest uppercase text-slate-900 font-label-caps">
-                        Hackathon Evaluator Quick Access
+                        Clonefest Evaluator Quick Access
                       </h2>
-                      {/* Badge */}
-                      <span className="bg-[#f1f5ee] text-[#4a5e3a] text-xs font-semibold px-3 py-1 rounded-full border border-[#87a96b]/20 font-mono">
-                        Pre-Seeded Dataset
-                      </span>
                     </div>
                     <p className="text-slate-500 text-sm sm:text-base max-w-3xl leading-relaxed">
                       Select a persona to test role-based access control (RBAC), embargoes, and dependency graphs:
