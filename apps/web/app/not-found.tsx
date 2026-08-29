@@ -18,11 +18,7 @@ export default function NotFound() {
           </span>
         </Link>
 
-        {/* 404 Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-container/20 border border-primary/30 text-primary text-xs font-mono font-bold uppercase tracking-wider">
-          <span className="material-symbols-outlined text-[14px]">menu_book</span>
-          Placeholder Page • 404
-        </div>
+
 
         <div className="space-y-2">
           <h1 className="font-display-lg text-3xl sm:text-4xl font-bold tracking-tight text-on-surface">
