@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TrendingDown, Calendar, CheckCircle2, AlertCircle, RefreshCw, Activity, Zap } from 'lucide-react';
+import { useAuth, isDemoUser } from '@/lib/auth-context';
 
 interface TrajectoryPoint {
   day: string;
@@ -21,6 +22,7 @@ interface BurndownData {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export function AnalyticsBurndown() {
+  const { user } = useAuth();
   const [milestone, setMilestone] = useState('128.0');
   const [data, setData] = useState<BurndownData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,8 @@ export function AnalyticsBurndown() {
   const fetchBurndown = async (m: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/analytics/burndown?milestone=${encodeURIComponent(m)}`, {
+      const scopeParam = user && !isDemoUser(user) ? '&scope=user' : '';
+      const res = await fetch(`${API_BASE}/api/v1/analytics/burndown?milestone=${encodeURIComponent(m)}${scopeParam}`, {
         credentials: 'include',
       });
       if (res.ok) {
@@ -47,7 +50,7 @@ export function AnalyticsBurndown() {
 
   useEffect(() => {
     fetchBurndown(milestone);
-  }, [milestone]);
+  }, [milestone, user]);
 
   const trajectory = data?.trajectory || [];
   const maxVal = data?.totalBugs || 15;

@@ -666,47 +666,79 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'graph' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary text-[32px]">hub</span>
-                    Live Dependency Graph (Bug #{selectedBugId})
-                  </h2>
-                  <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
-                    Kahn&apos;s topological sort CPM with dynamic Earliest Finish Time (EFT) analysis. Pulsing red edges show critical bottlenecks.
-                  </p>
+            bugs.length === 0 ? (
+              <div className="p-16 flex flex-col items-center justify-center text-center gap-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xl">
+                <div className="w-14 h-14 rounded-2xl bg-primary-container/20 text-primary flex items-center justify-center mb-1">
+                  <span className="material-symbols-outlined text-[32px]">hub</span>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <label htmlFor="bug-select-dash" className="text-xs text-on-surface-variant font-semibold font-label-caps uppercase">
-                    Root Bug:
-                  </label>
-                  <select
-                    id="bug-select-dash"
-                    value={selectedBugId}
-                    onChange={(e) => setSelectedBugId(Number(e.target.value))}
-                    className="bg-surface-container-lowest border border-outline-variant/50 text-on-surface text-xs rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-primary"
-                  >
-                    {bugs.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        #{b.id} — {b.summary.slice(0, 30)}...
-                      </option>
-                    ))}
-                  </select>
+                <h3 className="font-bold text-base text-on-surface font-headline-sm">
+                  No Dependency Graph Available
+                </h3>
+                <p className="text-xs text-on-surface-variant max-w-md">
+                  Your workspace is clean with no active defects. Report your first defect and link blockers to calculate the Kahn&apos;s CPM critical path.
+                </p>
+                <div className="flex items-center gap-3 mt-2">
                   <Link
-                    href={`/bugs/${selectedBugId}/graph`}
-                    className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-bold font-label-caps uppercase hover:bg-primary/90 transition shadow-sm"
+                    href="/bugs/new"
+                    className="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps text-label-caps uppercase font-bold hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5"
                   >
-                    Fullscreen DAG →
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                    Report Defect
                   </Link>
+                  {user && !isDemoUser(user) && (
+                    <button
+                      onClick={() => quickLogin('alice')}
+                      className="bg-surface-container text-on-surface px-4 py-2 rounded-lg font-label-caps text-label-caps uppercase font-bold hover:bg-surface-container-high transition border border-outline-variant/30 flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">bolt</span>
+                      Explore Demo Data
+                    </button>
+                  )}
                 </div>
               </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
+                      <span className="material-symbols-outlined text-primary text-[32px]">hub</span>
+                      Live Dependency Graph (Bug #{selectedBugId})
+                    </h2>
+                    <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
+                      Kahn&apos;s topological sort CPM with dynamic Earliest Finish Time (EFT) analysis. Pulsing red edges show critical bottlenecks.
+                    </p>
+                  </div>
 
-              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 shadow-xl">
-                <DependencyGraph bugId={selectedBugId} />
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="bug-select-dash" className="text-xs text-on-surface-variant font-semibold font-label-caps uppercase">
+                      Root Bug:
+                    </label>
+                    <select
+                      id="bug-select-dash"
+                      value={selectedBugId}
+                      onChange={(e) => setSelectedBugId(Number(e.target.value))}
+                      className="bg-surface-container-lowest border border-outline-variant/50 text-on-surface text-xs rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-primary"
+                    >
+                      {bugs.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          #{b.id} — {b.summary.slice(0, 30)}...
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      href={`/bugs/${selectedBugId}/graph`}
+                      className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-bold font-label-caps uppercase hover:bg-primary/90 transition shadow-sm"
+                    >
+                      Fullscreen DAG →
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 shadow-xl">
+                  <DependencyGraph bugId={selectedBugId} />
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {activeTab === 'analytics' && (
