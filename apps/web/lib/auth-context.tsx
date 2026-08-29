@@ -20,6 +20,11 @@ export interface Persona {
   description: string;
 }
 
+export function isDemoUser(user: User | null): boolean {
+  if (!user) return false;
+  return user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local';
+}
+
 export const SEED_PERSONAS: Persona[] = [
   {
     key: 'admin',

@@ -18,6 +18,11 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Mantis - Stealthy Monitoring & Triage",
   description: "The stealthy, data-rich command center for engineering teams to monitor, log, and resolve issues in real-time.",
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({

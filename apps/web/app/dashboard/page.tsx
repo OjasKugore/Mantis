@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { DependencyGraph } from '@/components/DependencyGraph';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AnalyticsBurndown } from '@/components/AnalyticsBurndown';
 import { KanbanBoard, KanbanBug } from '@/components/KanbanBoard';
-import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
+import { useAuth, SEED_PERSONAS, isDemoUser } from '@/lib/auth-context';
 import { BugStatus } from '@mantis/shared';
 import { applyBugStatusChange } from '@/lib/status-transition';
+import { MantisLogo } from '@/components/MantisLogo';
 
 interface BugItem {
   id: number;
@@ -26,7 +28,9 @@ interface BugItem {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, quickLogin, logout } = useAuth();
+  const profileRef = useRef<HTMLDivElement>(null);
   const [bugs, setBugs] = useState<BugItem[]>([]);
   const [selectedBugId, setSelectedBugId] = useState<number>(1);
   const [apiOnline, setApiOnline] = useState<boolean>(false);
@@ -40,13 +44,36 @@ export default function DashboardPage() {
   const pageSize = 8;
 
   useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    if (profileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [profileDropdownOpen]);
+
+  const handleLogout = async () => {
+    await logout();
+    setProfileDropdownOpen(false);
+    router.push('/');
+  };
+
+  useEffect(() => {
     // Health check
     fetch('http://localhost:3001/health')
       .then((res) => (res.ok ? setApiOnline(true) : setApiOnline(false)))
       .catch(() => setApiOnline(false));
 
-    // Fetch bugs
-    fetch('http://localhost:3001/api/v1/bugs?limit=50')
+    // Fetch bugs with scope
+    const scopeParam = user && !isDemoUser(user) ? '?scope=user&limit=50' : '?limit=50';
+    fetch(`http://localhost:3001/api/v1/bugs${scopeParam}`, {
+      credentials: 'include',
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.bugs) {
@@ -58,7 +85,7 @@ export default function DashboardPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const filteredBugs = bugs.filter(
     (b) =>
@@ -113,9 +140,7 @@ export default function DashboardPage() {
         {/* Brand / Header */}
         <div className="flex items-center gap-3 px-2 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary-container font-headline-md shadow-sm shrink-0">
-              <span className="text-sm font-bold">M</span>
-            </div>
+            <MantisLogo className="w-8 h-8 rounded-lg shadow-sm shrink-0" size={32} />
             {sidebarOpen && (
               <div>
                 <h1 className="font-headline-md text-headline-md font-bold text-primary leading-none text-xl">
@@ -301,12 +326,25 @@ export default function DashboardPage() {
 
           {/* Right: Actions & Profile */}
           <div className="flex items-center gap-4 relative">
+            {/* Mode Badge */}
+            {user && !isDemoUser(user) ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface text-xs font-bold font-label-caps border border-outline-variant/30 shadow-xs">
+                <span className="material-symbols-outlined text-[14px] text-primary">verified</span>
+                Clean Workspace
+              </span>
+            ) : (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/30 text-primary text-xs font-bold font-label-caps border border-primary/20 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                Judge Demo Sandbox
+              </span>
+            )}
+
             <div className="flex items-center gap-2 border-r border-outline-variant/30 pr-4">
               <NotificationBell />
             </div>
 
             {/* Profile Avatar / Dropdown Trigger */}
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <div
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container font-bold flex items-center justify-center border border-outline-variant/50 cursor-pointer hover:ring-2 ring-primary/30 transition-all text-xs"
@@ -316,44 +354,69 @@ export default function DashboardPage() {
 
               {/* Profile Dropdown Menu */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-72 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-2xl p-4 z-50 animate-fade-in-up space-y-3">
-                  <div className="border-b border-outline-variant/20 pb-2">
-                    <div className="font-bold text-sm text-on-surface">{user ? user.display_name : 'Guest User'}</div>
-                    <div className="text-xs text-on-surface-variant font-mono truncate">{user ? user.email : 'not logged in'}</div>
+                <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] p-5 z-[999] animate-fade-in-up space-y-4 ring-1 ring-black/10">
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary-container font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
+                        {user ? user.display_name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                          {user ? user.display_name : 'Guest User'}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                          {user ? user.email : 'not logged in'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 font-label-caps">
-                      1-Click Fast Persona Switch
+                    <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 font-label-caps flex items-center justify-between">
+                      <span>⚡ Fast Persona Switcher</span>
+                      <span className="text-[9px] font-mono text-primary font-bold">1-Click</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
-                      {SEED_PERSONAS.map((p) => (
-                        <button
-                          key={p.key}
-                          onClick={() => {
-                            quickLogin(p.key);
-                            setProfileDropdownOpen(false);
-                          }}
-                          className="text-left px-2 py-1 rounded bg-surface-container-low hover:bg-primary-container/20 text-[11px] font-medium transition"
-                        >
-                          <div className="font-bold truncate text-on-surface">{p.name.split(' ')[0]}</div>
-                          <div className="text-[9px] text-on-surface-variant font-mono">{p.badge}</div>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                      {SEED_PERSONAS.map((p) => {
+                        const isCurrent = user?.email.toLowerCase() === p.email.toLowerCase();
+                        return (
+                          <button
+                            key={p.key}
+                            onClick={() => {
+                              quickLogin(p.key);
+                              setProfileDropdownOpen(false);
+                            }}
+                            className={`text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border ${
+                              isCurrent
+                                ? 'bg-primary-container/20 border-primary text-primary font-bold shadow-xs'
+                                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/60 hover:border-primary/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="font-bold truncate">{p.name}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono shrink-0 ml-2">
+                              {p.badge}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
-                    <Link href="/login" className="text-xs text-primary font-bold hover:underline font-label-caps uppercase">
-                      Sign In
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <Link
+                      href="/login"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="text-xs text-slate-600 dark:text-slate-300 font-bold hover:text-primary font-label-caps uppercase transition-colors"
+                    >
+                      Switch Account
                     </Link>
                     <button
-                      onClick={() => {
-                        logout();
-                        setProfileDropdownOpen(false);
-                      }}
-                      className="text-xs text-error font-bold hover:underline font-label-caps uppercase"
+                      onClick={handleLogout}
+                      className="text-xs text-rose-600 hover:text-rose-700 font-bold font-label-caps uppercase transition-colors flex items-center gap-1"
                     >
+                      <span className="material-symbols-outlined text-[14px]">logout</span>
                       Log Out
                     </button>
                   </div>
@@ -466,8 +529,36 @@ export default function DashboardPage() {
                     {loading ? (
                       <div className="p-12 text-center text-on-surface-variant font-body-sm">Loading bugs from database...</div>
                     ) : paginatedBugs.length === 0 ? (
-                      <div className="p-12 text-center text-on-surface-variant font-body-sm">
-                        No bugs match your search filter.
+                      <div className="p-16 flex flex-col items-center justify-center text-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-primary-container/20 text-primary flex items-center justify-center mb-1">
+                          <span className="material-symbols-outlined text-[32px]">task_alt</span>
+                        </div>
+                        <h3 className="font-bold text-base text-on-surface font-headline-sm">
+                          {searchQuery ? 'No matching defects found' : 'Your Defect Queue is Clean'}
+                        </h3>
+                        <p className="text-xs text-on-surface-variant max-w-md">
+                          {searchQuery
+                            ? `No results match "${searchQuery}". Clear your search filter to view defects.`
+                            : 'No defects currently logged in this workspace. Create your first defect or switch to the Judge Demo sandbox to evaluate pre-seeded test data.'}
+                        </p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Link
+                            href="/bugs/new"
+                            className="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps text-label-caps uppercase font-bold hover:bg-primary/90 transition shadow-xs flex items-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">add</span>
+                            Report Defect
+                          </Link>
+                          {user && !isDemoUser(user) && (
+                            <button
+                              onClick={() => quickLogin('alice')}
+                              className="bg-surface-container text-on-surface px-4 py-2 rounded-lg font-label-caps text-label-caps uppercase font-bold hover:bg-surface-container-high transition border border-outline-variant/30 flex items-center gap-1.5"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">bolt</span>
+                              Explore Demo Data
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       paginatedBugs.map((b) => (
