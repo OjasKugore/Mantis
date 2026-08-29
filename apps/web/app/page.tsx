@@ -55,6 +55,12 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex flex-col font-body-md selection:bg-primary-container selection:text-on-primary-container relative">
+      {/* Top Notification Banner for Judges & Evaluators */}
+      <div className="bg-[#4a5e3a] text-white text-xs py-2 px-4 text-center flex items-center justify-center gap-2 border-b border-[#3d4e2f]/40">
+        <span className="font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded text-[10px]">Clonefest Evaluator</span>
+        <span>Judges and evaluators can use the <strong className="text-[#d8ebd0] font-bold">Judge Demo</strong> option to evaluate seeded workflows.</span>
+      </div>
+
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/30 transition-all duration-300">
         <div className="max-w-[1280px] mx-auto px-margin-sm md:px-margin-lg h-16 flex items-center justify-between">
@@ -114,17 +120,9 @@ export default function LandingPage() {
                   {/* Title and Description */}
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-3 mb-3">
-                      {/* Lightning Icon */}
-                      <svg className="w-5 h-5 text-[#87a96b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                      </svg>
                       <h2 className="text-sm sm:text-base font-bold tracking-widest uppercase text-slate-900 font-label-caps">
-                        Hackathon Evaluator Quick Access
+                        Clonefest Evaluator Quick Access
                       </h2>
-                      {/* Badge */}
-                      <span className="bg-[#f1f5ee] text-[#4a5e3a] text-xs font-semibold px-3 py-1 rounded-full border border-[#87a96b]/20 font-mono">
-                        Pre-Seeded Dataset
-                      </span>
                     </div>
                     <p className="text-slate-500 text-sm sm:text-base max-w-3xl leading-relaxed">
                       Select a persona to test role-based access control (RBAC), embargoes, and dependency graphs:
@@ -371,47 +369,33 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-surface-container-low text-on-surface-variant w-full py-12 border-t border-outline-variant/20 reveal-on-scroll is-visible">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-sm md:px-margin-lg max-w-[1280px] mx-auto font-body-sm text-body-sm">
-          <div className="col-span-1 md:col-span-2 mb-8 md:mb-0">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-8 px-margin-sm md:px-margin-lg max-w-[1280px] mx-auto font-body-sm text-body-sm">
+          {/* Brand */}
+          <div className="max-w-xs">
             <div className="flex items-center gap-2.5 font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
               <MantisLogo className="w-6 h-6 rounded-md shadow-xs" size={24} />
               Mantis
             </div>
-            <p className="text-on-surface-variant mb-4 max-w-xs">The command center for elite engineering teams.</p>
-            <div className="font-label-caps text-label-caps">© 2026 Mantis Inc. All rights reserved.</div>
+            <p className="text-on-surface-variant mb-4">The command center for elite engineering teams.</p>
+            <div className="font-label-caps text-label-caps">© 2026 Mantis. Built for Clonefest.</div>
           </div>
-          <div className="col-span-1 flex flex-col gap-3 font-label-caps text-label-caps uppercase">
+
+          {/* Product Links */}
+          <div className="flex flex-col gap-3 font-label-caps text-label-caps uppercase">
             <span className="text-on-surface font-bold mb-1">Product</span>
-            <Link className="hover:text-primary transition-colors" href="/dashboard">
-              Dashboard
-            </Link>
-            <a className="hover:text-primary transition-colors" href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
-              Docs &amp; API
-            </a>
             <Link className="hover:text-primary transition-colors" href="/signup">
               Get Started
             </Link>
-            <Link className="hover:text-primary transition-colors" href="/kanban">
-              Kanban Board
+            <Link className="hover:text-primary transition-colors" href="/login">
+              Sign In
             </Link>
-          </div>
-          <div className="col-span-1 flex flex-col gap-3 font-label-caps text-label-caps uppercase">
-            <span className="text-on-surface font-bold mb-1">Legal</span>
-            <a className="hover:text-primary transition-colors" href="#">
-              Privacy Policy
-            </a>
-            <a className="hover:text-primary transition-colors" href="#">
-              Terms of Service
-            </a>
-            <a className="hover:text-primary transition-colors" href="#">
-              Security
-            </a>
-            <a className="hover:text-primary transition-colors" href="#">
-              Status
-            </a>
+            <Link className="hover:text-primary transition-colors" href="/docs">
+              Docs &amp; API
+            </Link>
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
