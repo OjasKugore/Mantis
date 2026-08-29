@@ -369,47 +369,33 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-surface-container-low text-on-surface-variant w-full py-12 border-t border-outline-variant/20 reveal-on-scroll is-visible">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-sm md:px-margin-lg max-w-[1280px] mx-auto font-body-sm text-body-sm">
-          <div className="col-span-1 md:col-span-2 mb-8 md:mb-0">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-8 px-margin-sm md:px-margin-lg max-w-[1280px] mx-auto font-body-sm text-body-sm">
+          {/* Brand */}
+          <div className="max-w-xs">
             <div className="flex items-center gap-2.5 font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
               <MantisLogo className="w-6 h-6 rounded-md shadow-xs" size={24} />
               Mantis
             </div>
-            <p className="text-on-surface-variant mb-4 max-w-xs">The command center for elite engineering teams.</p>
-            <div className="font-label-caps text-label-caps">© 2026 Mantis Inc. All rights reserved.</div>
+            <p className="text-on-surface-variant mb-4">The command center for elite engineering teams.</p>
+            <div className="font-label-caps text-label-caps">© 2026 Mantis. Built for Clonefest.</div>
           </div>
-          <div className="col-span-1 flex flex-col gap-3 font-label-caps text-label-caps uppercase">
+
+          {/* Product Links */}
+          <div className="flex flex-col gap-3 font-label-caps text-label-caps uppercase">
             <span className="text-on-surface font-bold mb-1">Product</span>
-            <Link className="hover:text-primary transition-colors" href="/dashboard">
-              Dashboard
-            </Link>
-            <a className="hover:text-primary transition-colors" href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
-              Docs &amp; API
-            </a>
             <Link className="hover:text-primary transition-colors" href="/signup">
               Get Started
             </Link>
-            <Link className="hover:text-primary transition-colors" href="/kanban">
-              Kanban Board
+            <Link className="hover:text-primary transition-colors" href="/login">
+              Sign In
             </Link>
-          </div>
-          <div className="col-span-1 flex flex-col gap-3 font-label-caps text-label-caps uppercase">
-            <span className="text-on-surface font-bold mb-1">Legal</span>
-            <a className="hover:text-primary transition-colors" href="#">
-              Privacy Policy
-            </a>
-            <a className="hover:text-primary transition-colors" href="#">
-              Terms of Service
-            </a>
-            <a className="hover:text-primary transition-colors" href="#">
-              Security
-            </a>
-            <a className="hover:text-primary transition-colors" href="#">
-              Status
-            </a>
+            <Link className="hover:text-primary transition-colors" href="/docs">
+              Docs &amp; API
+            </Link>
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
