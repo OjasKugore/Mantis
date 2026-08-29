@@ -19,61 +19,53 @@ export async function GET(request: Request) {
     avatar_url?: string;
   };
 
-  if (code === 'mock_google_code') {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = `${origin}/api/v1/oauth/google/callback`;
+
+  if (!clientId || !clientSecret) {
+    return NextResponse.redirect(`${origin}/login?error=Google+OAuth+is+not+configured`);
+  }
+
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }).toString(),
+    });
+
+    const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string; error_description?: string };
+    if (!tokenData.access_token) {
+      throw new Error(tokenData.error_description || tokenData.error || 'Failed to obtain access token from Google');
+    }
+
+    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+      },
+    });
+    const goData = (await userRes.json()) as any;
+
+    if (!goData.email) {
+      throw new Error('No email found in Google profile');
+    }
+
     googleUser = {
-      id: 'mock_go_123',
-      email: 'google_user@example.com',
-      name: 'Mock Google User',
+      id: goData.sub,
+      email: goData.email,
+      name: goData.name || goData.email.split('@')[0],
+      avatar_url: goData.picture,
     };
-  } else {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = `${origin}/api/v1/oauth/google/callback`;
-
-    if (!clientId || !clientSecret) {
-      return NextResponse.redirect(`${origin}/login?error=Google+OAuth+is+not+configured`);
-    }
-
-    try {
-      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          code,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri,
-          grant_type: 'authorization_code',
-        }).toString(),
-      });
-
-      const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string; error_description?: string };
-      if (!tokenData.access_token) {
-        throw new Error(tokenData.error_description || tokenData.error || 'Failed to obtain access token from Google');
-      }
-
-      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-        },
-      });
-      const goData = (await userRes.json()) as any;
-
-      if (!goData.email) {
-        throw new Error('No email found in Google profile');
-      }
-
-      googleUser = {
-        id: goData.sub,
-        email: goData.email,
-        name: goData.name || goData.email.split('@')[0],
-        avatar_url: goData.picture,
-      };
-    } catch (err: any) {
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(err.message || 'Google OAuth failed')}`);
-    }
+  } catch (err: any) {
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(err.message || 'Google OAuth failed')}`);
   }
 
   try {

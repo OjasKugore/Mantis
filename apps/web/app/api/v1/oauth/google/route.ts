@@ -6,8 +6,7 @@ export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId) {
-    // Mock bypass for development if no keys are provided
-    return NextResponse.redirect(`${origin}/api/v1/oauth/google/callback?code=mock_google_code`);
+    return NextResponse.redirect(`${origin}/login?error=Google+OAuth+is+not+configured`);
   }
 
   const redirectUri = `${origin}/api/v1/oauth/google/callback`;
