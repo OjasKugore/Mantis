@@ -297,5 +297,14 @@ export async function oauthRoutes(app: FastifyInstance) {
     await createSession(userId, reply);
     return reply.redirect(`${webBaseUrl}/dashboard`);
   });
+
+  // GET /oauth/status — tells the frontend whether real OAuth credentials are configured
+  app.get('/oauth/status', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.send({
+      github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+      google: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    });
+  });
 }
+
 

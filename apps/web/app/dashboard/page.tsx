@@ -602,47 +602,188 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary text-[32px]">hub</span>
-                    Live Dependency Graph (Bug #{selectedBugId})
+                    {bugs.length === 0 && !isDemoUser(user)
+                      ? 'Dependency Graph'
+                      : `Live Dependency Graph (Bug #${selectedBugId})`}
                   </h2>
                   <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
                     Kahn&apos;s topological sort CPM with dynamic Earliest Finish Time (EFT) analysis. Pulsing red edges show critical bottlenecks.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <label htmlFor="bug-select-dash" className="text-xs text-on-surface-variant font-semibold font-label-caps uppercase">
-                    Root Bug:
-                  </label>
-                  <select
-                    id="bug-select-dash"
-                    value={selectedBugId}
-                    onChange={(e) => setSelectedBugId(Number(e.target.value))}
-                    className="bg-surface-container-lowest border border-outline-variant/50 text-on-surface text-xs rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-primary"
-                  >
-                    {bugs.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        #{b.id} — {b.summary.slice(0, 30)}...
-                      </option>
-                    ))}
-                  </select>
-                  <Link
-                    href={`/bugs/${selectedBugId}/graph`}
-                    className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-bold font-label-caps uppercase hover:bg-primary/90 transition shadow-sm"
-                  >
-                    Fullscreen DAG →
-                  </Link>
-                </div>
+                {bugs.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="bug-select-dash" className="text-xs text-on-surface-variant font-semibold font-label-caps uppercase">
+                      Root Bug:
+                    </label>
+                    <select
+                      id="bug-select-dash"
+                      value={selectedBugId}
+                      onChange={(e) => setSelectedBugId(Number(e.target.value))}
+                      className="bg-surface-container-lowest border border-outline-variant/50 text-on-surface text-xs rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-primary"
+                    >
+                      {bugs.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          #{b.id} — {b.summary.slice(0, 30)}...
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      href={`/bugs/${selectedBugId}/graph`}
+                      className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-bold font-label-caps uppercase hover:bg-primary/90 transition shadow-sm"
+                    >
+                      Fullscreen DAG →
+                    </Link>
+                  </div>
+                )}
               </div>
 
               <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 shadow-xl">
-                <DependencyGraph bugId={selectedBugId} />
+                {bugs.length === 0 && !isDemoUser(user) ? (
+                  /* ── Onboarding Empty State ─────────────────────────────── */
+                  <div className="flex flex-col items-center justify-center gap-6 py-16 px-8 text-center">
+                    {/* Animated DAG illustration placeholder */}
+                    <div className="relative w-40 h-32 select-none">
+                      {/* Ghost nodes */}
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-10 rounded-xl border-2 border-dashed border-primary/30 bg-primary-container/10 flex items-center justify-center">
+                        <span className="text-[10px] font-mono text-primary/50 font-bold">Root Bug</span>
+                      </div>
+                      <div className="absolute bottom-0 left-4 w-24 h-10 rounded-xl border-2 border-dashed border-outline-variant/50 bg-surface-container flex items-center justify-center">
+                        <span className="text-[10px] font-mono text-on-surface-variant/50 font-bold">Blocker A</span>
+                      </div>
+                      <div className="absolute bottom-0 right-4 w-24 h-10 rounded-xl border-2 border-dashed border-outline-variant/50 bg-surface-container flex items-center justify-center">
+                        <span className="text-[10px] font-mono text-on-surface-variant/50 font-bold">Blocker B</span>
+                      </div>
+                      {/* Ghost edges */}
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 160 128" fill="none">
+                        <line x1="80" y1="40" x2="40" y2="90" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 3" />
+                        <line x1="80" y1="40" x2="120" y2="90" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 3" />
+                      </svg>
+                    </div>
+
+                    <div className="space-y-2 max-w-sm">
+                      <h3 className="font-bold text-lg text-on-surface tracking-tight">
+                        Your dependency graph is empty
+                      </h3>
+                      <p className="text-sm text-on-surface-variant leading-relaxed">
+                        Create your first defect to start building a <strong>Critical Path Method (CPM)</strong> dependency graph. The engine automatically calculates Earliest Finish Times and highlights bottlenecks.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <Link
+                        href="/bugs/new"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-label-caps text-label-caps uppercase font-bold text-xs hover:bg-primary/90 transition shadow-sm"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        Report First Defect
+                      </Link>
+                      <button
+                        onClick={() => quickLogin('alice')}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container text-on-surface rounded-xl font-label-caps text-label-caps uppercase font-bold text-xs hover:bg-surface-container-high transition border border-outline-variant/30"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                        Explore Sample Workflow
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 w-full max-w-md mt-2">
+                      {[
+                        { icon: 'hub', label: 'Topological Sort', desc: 'Kahn\'s algorithm for DAG ordering' },
+                        { icon: 'timeline', label: 'Critical Path', desc: 'Zero-slack bottleneck detection' },
+                        { icon: 'schedule', label: 'EFT Analysis', desc: 'Earliest Finish Time per node' },
+                      ].map((f) => (
+                        <div key={f.label} className="text-center p-3 rounded-xl bg-surface-container border border-outline-variant/20">
+                          <span className="material-symbols-outlined text-primary text-[22px] block mb-1">{f.icon}</span>
+                          <div className="font-bold text-[10px] text-on-surface uppercase tracking-wider">{f.label}</div>
+                          <div className="text-[9px] text-on-surface-variant mt-0.5">{f.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <DependencyGraph bugId={selectedBugId} />
+                )}
               </div>
             </div>
           )}
 
           {activeTab === 'analytics' && (
             <div className="space-y-6 flex-1 overflow-y-auto">
-              <AnalyticsBurndown />
+              {bugs.length === 0 && !isDemoUser(user) ? (
+                /* ── Sprint Burndown Empty State ───────────────────────────── */
+                <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-8 shadow-xl">
+                  <div className="flex flex-col items-center justify-center gap-6 py-10 text-center">
+                    {/* Zero-state flat chart illustration */}
+                    <div className="w-full max-w-md h-28 relative">
+                      <svg viewBox="0 0 400 100" className="w-full h-full" fill="none">
+                        {/* Grid lines */}
+                        {[0, 25, 50, 75].map((y) => (
+                          <line key={y} x1="40" y1={y + 10} x2="380" y2={y + 10} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 3" />
+                        ))}
+                        {/* Y-axis */}
+                        <line x1="40" y1="10" x2="40" y2="90" stroke="#cbd5e1" strokeWidth="1.5" />
+                        {/* X-axis */}
+                        <line x1="40" y1="90" x2="380" y2="90" stroke="#cbd5e1" strokeWidth="1.5" />
+                        {/* Flat ideal line (dashed) */}
+                        <line x1="40" y1="85" x2="380" y2="85" stroke="#86efac" strokeWidth="2" strokeDasharray="6 4" />
+                        {/* Zero actual line */}
+                        <line x1="40" y1="85" x2="180" y2="85" stroke="#6366f1" strokeWidth="2.5" />
+                        {/* Y labels */}
+                        <text x="30" y="14" fill="#94a3b8" fontSize="8" textAnchor="end">—</text>
+                        <text x="30" y="90" fill="#94a3b8" fontSize="8" textAnchor="end">0</text>
+                        {/* Legend */}
+                        <line x1="52" y1="6" x2="70" y2="6" stroke="#86efac" strokeWidth="2" strokeDasharray="4 3" />
+                        <text x="73" y="9" fill="#64748b" fontSize="7">Ideal</text>
+                        <line x1="110" y1="6" x2="128" y2="6" stroke="#6366f1" strokeWidth="2.5" />
+                        <text x="131" y="9" fill="#64748b" fontSize="7">Actual</text>
+                      </svg>
+                    </div>
+
+                    <div className="space-y-2 max-w-sm">
+                      <h3 className="font-bold text-lg text-on-surface tracking-tight">
+                        No sprint data yet
+                      </h3>
+                      <p className="text-sm text-on-surface-variant leading-relaxed">
+                        The Sprint Burndown chart tracks open defects over your milestone timeline. Once you create bugs and assign milestone targets, the trajectory populates automatically.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <Link
+                        href="/bugs/new"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-xl font-label-caps text-label-caps uppercase font-bold text-xs hover:bg-primary/90 transition shadow-sm"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        Report First Defect
+                      </Link>
+                      <button
+                        onClick={() => quickLogin('alice')}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container text-on-surface rounded-xl font-label-caps text-label-caps uppercase font-bold text-xs hover:bg-surface-container-high transition border border-outline-variant/30"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                        Explore Sample Workflow
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 w-full max-w-md mt-2">
+                      {[
+                        { icon: 'trending_down', label: 'Velocity Tracking', desc: 'Open vs. resolved over time' },
+                        { icon: 'flag', label: 'Milestone Scoping', desc: 'Filter by release milestone' },
+                        { icon: 'timer', label: 'Effort Hours', desc: 'Remaining estimated hours' },
+                      ].map((f) => (
+                        <div key={f.label} className="text-center p-3 rounded-xl bg-surface-container border border-outline-variant/20">
+                          <span className="material-symbols-outlined text-primary text-[22px] block mb-1">{f.icon}</span>
+                          <div className="font-bold text-[10px] text-on-surface uppercase tracking-wider">{f.label}</div>
+                          <div className="text-[9px] text-on-surface-variant mt-0.5">{f.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <AnalyticsBurndown />
+              )}
             </div>
           )}
 
