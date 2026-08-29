@@ -70,7 +70,7 @@ export function ProfileDropdown({ user, triggerRef, onClose, onPersonaSwitch, on
       {/* Persona switcher */}
       <div>
         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5 font-label-caps flex items-center justify-between">
-          <span>⚡ Fast Persona Switcher</span>
+          <span className="flex items-center gap-1.5"><svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>Fast Persona Switcher</span>
           <span className="text-[9px] font-mono text-primary font-bold">1-Click</span>
         </div>
         <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1">
@@ -87,7 +87,10 @@ export function ProfileDropdown({ user, triggerRef, onClose, onPersonaSwitch, on
                 }`}
               >
                 <span className="font-bold truncate">{p.name}</span>
-                <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">{p.badge}</span>
+                <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2 flex items-center gap-1.5">
+                  {p.icon && <span className={isCurrent ? "text-primary" : "text-slate-400"}>{p.icon}</span>}
+                  {p.badge}
+                </span>
               </button>
             );
           })}
