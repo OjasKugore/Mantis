@@ -32,7 +32,7 @@ async function start() {
 
     const app = await buildApp();
     await app.listen({ port, host });
-    console.log(`🚀 BugzillaRevamp Fastify Server running on http://${host}:${port}`);
+    console.log(`🚀 Mantis Fastify Server running on http://${host}:${port}`);
     console.log(`📚 Swagger UI documentation available at http://${host}:${port}/docs`);
   } catch (err) {
     console.error('Failed to start server:', err);

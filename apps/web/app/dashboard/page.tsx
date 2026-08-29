@@ -1,0 +1,593 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { DependencyGraph } from '@/components/DependencyGraph';
+import { CvssModal } from '@/components/CvssModal';
+import { EmbargoCountdown } from '@/components/EmbargoCountdown';
+import { NotificationBell } from '@/components/NotificationBell';
+import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
+
+interface BugItem {
+  id: number;
+  summary: string;
+  status: string;
+  priority: string;
+  severity: string;
+  product_name?: string;
+  component_name?: string;
+  is_embargoed?: boolean;
+  embargo_until?: string;
+  cvss_score?: number;
+  cvss_severity?: string;
+}
+
+export default function DashboardPage() {
+  const { user, quickLogin, logout } = useAuth();
+  const [bugs, setBugs] = useState<BugItem[]>([]);
+  const [selectedBugId, setSelectedBugId] = useState<number>(1);
+  const [showCvssModal, setShowCvssModal] = useState<boolean>(false);
+  const [apiOnline, setApiOnline] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'governance'>('queue');
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 8;
+
+  useEffect(() => {
+    // Health check
+    fetch('http://localhost:3001/health')
+      .then((res) => (res.ok ? setApiOnline(true) : setApiOnline(false)))
+      .catch(() => setApiOnline(false));
+
+    // Fetch bugs
+    fetch('http://localhost:3001/api/v1/bugs?limit=50')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.bugs) {
+          setBugs(data.bugs);
+          if (data.bugs.length > 0) {
+            setSelectedBugId(Number(data.bugs[0].id));
+          }
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filteredBugs = bugs.filter(
+    (b) =>
+      b.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.id.toString().includes(searchQuery) ||
+      b.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.priority.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredBugs.length / pageSize) || 1;
+  const paginatedBugs = filteredBugs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'VERIFIED':
+        return 'bg-primary-container/15 text-primary-fixed-dim border-primary/20';
+      case 'RESOLVED':
+        return 'bg-surface-variant text-on-surface-variant border-outline-variant/30';
+      case 'IN_PROGRESS':
+        return 'bg-tertiary-container/20 text-tertiary border-tertiary/20';
+      case 'CONFIRMED':
+        return 'bg-secondary-container/30 text-secondary border-secondary/20';
+      case 'UNCONFIRMED':
+        return 'bg-surface-container-high text-on-surface-variant border-outline-variant/20';
+      default:
+        return 'bg-surface-container text-on-surface-variant border-outline-variant/20';
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'P1':
+        return 'bg-error-container/40 text-error border-error/20';
+      case 'P2':
+        return 'bg-tertiary/10 text-tertiary';
+      case 'P3':
+        return 'bg-tertiary-container/20 text-tertiary-container';
+      default:
+        return 'bg-surface-variant/40 text-on-surface-variant';
+    }
+  };
+
+  return (
+    <div className="bg-surface text-on-surface font-body-md antialiased h-screen overflow-hidden flex selection:bg-primary-container selection:text-on-primary-container">
+      {/* SideNavBar */}
+      <nav
+        className={`bg-surface-container-low shadow-sm h-screen ${
+          sidebarOpen ? 'w-64' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'
+        } flex flex-col py-margin-sm px-4 gap-gutter shrink-0 border-r border-outline-variant/20 z-20 transition-all duration-300 overflow-hidden`}
+        id="sidebar"
+      >
+        {/* Brand / Header */}
+        <div className="flex items-center gap-3 px-2 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary-container font-headline-md shadow-sm shrink-0">
+              <span className="text-sm font-bold">M</span>
+            </div>
+            {sidebarOpen && (
+              <div>
+                <h1 className="font-headline-md text-headline-md font-bold text-primary leading-none text-xl">
+                  Mantis
+                </h1>
+                <p className="font-label-caps text-label-caps text-on-surface-variant mt-1 opacity-80">
+                  V3.0 Platform
+                </p>
+              </div>
+            )}
+          </Link>
+        </div>
+
+        {/* CTA */}
+        <Link
+          href="/bugs/new"
+          className="w-full bg-primary-container hover:bg-opacity-90 text-on-primary-container font-label-caps text-label-caps py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm mt-2 font-bold uppercase tracking-wider"
+        >
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          {sidebarOpen && 'Report Bug'}
+        </Link>
+
+        {/* Main Navigation */}
+        <div className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto">
+          {sidebarOpen && (
+            <div className="px-3 py-2 text-label-caps font-label-caps text-on-surface-variant/60 uppercase tracking-wider">
+              Dashboard
+            </div>
+          )}
+          <div className="flex flex-col gap-1 pl-1">
+            <button
+              onClick={() => setActiveTab('queue')}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
+                activeTab === 'queue'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">list_alt</span>
+              {sidebarOpen && (
+                <span className="font-label-caps text-label-caps tracking-wide uppercase">
+                  Bug Queue
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('graph')}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
+                activeTab === 'graph'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
+                hub
+              </span>
+              {sidebarOpen && (
+                <span className="font-label-caps text-label-caps tracking-wide uppercase">
+                  Dependency Graph
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('governance')}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
+                activeTab === 'governance'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
+                security
+              </span>
+              {sidebarOpen && (
+                <span className="font-label-caps text-label-caps tracking-wide uppercase">
+                  Governance
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Navigation */}
+        <div className="mt-auto pt-4 border-t border-outline-variant/20 flex flex-col gap-1">
+          <a
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
+            href="http://localhost:3001/docs"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span className="material-symbols-outlined text-[20px]">help</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Docs &amp; Support</span>}
+          </a>
+          <Link
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
+            href="/login"
+          >
+            <span className="material-symbols-outlined text-[20px]">account_circle</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Switch Account</span>}
+          </Link>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* TopNavBar */}
+        <header className="bg-background border-b border-outline-variant/30 flex justify-between items-center px-margin-lg py-4 w-full z-10 shrink-0">
+          {/* Left: Menu Trigger / Breadcrumbs */}
+          <div className="flex items-center gap-4">
+            <button
+              className="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1 rounded-md hover:bg-surface-container"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              title="Toggle Sidebar"
+            >
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <div className="hidden sm:flex items-center text-sm font-body-sm text-on-surface-variant gap-2">
+              <Link href="/" className="hover:text-primary cursor-pointer transition-colors">
+                Mantis
+              </Link>
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+              <span className="text-on-surface font-medium capitalize">
+                {activeTab === 'queue' ? 'Bug Queue' : activeTab === 'graph' ? 'Dependency Graph' : 'Governance'}
+              </span>
+            </div>
+          </div>
+
+          {/* Center: Top Nav Links */}
+          <nav className="hidden lg:flex items-center gap-6">
+            <a
+              className="text-on-surface-variant hover:text-primary transition-all font-body-sm text-body-sm cursor-pointer opacity-80 hover:opacity-100"
+              href="http://localhost:3001/docs"
+              target="_blank"
+              rel="noreferrer"
+            >
+              API Docs
+            </a>
+          </nav>
+
+          {/* Right: Actions & Profile */}
+          <div className="flex items-center gap-4 relative">
+            <div className="flex items-center gap-2 border-r border-outline-variant/30 pr-4">
+              <NotificationBell />
+              <button
+                onClick={() => setShowCvssModal(true)}
+                title="CVSS Calculator"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">calculate</span>
+              </button>
+            </div>
+
+            {/* Profile Avatar / Dropdown Trigger */}
+            <div className="relative">
+              <div
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container font-bold flex items-center justify-center border border-outline-variant/50 cursor-pointer hover:ring-2 ring-primary/30 transition-all text-xs"
+              >
+                {user ? user.display_name.charAt(0).toUpperCase() : 'U'}
+              </div>
+
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-3 w-72 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-2xl p-4 z-50 animate-fade-in-up space-y-3">
+                  <div className="border-b border-outline-variant/20 pb-2">
+                    <div className="font-bold text-sm text-on-surface">{user ? user.display_name : 'Guest User'}</div>
+                    <div className="text-xs text-on-surface-variant font-mono truncate">{user ? user.email : 'not logged in'}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 font-label-caps">
+                      1-Click Fast Persona Switch
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
+                      {SEED_PERSONAS.map((p) => (
+                        <button
+                          key={p.key}
+                          onClick={() => {
+                            quickLogin(p.key);
+                            setProfileDropdownOpen(false);
+                          }}
+                          className="text-left px-2 py-1 rounded bg-surface-container-low hover:bg-primary-container/20 text-[11px] font-medium transition"
+                        >
+                          <div className="font-bold truncate text-on-surface">{p.name.split(' ')[0]}</div>
+                          <div className="text-[9px] text-on-surface-variant font-mono">{p.badge}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
+                    <Link href="/login" className="text-xs text-primary font-bold hover:underline font-label-caps uppercase">
+                      Sign In
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setProfileDropdownOpen(false);
+                      }}
+                      className="text-xs text-error font-bold hover:underline font-label-caps uppercase"
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Main Canvas */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-margin-lg lg:px-12 bg-background flex flex-col gap-6 relative">
+          {activeTab === 'queue' && (
+            <>
+              {/* Page Header */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
+                <div>
+                  <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary text-[32px]">inventory_2</span>
+                    Master Bug Queue
+                  </h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-2xl opacity-80">
+                    Sourced from the PostgreSQL master seed dataset. Review, triage, and assign issues to the engineering graph.
+                  </p>
+                </div>
+
+                {/* Filter/Search Bar */}
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="relative w-full md:w-64">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[18px]">
+                      search
+                    </span>
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full pl-9 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg font-body-sm text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm placeholder:text-on-surface-variant/40 text-on-surface"
+                      placeholder="Search issues..."
+                      type="text"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    title="Clear filter"
+                    className="p-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/50 transition-colors shadow-sm flex items-center justify-center"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">filter_list</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bento-style Data Container */}
+              <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(135,169,107,0.03)] border border-outline-variant/20 overflow-hidden flex flex-col flex-1 max-h-[800px]">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container-low/50 border-b border-outline-variant/20 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest sticky top-0 z-10 backdrop-blur-sm">
+                  <div className="col-span-1">ID</div>
+                  <div className="col-span-5">Summary</div>
+                  <div className="col-span-2">Status</div>
+                  <div className="col-span-1">Priority</div>
+                  <div className="col-span-1">Severity</div>
+                  <div className="col-span-2 text-right">Actions</div>
+                </div>
+
+                {/* Table Body */}
+                <div className="overflow-y-auto flex-1 divide-y divide-outline-variant/10">
+                  {loading ? (
+                    <div className="p-12 text-center text-on-surface-variant font-body-sm">Loading bugs from database...</div>
+                  ) : paginatedBugs.length === 0 ? (
+                    <div className="p-12 text-center text-on-surface-variant font-body-sm">
+                      No bugs match your search filter.
+                    </div>
+                  ) : (
+                    paginatedBugs.map((b) => (
+                      <div
+                        key={b.id}
+                        className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-primary-container/5 transition-colors group"
+                      >
+                        <div className="col-span-1 font-label-code text-label-code text-primary/80 font-bold">
+                          #{b.id}
+                        </div>
+
+                        <div className="col-span-5 font-body-sm text-on-surface font-medium pr-4 truncate group-hover:text-primary transition-colors">
+                          <Link href={`/bugs/${b.id}`} className="hover:underline">
+                            {b.summary}
+                          </Link>
+                        </div>
+
+                        <div className="col-span-2">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full font-label-caps text-[10px] border font-bold ${getStatusBadge(
+                              b.status
+                            )}`}
+                          >
+                            {b.status.replace('_', ' ')}
+                          </span>
+                        </div>
+
+                        <div className="col-span-1">
+                          <span
+                            className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-label-code text-[11px] font-bold ${getPriorityBadge(
+                              b.priority
+                            )}`}
+                          >
+                            {b.priority}
+                          </span>
+                        </div>
+
+                        <div className="col-span-1 text-on-surface-variant font-body-sm text-sm capitalize truncate overflow-hidden whitespace-nowrap group/slide">
+                          <span className="inline-block transition-transform duration-500 ease-in-out group-hover/slide:translate-x-2">
+                            {b.severity}
+                          </span>
+                        </div>
+
+                        <div className="col-span-2 flex justify-end gap-2">
+                          <Link
+                            href={`/bugs/${b.id}`}
+                            className="px-3 py-1 rounded border border-outline-variant/30 text-on-surface-variant font-label-caps text-[10px] hover:border-primary/50 hover:text-primary transition-colors bg-surface-container-lowest font-bold"
+                          >
+                            Details
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setSelectedBugId(Number(b.id));
+                              setActiveTab('graph');
+                            }}
+                            className="px-3 py-1 rounded bg-primary-container/10 text-primary font-label-caps text-[10px] hover:bg-primary-container hover:text-on-primary-container transition-colors flex items-center gap-1 font-bold"
+                          >
+                            Graph
+                            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Table Footer / Pagination */}
+                <div className="px-6 py-3 border-t border-outline-variant/20 bg-surface-container-lowest flex items-center justify-between text-sm text-on-surface-variant">
+                  <span className="font-body-sm text-xs">
+                    Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredBugs.length)} of{' '}
+                    {filteredBugs.length} entries
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="w-8 h-8 rounded border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant/50 transition-colors disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </button>
+                    <div className="flex items-center gap-1 font-label-code text-xs">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded font-medium flex items-center justify-center transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-primary-container text-on-primary-container font-bold shadow-sm'
+                              : 'hover:bg-surface-variant/50 text-on-surface-variant'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="w-8 h-8 rounded border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant/50 transition-colors disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'graph' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary text-[32px]">hub</span>
+                    Live Dependency Graph (Bug #{selectedBugId})
+                  </h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
+                    Kahn&apos;s topological sort CPM with dynamic Earliest Finish Time (EFT) analysis. Pulsing red edges show critical bottlenecks.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label htmlFor="bug-select-dash" className="text-xs text-on-surface-variant font-semibold font-label-caps uppercase">
+                    Root Bug:
+                  </label>
+                  <select
+                    id="bug-select-dash"
+                    value={selectedBugId}
+                    onChange={(e) => setSelectedBugId(Number(e.target.value))}
+                    className="bg-surface-container-lowest border border-outline-variant/50 text-on-surface text-xs rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-primary"
+                  >
+                    {bugs.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        #{b.id} — {b.summary.slice(0, 30)}...
+                      </option>
+                    ))}
+                  </select>
+                  <Link
+                    href={`/bugs/${selectedBugId}/graph`}
+                    className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-bold font-label-caps uppercase hover:bg-primary/90 transition shadow-sm"
+                  >
+                    Fullscreen DAG →
+                  </Link>
+                </div>
+              </div>
+
+              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 shadow-xl">
+                <DependencyGraph bugId={selectedBugId} />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'governance' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-[32px]">security</span>
+                  Vulnerability Governance &amp; Embargo Quarantines
+                </h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
+                  FIRST.org CVSS v4.0 scoring engine, zero-leakage 404 security group isolation, and 90-day embargo enforcement.
+                </p>
+              </div>
+
+              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-6 shadow-xl space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label-caps mb-2">
+                    Active 90-Day Security Embargo Countdown Demo
+                  </h3>
+                  <EmbargoCountdown embargoUntil={new Date(Date.now() + 87 * 24 * 60 * 60 * 1000).toISOString()} />
+                </div>
+
+                <div className="border-t border-outline-variant/20 pt-6 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-on-surface">FIRST.org CVSS v4.0 Vulnerability Calculator</h4>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Calculate MacroVectors with real-time SVG animated score arcs.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowCvssModal(true)}
+                    className="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container font-label-caps uppercase font-bold text-xs hover:bg-opacity-90 transition shadow-md"
+                  >
+                    Launch CVSS Calculator Modal →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* CVSS Modal Popup */}
+      {showCvssModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <CvssModal
+            bugId={selectedBugId}
+            onClose={() => setShowCvssModal(false)}
+            onSave={() => setShowCvssModal(false)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -16,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "BugzillaRevamp — Modern Defect Tracking Platform",
-  description: "High-performance bug tracking, dependency management, and CVSS v4.0 vulnerability governance.",
+  title: "Mantis - Stealthy Monitoring & Triage",
+  description: "The stealthy, data-rich command center for engineering teams to monitor, log, and resolve issues in real-time.",
 };
 
 export default function RootLayout({
@@ -27,6 +27,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -38,3 +50,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+

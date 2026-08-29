@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Bugzilla uses a **relational database schema** defined entirely in `Bugzilla/DB/Schema.pm` as Perl data structures (the `ABSTRACT_SCHEMA` constant). This abstraction is what allows Bugzilla to support multiple RDBMS backends.
+Mantis uses a **relational database schema** defined entirely in `Mantis/DB/Schema.pm` as Perl data structures (the `ABSTRACT_SCHEMA` constant). This abstraction is what allows Mantis to support multiple RDBMS backends.
 
 **Supported databases:**
 - MariaDB 10.0+ (recommended)
@@ -770,7 +770,7 @@ fielddefs (custom fields)
 
 ### Custom Field Tables
 
-When a `SINGLE_SELECT` or `MULTI_SELECT` custom field is created, Bugzilla automatically creates a table `cf_<fieldname>` using `FIELD_TABLE_SCHEMA`:
+When a `SINGLE_SELECT` or `MULTI_SELECT` custom field is created, Mantis automatically creates a table `cf_<fieldname>` using `FIELD_TABLE_SCHEMA`:
 
 ```sql
 CREATE TABLE cf_custom_status (
@@ -785,7 +785,7 @@ CREATE TABLE cf_custom_status (
 ### Schema Migration
 
 The schema migration process:
-1. `Bugzilla::DB::Schema` serializes the expected schema to a Perl data structure
+1. `Mantis::DB::Schema` serializes the expected schema to a Perl data structure
 2. On each `checksetup.pl` run, the current schema is compared with the expected schema
 3. Missing tables → `CREATE TABLE`
 4. Missing columns → `ALTER TABLE ADD COLUMN`

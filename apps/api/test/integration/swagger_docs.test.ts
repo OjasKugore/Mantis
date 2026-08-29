@@ -33,6 +33,6 @@ describe('OpenAPI Swagger UI Documentation Tests (T3.24 – T3.25)', () => {
     expect(res.statusCode).toBe(200);
     const spec = res.json();
     expect(spec.openapi || spec.swagger).toBeDefined();
-    expect(spec.info?.title).toBe('BugzillaRevamp API');
+    expect(spec.info?.title).toBe('Mantis API');
   });
 });

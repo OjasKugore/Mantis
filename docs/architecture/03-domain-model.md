@@ -2,34 +2,34 @@
 
 ## 1. Overview
 
-Bugzilla's domain model is built around a central `Bugzilla::Object` base class. All persistable entities inherit from it and follow a consistent pattern of `DB_TABLE`, `DB_COLUMNS`, `VALIDATORS`, and CRUD methods.
+Mantis's domain model is built around a central `Mantis::Object` base class. All persistable entities inherit from it and follow a consistent pattern of `DB_TABLE`, `DB_COLUMNS`, `VALIDATORS`, and CRUD methods.
 
 ```
-Bugzilla::Object (base class)
-├── Bugzilla::Bug             (central domain entity)
-├── Bugzilla::User            (user accounts)
-├── Bugzilla::Product         (project/product)
-│   └── Bugzilla::Component   (sub-area of product)
-│       └── Bugzilla::Version
-│           └── Bugzilla::Milestone
-├── Bugzilla::Classification  (top-level grouping)
-├── Bugzilla::Attachment      (file attachments)
-├── Bugzilla::Comment         (bug comments, stored in longdescs)
-├── Bugzilla::Flag            (review/approval flags)
-├── Bugzilla::FlagType        (flag type definitions)
-├── Bugzilla::Group           (security/ACL groups)
-├── Bugzilla::Field           (custom field definitions)
-├── Bugzilla::Keyword         (keyword/tag definitions)
-├── Bugzilla::Token           (CSRF, session, account tokens)
-├── Bugzilla::Status          (bug status state machine)
-└── Bugzilla::Series          (chart data series)
+Mantis::Object (base class)
+├── Mantis::Bug             (central domain entity)
+├── Mantis::User            (user accounts)
+├── Mantis::Product         (project/product)
+│   └── Mantis::Component   (sub-area of product)
+│       └── Mantis::Version
+│           └── Mantis::Milestone
+├── Mantis::Classification  (top-level grouping)
+├── Mantis::Attachment      (file attachments)
+├── Mantis::Comment         (bug comments, stored in longdescs)
+├── Mantis::Flag            (review/approval flags)
+├── Mantis::FlagType        (flag type definitions)
+├── Mantis::Group           (security/ACL groups)
+├── Mantis::Field           (custom field definitions)
+├── Mantis::Keyword         (keyword/tag definitions)
+├── Mantis::Token           (CSRF, session, account tokens)
+├── Mantis::Status          (bug status state machine)
+└── Mantis::Series          (chart data series)
 ```
 
 ---
 
-## 2. Bugzilla::Bug — The Central Entity
+## 2. Mantis::Bug — The Central Entity
 
-**File**: `Bugzilla/Bug.pm` (~156k bytes, 5124 lines)  
+**File**: `Mantis/Bug.pm` (~156k bytes, 5124 lines)  
 **DB Table**: `bugs`
 
 ### 2.1 Core Fields
@@ -138,13 +138,13 @@ REOPENING: RESOLVED → CONFIRMED (removes resolution, sets CONFIRMED)
            VERIFIED  → CONFIRMED (same)
 ```
 
-**Transition validation** is handled by `Bugzilla::Status` and enforced in `_check_bug_status()` in `Bug.pm`.
+**Transition validation** is handled by `Mantis::Status` and enforced in `_check_bug_status()` in `Bug.pm`.
 
 ---
 
-## 3. Bugzilla::User — User Accounts
+## 3. Mantis::User — User Accounts
 
-**File**: `Bugzilla/User.pm` (~103k bytes, 3408 lines)  
+**File**: `Mantis/User.pm` (~103k bytes, 3408 lines)  
 **DB Table**: `profiles`
 
 ### 3.1 Core Fields
@@ -193,7 +193,7 @@ Per-Product Permissions (group_control_map):
 
 ## 4. Product Hierarchy
 
-### Bugzilla::Classification
+### Mantis::Classification
 **DB Table**: `classifications`
 
 | Field | Type | Description |
@@ -203,7 +203,7 @@ Per-Product Permissions (group_control_map):
 | `description` | MEDIUMTEXT | Description |
 | `sortkey` | INT2 | Display ordering |
 
-### Bugzilla::Product
+### Mantis::Product
 **DB Table**: `products`
 
 | Field | Type | Description |
@@ -217,7 +217,7 @@ Per-Product Permissions (group_control_map):
 | `allows_unconfirmed` | BOOLEAN | Can have UNCONFIRMED bugs |
 | `default_cc` | (via component) | Default CC list |
 
-### Bugzilla::Component
+### Mantis::Component
 **DB Table**: `components`
 
 | Field | Type | Description |
@@ -233,9 +233,9 @@ Per-Product Permissions (group_control_map):
 
 ---
 
-## 5. Bugzilla::Attachment
+## 5. Mantis::Attachment
 
-**File**: `Bugzilla/Attachment.pm`  
+**File**: `Mantis/Attachment.pm`  
 **DB Tables**: `attachments` (metadata), `attach_data` (blob)
 
 | Field | Type | Description |
@@ -257,7 +257,7 @@ Per-Product Permissions (group_control_map):
 
 ---
 
-## 6. Bugzilla::Comment (longdescs)
+## 6. Mantis::Comment (longdescs)
 
 **DB Table**: `longdescs`
 
@@ -285,9 +285,9 @@ Per-Product Permissions (group_control_map):
 
 ---
 
-## 7. Bugzilla::Flag — Review/Approval System
+## 7. Mantis::Flag — Review/Approval System
 
-**File**: `Bugzilla/Flag.pm`  
+**File**: `Mantis/Flag.pm`  
 **DB Table**: `flags`
 
 | Field | Type | Description |
@@ -319,9 +319,9 @@ Per-Product Permissions (group_control_map):
 
 ---
 
-## 8. Bugzilla::Group — Access Control
+## 8. Mantis::Group — Access Control
 
-**File**: `Bugzilla/Group.pm`  
+**File**: `Mantis/Group.pm`  
 **DB Table**: `groups`
 
 | Field | Type | Description |
@@ -347,9 +347,9 @@ Per-Product Permissions (group_control_map):
 
 ---
 
-## 9. Bugzilla::Field — Custom Fields
+## 9. Mantis::Field — Custom Fields
 
-**File**: `Bugzilla/Field.pm`  
+**File**: `Mantis/Field.pm`  
 **DB Table**: `fielddefs`
 
 Custom fields allow administrators to add new bug fields without code changes.
@@ -374,9 +374,9 @@ Custom fields allow administrators to add new bug fields without code changes.
 
 ---
 
-## 10. Bugzilla::Token — Security Tokens
+## 10. Mantis::Token — Security Tokens
 
-**File**: `Bugzilla/Token.pm`  
+**File**: `Mantis/Token.pm`  
 **DB Table**: `tokens`
 
 Tokens are cryptographically secure random strings used for:
@@ -396,13 +396,13 @@ Tokens are cryptographically secure random strings used for:
 
 ## 11. BugUrl — External Tracker Integration
 
-**File**: `Bugzilla/BugUrl.pm` and `Bugzilla/BugUrl/`
+**File**: `Mantis/BugUrl.pm` and `Mantis/BugUrl/`
 
 The `bug_see_also` table stores URLs to external bug trackers. The `BugUrl` module recognizes and normalizes URLs for:
 
 | Class | External Tracker |
 |---|---|
-| `BugUrl::Bugzilla` | Other Bugzilla instances |
+| `BugUrl::Mantis` | Other Mantis instances |
 | `BugUrl::GitHub` | GitHub Issues |
 | `BugUrl::Google` | Google Code |
 | `BugUrl::JIRA` | Atlassian JIRA |
@@ -420,4 +420,4 @@ Every domain object change is captured in two ways:
 1. **`bugs_activity` table**: Bug-specific field changes with `who`, `when`, `field`, `added`, `removed`
 2. **`audit_log` table**: Generic audit log for admin objects (products, components, groups, etc.) with `class`, `object_id`, `field`, `removed`, `added`, `at_time`
 
-The `Bugzilla::Object` base class automatically writes to `audit_log` for all entities where `AUDIT_CREATES=1` or `AUDIT_UPDATES=1`. The `Bug` class writes directly to `bugs_activity` instead.
+The `Mantis::Object` base class automatically writes to `audit_log` for all entities where `AUDIT_CREATES=1` or `AUDIT_UPDATES=1`. The `Bug` class writes directly to `bugs_activity` instead.

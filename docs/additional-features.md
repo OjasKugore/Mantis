@@ -1,7 +1,7 @@
-# Additional Features Specification — Beyond Bugzilla's Scope
+# Additional Features Specification — Beyond Mantis's Scope
 ## Architecture & Implementation Blueprint: Active Build Targets vs. Extended Enterprise Roadmap
 
-> **Purpose**: This document defines the *net-new* capabilities that transform Bugzilla from a legacy Perl tracker into a state-of-the-art developer platform.
+> **Purpose**: This document defines the *net-new* capabilities that transform Mantis from a legacy Perl tracker into a state-of-the-art developer platform.
 >
 > In strict accordance with [`docs/implementation-rules.md`](./implementation-rules.md), this document is partitioned into two distinct architectural sections:
 > 1. **PART I: ACTIVE 72-HOUR BUILD TARGETS (Phases 2 & 3 — Live Demo Scope)**: The concrete, self-contained features being implemented and verified before **August 30 at 11:59 PM**. Each includes complete PostgreSQL DDL schemas, REST API contracts, algorithms, UI components, and unit/integration test specifications.
@@ -18,7 +18,7 @@ The following six features constitute the live functional demo deliverables for 
 ## 1. 🕸️ Interactive Dependency Graph & Critical Path Engine (Phase 2 Moat)
 
 **Target Rubric Areas**: Innovation & Differentiation (20 pts), UX & Aesthetics (15 pts), Performance & Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Overhauls `showdependencygraph.cgi`. Legacy Bugzilla shelled out to Graphviz `dot` in 2002 to generate static, blurry `.png` image maps. This replaces it with an interactive, live-calculated DAG cockpit.
+**Mantis Gap Addressed**: Overhauls `showdependencygraph.cgi`. Legacy Mantis shelled out to Graphviz `dot` in 2002 to generate static, blurry `.png` image maps. This replaces it with an interactive, live-calculated DAG cockpit.
 
 ### 1.1 Data Schema & Integrity Constraints
 ```sql
@@ -77,7 +77,7 @@ CREATE INDEX idx_bug_dep_blocking ON bug_dependencies(blocking_bug_id, blocked_b
 ## 2. 🛡️ Enterprise Vulnerability Disclosure: CVSS v4.0 & Embargo Countdown (Phase 2 Moat)
 
 **Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts), Performance & Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Bugzilla is historically the world's primary zero-day vulnerability tracker (Mozilla, Red Hat, Linux Kernel). Yet it relied on arbitrary text flags with zero mathematical severity calculation and no automated disclosure clocks.
+**Mantis Gap Addressed**: Mantis is historically the world's primary zero-day vulnerability tracker (Mozilla, Red Hat, Linux Kernel). Yet it relied on arbitrary text flags with zero mathematical severity calculation and no automated disclosure clocks.
 
 ### 2.1 Data Schema
 ```sql
@@ -121,7 +121,7 @@ CREATE INDEX idx_bugs_embargo ON bugs(is_embargoed, embargo_until);
 ## 3. ⌨️ Sub-10ms Command Palette (`Cmd+K` / `Ctrl+K`) (Phase 3 Polish)
 
 **Target Rubric Areas**: User Experience & Accessibility (15 pts), Innovation (20 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla required dozens of mouse clicks across multiple form pages. This brings Linear/VS Code keyboard ergonomics to the bug tracker.
+**Mantis Gap Addressed**: Legacy Mantis required dozens of mouse clicks across multiple form pages. This brings Linear/VS Code keyboard ergonomics to the bug tracker.
 
 ### 3.1 Technical Architecture
 - **Component**: Built using `cmdk` (shadcn CommandDialog).
@@ -142,7 +142,7 @@ CREATE INDEX idx_bugs_embargo ON bugs(is_embargoed, embargo_until);
 ## 4. 🔍 PostgreSQL Full-Text Search (`tsvector` & GIN) (Phase 3 Polish)
 
 **Target Rubric Areas**: Performance & Reliability (20 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Replaces slow SQL `LIKE '%query%'` table scans with high-performance native PostgreSQL lexical full-text search.
+**Mantis Gap Addressed**: Replaces slow SQL `LIKE '%query%'` table scans with high-performance native PostgreSQL lexical full-text search.
 
 ### 4.1 Data Schema & GIN Index
 ```sql
@@ -176,11 +176,11 @@ CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
 ## 5. 📋 Drag-and-Drop Kanban Status Board (Phase 3 Polish)
 
 **Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla offered no visual board views. Modern agile teams require visual Kanban workflows without losing state-machine rigor.
+**Mantis Gap Addressed**: Legacy Mantis offered no visual board views. Modern agile teams require visual Kanban workflows without losing state-machine rigor.
 
 ### 5.1 Architecture & Workflow
 - **Component**: Built using `@dnd-kit/core`.
-- **Columns**: Mapped directly to Bugzilla status columns (`UNCONFIRMED`, `CONFIRMED`, `IN_PROGRESS`, `RESOLVED`, `VERIFIED`, `CLOSED`).
+- **Columns**: Mapped directly to Mantis status columns (`UNCONFIRMED`, `CONFIRMED`, `IN_PROGRESS`, `RESOLVED`, `VERIFIED`, `CLOSED`).
 - **State Machine Enforcement**: Dropping a card calls `PATCH /api/v1/bugs/:id/status`.
   * If valid move $\rightarrow$ Card drops into column; updates `bugs_activity` audit trail.
   * If invalid move (e.g. `UNCONFIRMED` $\rightarrow$ `CLOSED`) $\rightarrow$ Server returns HTTP 422; frontend smoothly animates card back to source column with error toast.
@@ -195,7 +195,7 @@ CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
 ## 6. ✨ 1-Click AI Triage Assistant (Phase 3 Polish — The AI Shield)
 
 **Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts)  
-**Bugzilla Gap Addressed**: Automates manual triage and distills 50+ comment discussions into instant executive context with zero complex infrastructure.
+**Mantis Gap Addressed**: Automates manual triage and distills 50+ comment discussions into instant executive context with zero complex infrastructure.
 
 ### 6.1 Architecture & Fastify Endpoint
 - **Endpoint**: `POST /api/v1/bugs/:id/ai-triage`
@@ -226,7 +226,7 @@ CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
 ## 7. ⚡ Lightweight Live Updates (Polling / Broadcast) (Phase 3 Polish)
 
 **Target Rubric Areas**: User Experience (15 pts), Performance & Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Users were blind to concurrent changes until manual browser page reloads.
+**Mantis Gap Addressed**: Users were blind to concurrent changes until manual browser page reloads.
 
 ### 7.1 Architecture
 - Simple 5-second short-polling or lightweight WebSocket broadcast channel (`/ws/events`).
@@ -238,7 +238,7 @@ CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
 ## 8. 🔔 @Mentions in Comments with Autocomplete (Phase 3 Polish)
 
 **Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Bugzilla's CC list is a blunt instrument — there is no way to directly address a team member inside a comment thread. This replaces that primitive mechanism with inline `@username` mentions backed by a real-time autocomplete typeahead.
+**Mantis Gap Addressed**: Mantis's CC list is a blunt instrument — there is no way to directly address a team member inside a comment thread. This replaces that primitive mechanism with inline `@username` mentions backed by a real-time autocomplete typeahead.
 
 ### 8.1 Data Schema
 ```sql
@@ -288,7 +288,7 @@ CREATE INDEX idx_mentions_user ON comment_mentions(mentioned_user_id);
 ## 9. 📝 Rich-Text / Markdown Support in Comments (Phase 3 Polish)
 
 **Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Bugzilla stores and renders all comments as plain text. Code snippets, reproduction steps, and stack traces are completely unformatted, making long bug threads extremely hard to read.
+**Mantis Gap Addressed**: Mantis stores and renders all comments as plain text. Code snippets, reproduction steps, and stack traces are completely unformatted, making long bug threads extremely hard to read.
 
 ### 9.1 Data Schema
 ```sql
@@ -327,7 +327,7 @@ Existing plain-text comments are preserved with `format = 'plain'` and rendered 
 ## 10. 🔗 Git / GitHub Webhook Integration (Phase 3 Polish)
 
 **Target Rubric Areas**: Innovation & Differentiation (20 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla has zero awareness of source control. Engineers must manually paste commit links into comments. This integration auto-links commits to bugs via commit message conventions, auto-closes bugs on merge, and surfaces linked PRs directly on the bug detail page.
+**Mantis Gap Addressed**: Legacy Mantis has zero awareness of source control. Engineers must manually paste commit links into comments. This integration auto-links commits to bugs via commit message conventions, auto-closes bugs on merge, and surfaces linked PRs directly on the bug detail page.
 
 ### 10.1 Data Schema
 ```sql
@@ -419,7 +419,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 7. 👥 Real-Time Collaboration & CRDT Multiplayer Layer (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Problem Understanding (20 pts), Performance & Reliability (20 pts), Technical Architecture (15 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla famously threw a fatal error: *"Mid-air collision detected! Someone modified this bug while you were editing it,"* wiping out all unsaved text.
+**Mantis Gap Addressed**: Legacy Mantis famously threw a fatal error: *"Mid-air collision detected! Someone modified this bug while you were editing it,"* wiping out all unsaved text.
 
 ### 7.1 CRDT State Model & 3-Tier Persistence
 - **Engine**: **Yjs** synchronized over WebSockets.
@@ -435,7 +435,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 8. 🔍 Code Navigation & Fault Localization (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Innovation & Differentiation (20 pts), Technical Architecture (15 pts)  
-**Bugzilla Gap Addressed**: Bridges bug reports directly to source code repositories without switching to external IDEs.
+**Mantis Gap Addressed**: Bridges bug reports directly to source code repositories without switching to external IDEs.
 
 ### 8.1 Architecture & Pipeline
 - **Repository Linking**: OAuth connection to GitHub/GitLab repositories.
@@ -449,7 +449,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 9. 🤖 AI-Powered Triage Assistant & Semantic Vector Search (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Innovation (20 pts), Technical Implementation (15 pts)  
-**Bugzilla Gap Addressed**: Automates manual triage and eliminates duplicate reports disguised by different wording.
+**Mantis Gap Addressed**: Automates manual triage and eliminates duplicate reports disguised by different wording.
 
 ### 9.1 Technical Architecture
 - **Vector Embeddings**: Dense embeddings stored in PostgreSQL via `pgvector` with HNSW cosine distance indexing.
@@ -462,7 +462,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 10. 📊 Real-Time Analytics & Team Health Cockpit (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Performance & Reliability (20 pts), UX & Aesthetics (15 pts)  
-**Bugzilla Gap Addressed**: Replaces legacy 24-hour cron jobs (`collectstats.pl`) with live metric rollups.
+**Mantis Gap Addressed**: Replaces legacy 24-hour cron jobs (`collectstats.pl`) with live metric rollups.
 
 ### 10.1 Key Metrics
 - **Continuous Rollup Views**: PostgreSQL materialized views (`mv_daily_bug_metrics`) computing defect escape rate, time-to-triage (TTT), and time-to-fix (TTF).
@@ -474,7 +474,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 11. ⚙️ Event-Driven Automation & SLA Escalation Engine (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Innovation (20 pts), Core Functionality (20 pts)  
-**Bugzilla Gap Addressed**: Replaces primitive scheduled nag emails ("Whining") with a modern event-driven workflow engine.
+**Mantis Gap Addressed**: Replaces primitive scheduled nag emails ("Whining") with a modern event-driven workflow engine.
 
 ### 11.1 Technical Architecture
 - **Engine**: BullMQ queue processor executing declarative JSON logic rule trees (`automation_rules`).
@@ -485,7 +485,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 12. 🔔 Intelligent Notification Center & Multi-Channel Routing (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Problem Understanding (20 pts), Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Replaces raw email diff floods with intelligent batching and modern chat integrations.
+**Mantis Gap Addressed**: Replaces raw email diff floods with intelligent batching and modern chat integrations.
 
 ### 12.1 Technical Architecture
 - **15-Minute Digest Queue**: Collapses rapid sequential edits on the same bug into a single aggregated digest notification.
@@ -496,7 +496,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 13. 🔐 Advanced Access Control & Compliance (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Technical Implementation (15 pts), Reliability (20 pts)  
-**Bugzilla Gap Addressed**: Replaces simple UNIX-style groups with enterprise Role-Based Access Control (RBAC).
+**Mantis Gap Addressed**: Replaces simple UNIX-style groups with enterprise Role-Based Access Control (RBAC).
 
 ### 13.1 Technical Architecture
 - **RBAC Matrix**: Granular capability permissions across Organization, Product, and Issue scopes.
@@ -507,7 +507,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 14. 📤 Data Portability & Real-Time API Ecosystem (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Technical Implementation (15 pts), Performance (20 pts)  
-**Bugzilla Gap Addressed**: Replaces legacy Perl XML-RPC with OpenAPI 3.1 REST and GraphQL Subscriptions.
+**Mantis Gap Addressed**: Replaces legacy Perl XML-RPC with OpenAPI 3.1 REST and GraphQL Subscriptions.
 
 ### 14.1 Technical Architecture
 - OpenAPI 3.1 Swagger UI playground.
@@ -519,7 +519,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 15. 📱 Mobile-First Progressive Web App (PWA) (Phase 4 Roadmap)
 
 **Target Rubric Areas**: User Experience & Accessibility (15 pts)  
-**Bugzilla Gap Addressed**: Legacy Bugzilla is completely unusable on mobile viewports.
+**Mantis Gap Addressed**: Legacy Mantis is completely unusable on mobile viewports.
 
 ### 15.1 Technical Architecture
 - Workbox Service Worker caching the last 100 accessed tickets with background sync for offline comment drafting.
@@ -531,7 +531,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 16. ♿ Accessibility (WCAG 2.1 AA) & Global i18n (Phase 4 Roadmap)
 
 **Target Rubric Areas**: User Experience & Accessibility (15 pts)  
-**Bugzilla Gap Addressed**: Fixes severe legacy accessibility shortcomings (missing ARIA roles, unlabelled forms).
+**Mantis Gap Addressed**: Fixes severe legacy accessibility shortcomings (missing ARIA roles, unlabelled forms).
 
 ### 16.1 Technical Architecture
 - Strict WCAG 2.1 AA contrast compliance and `focus-visible` keyboard rings.
@@ -543,10 +543,10 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 ## 17. 🌐 Multi-Instance Migration & Plugin Marketplace (Phase 4 Roadmap)
 
 **Target Rubric Areas**: Innovation (20 pts), Technical Architecture (15 pts)  
-**Bugzilla Gap Addressed**: Eliminates barriers to enterprise migration and extensibility.
+**Mantis Gap Addressed**: Eliminates barriers to enterprise migration and extensibility.
 
 ### 17.1 Technical Architecture
-- SAX-based streaming XML parser capable of importing 5GB+ legacy Bugzilla dumps without memory exhaustion.
+- SAX-based streaming XML parser capable of importing 5GB+ legacy Mantis dumps without memory exhaustion.
 - Sandboxed TypeScript plugin runtime with zero-downtime hot reloading.
 
 ---
@@ -565,7 +565,7 @@ The following eleven features represent the comprehensive enterprise roadmap. Th
 | **8** | **@Mentions in Comments with Autocomplete** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Core Func (20) | Real-time typeahead, mention pill rendering, targeted notifications — replaces blunt CC list. |
 | **9** | **Rich-Text / Markdown Support in Comments** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Core Func (20) | GFM renderer with syntax-highlighted code fences and live Write/Preview toggle. |
 | **10** | **Git / GitHub Webhook Integration** | 🟢 **Phase 3 (Live Demo)** | Innovation (20) + Core Func (20) | HMAC-verified webhook receiver; auto-links commits, auto-closes on merge, surfaces PR state badges. |
-| **11** | **CRDT Multiplayer Ticket Editing** | 📄 Phase 4 (Roadmap) | Problem (20) + Reliability (20) + Tech (15) | Yjs/y-redis 3-tier persistence eliminating Bugzilla Mid-Air Collisions. |
+| **11** | **CRDT Multiplayer Ticket Editing** | 📄 Phase 4 (Roadmap) | Problem (20) + Reliability (20) + Tech (15) | Yjs/y-redis 3-tier persistence eliminating Mantis Mid-Air Collisions. |
 | **12** | **Code Navigation & Fault Localization** | 📄 Phase 4 (Roadmap) | Innovation (20) + Tech Arch (15) | Stack trace regex parser and embedded Monaco culprit line viewer. |
 | **13** | **AI Semantic Vector Search & Blame Routing** | 📄 Phase 4 (Roadmap) | Innovation (20) + Problem (20) | pgvector HNSW duplicate search and Git-blame author routing. |
 | **14** | **Real-Time Analytics & Team Health Cockpit** | 📄 Phase 4 (Roadmap) | Performance (20) + UX (15) | PostgreSQL materialized view rollups, defect escape rates, SLA heatmaps. |

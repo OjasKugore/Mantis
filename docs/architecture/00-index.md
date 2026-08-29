@@ -1,6 +1,6 @@
 # BugZilla Architecture Documentation — Master Index
 
-> **Purpose**: This documentation suite deconstructs the legacy Bugzilla reference repository to serve as a blueprint for building a **modern, secure, and user-friendly** bug-tracking platform. Each document is structured to inform both the re-architecture and feature roadmap of the replacement system.
+> **Purpose**: This documentation suite deconstructs the legacy Mantis reference repository to serve as a blueprint for building a **modern, secure, and user-friendly** bug-tracking platform. Each document is structured to inform both the re-architecture and feature roadmap of the replacement system.
 
 ---
 
@@ -51,7 +51,7 @@
 
 ## Key Insights Summary
 
-### What Bugzilla Gets Right (Preserve)
+### What Mantis Gets Right (Preserve)
 - Stable numeric bug IDs as primary reference
 - Complete immutable field-level change history
 - Fine-grained per-event, per-role email subscription model
@@ -61,7 +61,7 @@
 - Group-based bug visibility with per-product configuration
 - Extensible via hooks without modifying core
 
-### What Bugzilla Gets Wrong (Improve)
+### What Mantis Gets Wrong (Improve)
 - CGI-per-action routing (no centralized router)
 - Server-side rendered only (no reactivity)
 - No in-app notifications (email only)

@@ -1,6 +1,6 @@
 # 01 — System Overview & Problem Statement
 
-## 1. The Core Problem Bugzilla Solves
+## 1. The Core Problem Mantis Solves
 
 Software engineering at any scale produces **defects**, **feature requests**, and **tasks** that need to be:
 
@@ -11,11 +11,11 @@ Software engineering at any scale produces **defects**, **feature requests**, an
 - **Audited** so that the full history of every change is permanently recorded
 - **Searched and reported** so that teams can understand their bug backlog and velocity
 
-Bugzilla was built in 1998 at Mozilla to address this exact problem at scale. It became the reference implementation for **enterprise defect tracking systems**.
+Mantis was built in 1998 at Mozilla to address this exact problem at scale. It became the reference implementation for **enterprise defect tracking systems**.
 
 ---
 
-## 2. Core Developer Workflows (Extracted from Bugzilla)
+## 2. Core Developer Workflows (Extracted from Mantis)
 
 Understanding these workflows is essential before building a modern replacement.
 
@@ -50,7 +50,7 @@ Triage Lead → Open UNCONFIRMED queue → Review → Confirm or Close as INVALI
               Set priority
 ```
 
-**Status states in Bugzilla:**
+**Status states in Mantis:**
 ```
 UNCONFIRMED → CONFIRMED → IN_PROGRESS → RESOLVED → VERIFIED → CLOSED
                     ↑_________________________|
@@ -121,7 +121,7 @@ Each Product has:
 ### Groups and Access Control
 
 - **Bug Groups**: bugs can be restricted to a group (only members see them)
-- **Admin Groups**: control who can administrate Bugzilla functions
+- **Admin Groups**: control who can administrate Mantis functions
 - **Grant/Regexp Groups**: users can auto-join based on email patterns
 
 ### Relationships / Roles (for email notifications)
@@ -163,7 +163,7 @@ Every user has a subscription matrix. They can select, per role, which events tr
 
 ## 5. The "Whining" System (Scheduled Reminders)
 
-Bugzilla includes a scheduled notification system called "whining":
+Mantis includes a scheduled notification system called "whining":
 - Users create named saved queries
 - They attach cron-like schedules to those queries
 - At the scheduled time, the system runs the query and emails results to the user or a group
@@ -173,7 +173,7 @@ Bugzilla includes a scheduled notification system called "whining":
 
 ## 6. Inbound Email Processing
 
-Bugzilla supports email-to-bug creation:
+Mantis supports email-to-bug creation:
 - An MTA pipes emails to `email_in.pl`
 - The script parses MIME content and extracts bug field values from email headers
 - It can create new bugs or append comments to existing bugs
@@ -183,7 +183,7 @@ Bugzilla supports email-to-bug creation:
 
 ## 7. Time Tracking
 
-Bugzilla has a built-in time tracking system:
+Mantis has a built-in time tracking system:
 - Each bug has `estimated_time`, `remaining_time`, and `actual_time` (sum of work_time on comments)
 - Developers log hours spent via comments
 - Reports (`summarize_time.cgi`) aggregate logged time by product/component/user

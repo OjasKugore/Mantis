@@ -2,24 +2,24 @@
 
 ## 1. Overview
 
-Bugzilla exposes three API protocols, all served from the same application:
+Mantis exposes three API protocols, all served from the same application:
 
 | Protocol | Endpoint | Gateway File |
 |---|---|---|
-| **REST** | `/rest/*` | `rest.cgi` → `Bugzilla::WebService::Server::REST` |
-| **JSON-RPC 2.0** | `/jsonrpc.cgi` | `jsonrpc.cgi` → `Bugzilla::WebService::Server::JSONRPC` |
-| **XML-RPC** | `/xmlrpc.cgi` | `xmlrpc.cgi` → `Bugzilla::WebService::Server::XMLRPC` |
+| **REST** | `/rest/*` | `rest.cgi` → `Mantis::WebService::Server::REST` |
+| **JSON-RPC 2.0** | `/jsonrpc.cgi` | `jsonrpc.cgi` → `Mantis::WebService::Server::JSONRPC` |
+| **XML-RPC** | `/xmlrpc.cgi` | `xmlrpc.cgi` → `Mantis::WebService::Server::XMLRPC` |
 
-All three protocols share the same underlying `Bugzilla::WebService::*` modules, with only serialization/deserialization differing.
+All three protocols share the same underlying `Mantis::WebService::*` modules, with only serialization/deserialization differing.
 
 ---
 
 ## 2. REST API
 
-**Base URL**: `http://your-bugzilla.com/rest/`  
+**Base URL**: `http://your-mantis.com/rest/`  
 **Authentication**: Via `X-BUGZILLA-API-KEY` header, or `login`/`password` query params  
 **Format**: JSON request/response bodies  
-**Documentation**: https://bugzilla.readthedocs.org/en/5.0/api/
+**Documentation**: https://mantis.readthedocs.org/en/5.0/api/
 
 ### 2.1 REST URL Structure
 
@@ -41,7 +41,7 @@ GET    /rest/group               → List groups
 GET    /rest/flag_type           → List flag types
 GET    /rest/field/bug           → List bug fields
 GET    /rest/field/bug/status    → Get field details
-GET    /rest/bugzilla/version    → Get Bugzilla version
+GET    /rest/mantis/version    → Get Mantis version
 ```
 
 ### 2.2 Authentication Methods
@@ -62,27 +62,27 @@ GET /rest/bug/12345?login=user@example.com&password=secret
 
 ## 3. WebService Module Structure
 
-**Location**: `Bugzilla/WebService/`
+**Location**: `Mantis/WebService/`
 
 ```
-Bugzilla::WebService (base class)
-├── Bugzilla::WebService::Bug           (bug CRUD, search, attachments, comments)
-├── Bugzilla::WebService::Bugzilla      (system info, version, timezone)
-├── Bugzilla::WebService::Classification (classification listing)
-├── Bugzilla::WebService::Component     (component listing)
-├── Bugzilla::WebService::Constants     (shared constants)
-├── Bugzilla::WebService::FlagType      (flag type listing)
-├── Bugzilla::WebService::Group         (group management)
-├── Bugzilla::WebService::Product       (product listing/management)
-├── Bugzilla::WebService::User          (user management, login)
-└── Bugzilla::WebService::Util          (shared utilities)
+Mantis::WebService (base class)
+├── Mantis::WebService::Bug           (bug CRUD, search, attachments, comments)
+├── Mantis::WebService::Mantis      (system info, version, timezone)
+├── Mantis::WebService::Classification (classification listing)
+├── Mantis::WebService::Component     (component listing)
+├── Mantis::WebService::Constants     (shared constants)
+├── Mantis::WebService::FlagType      (flag type listing)
+├── Mantis::WebService::Group         (group management)
+├── Mantis::WebService::Product       (product listing/management)
+├── Mantis::WebService::User          (user management, login)
+└── Mantis::WebService::Util          (shared utilities)
 ```
 
 ---
 
-## 4. Bug WebService (Bugzilla::WebService::Bug)
+## 4. Bug WebService (Mantis::WebService::Bug)
 
-**File**: `Bugzilla/WebService/Bug.pm` (~121k bytes, 4693 lines)
+**File**: `Mantis/WebService/Bug.pm` (~121k bytes, 4693 lines)
 
 ### 4.1 Public Methods
 
@@ -175,7 +175,7 @@ Bugzilla::WebService (base class)
 
 ---
 
-## 5. User WebService (Bugzilla::WebService::User)
+## 5. User WebService (Mantis::WebService::User)
 
 ### 5.1 Public Methods
 
@@ -211,7 +211,7 @@ Bugzilla::WebService (base class)
 
 ---
 
-## 6. Product WebService (Bugzilla::WebService::Product)
+## 6. Product WebService (Mantis::WebService::Product)
 
 ### 6.1 Public Methods
 
@@ -235,7 +235,7 @@ API keys are stored in `user_api_keys` table:
 user_api_keys: id, user_id, api_key (hash), description, revoked, last_used, last_used_ip
 ```
 
-The `Bugzilla::Auth::Login::APIKey` module:
+The `Mantis::Auth::Login::APIKey` module:
 1. Reads `X-BUGZILLA-API-KEY` header or `api_key` URL param
 2. Looks up the key in the `user_api_keys` table (hashed comparison)
 3. Updates `last_used` timestamp and IP
@@ -347,7 +347,7 @@ All APIs return structured errors:
 }
 ```
 
-**Error codes** (from `Bugzilla::WebService::Constants`):
+**Error codes** (from `Mantis::WebService::Constants`):
 - 100: Invalid parameters
 - 101: Object does not exist
 - 102: Access denied

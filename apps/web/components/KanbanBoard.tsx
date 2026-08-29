@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Bug, BugStatus } from '@bugzilla/shared';
+import { Bug, BugStatus } from '@mantis/shared';
 
 // -- Interfaces
 interface KanbanBoardProps {

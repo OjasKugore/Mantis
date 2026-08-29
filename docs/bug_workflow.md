@@ -1,6 +1,6 @@
 # Bug Reporting & Enterprise Lifecycle Workflow
 
-This document illustrates the complete end-to-end bug reporting, duplicate prevention, and governance lifecycle in BugzillaRevamp.
+This document illustrates the complete end-to-end bug reporting, duplicate prevention, and governance lifecycle in Mantis.
 
 ```mermaid
 flowchart TD

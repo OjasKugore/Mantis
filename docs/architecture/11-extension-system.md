@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Bugzilla has a sophisticated plugin system called **Extensions** that allows third-party code to augment and modify core behavior without patching core files. The system is built around a **named hook** pattern — the core fires named events, and extensions listen and respond.
+Mantis has a sophisticated plugin system called **Extensions** that allows third-party code to augment and modify core behavior without patching core files. The system is built around a **named hook** pattern — the core fires named events, and extensions listen and respond.
 
 ---
 
@@ -26,13 +26,13 @@ extensions/
 
 ```perl
 # extensions/MyExtension/Extension.pm
-package Bugzilla::Extension::MyExtension;
+package Mantis::Extension::MyExtension;
 
 use 5.14.0;
 use strict;
 use warnings;
 
-use base qw(Bugzilla::Extension);
+use base qw(Mantis::Extension);
 
 use constant NAME => 'MyExtension';  # Required: extension name
 
@@ -53,12 +53,12 @@ __PACKAGE__->NAME;  # Required: return the NAME constant
 
 ### 2.3 Extension Loading
 
-**Location**: `Bugzilla/Extension.pm`
+**Location**: `Mantis/Extension.pm`
 
-Extensions are loaded during `Bugzilla->extensions`:
+Extensions are loaded during `Mantis->extensions`:
 
 ```perl
-# In Bugzilla.pm:
+# In Mantis.pm:
 sub extensions {
     my $class = shift;
     
@@ -67,7 +67,7 @@ sub extensions {
         my @ext_files = glob("extensions/*/Extension.pm");
         
         # Load each extension module
-        my @loaded = map { Bugzilla::Extension->load($_) } @ext_files;
+        my @loaded = map { Mantis::Extension->load($_) } @ext_files;
         
         # Instantiate each
         $class->request_cache->{extensions} = 
@@ -82,11 +82,11 @@ sub extensions {
 
 ## 3. Hook Invocation System
 
-**Location**: `Bugzilla/Hook.pm`
+**Location**: `Mantis/Hook.pm`
 
 ```perl
 # Core code invokes a hook:
-Bugzilla::Hook::process("hook_name", {
+Mantis::Hook::process("hook_name", {
     arg1 => $value1,
     arg2 => $value2,
 });
@@ -94,7 +94,7 @@ Bugzilla::Hook::process("hook_name", {
 # Hook.pm finds all extensions that implement hook_name:
 sub process {
     my ($name, $args) = @_;
-    foreach my $extension (@{Bugzilla->extensions}) {
+    foreach my $extension (@{Mantis->extensions}) {
         if ($extension->can($name)) {
             $extension->$name($args);
         }
@@ -108,7 +108,7 @@ The `$args` hashref is passed **by reference** — extensions can modify its con
 
 ## 4. Complete Hook Reference
 
-**Location**: `Bugzilla/Hook.pm` (47k bytes, 1763 lines of documentation)
+**Location**: `Mantis/Hook.pm` (47k bytes, 1763 lines of documentation)
 
 ### 4.1 Bug Lifecycle Hooks
 
@@ -246,7 +246,7 @@ sub attachment_process_data {
 **Location**: `extensions/Example/`  
 **Purpose**: Reference implementation demonstrating all available hooks
 
-Every hook in `Bugzilla::Hook` has a sample implementation in `extensions/Example/Extension.pm`. This is the canonical reference for extension developers.
+Every hook in `Mantis::Hook` has a sample implementation in `extensions/Example/Extension.pm`. This is the canonical reference for extension developers.
 
 ### 6.3 MoreBugUrl
 
@@ -265,8 +265,8 @@ sub bug_url_sub_classes {
     my $list = $args->{sub_classes};
     
     push @$list, 
-        'Bugzilla::Extension::MoreBugUrl::Chromium',
-        'Bugzilla::Extension::MoreBugUrl::GetSatisfaction';
+        'Mantis::Extension::MoreBugUrl::Chromium',
+        'Mantis::Extension::MoreBugUrl::GetSatisfaction';
 }
 ```
 
@@ -298,7 +298,7 @@ products.votestoconfirm  SMALLINT
 ### 6.5 OldBugMove
 
 **Location**: `extensions/OldBugMove/`  
-**Purpose**: Legacy extension for moving bugs between Bugzilla installations
+**Purpose**: Legacy extension for moving bugs between Mantis installations
 
 Adds a "Move this bug to another installation" feature, primarily for inter-organization bug handoff. Uses the XML bug format for transport.
 
@@ -326,12 +326,12 @@ extensions/MyNewExtension/
 sub config_add_panels {
     my ($self, $args) = @_;
     my $modules = $args->{panel_modules};
-    $modules->{MyPanel} = "Bugzilla::Extension::MyExt::Config::MyPanel";
+    $modules->{MyPanel} = "Mantis::Extension::MyExt::Config::MyPanel";
 }
 
 # In Config/MyPanel.pm:
-package Bugzilla::Extension::MyExt::Config::MyPanel;
-use parent 'Bugzilla::Config::Section';
+package Mantis::Extension::MyExt::Config::MyPanel;
+use parent 'Mantis::Config::Section';
 
 use constant NAME => 'MyPanel';
 use constant PARAMS => (
@@ -379,7 +379,7 @@ sub db_schema_abstract_schema {
 sub webservice {
     my ($self, $args) = @_;
     my $dispatch = $args->{dispatch};
-    $dispatch->{MyExt} = 'Bugzilla::Extension::MyExt::WebService';
+    $dispatch->{MyExt} = 'Mantis::Extension::MyExt::WebService';
 }
 
 # Now accessible at: /rest/MyExt/mymethod
@@ -408,7 +408,7 @@ For a modern system, the extension system should be redesigned as:
 
 ```typescript
 // Plugin interface (TypeScript)
-interface BugzillaPlugin {
+interface MantisPlugin {
   name: string;
   version: string;
   dependencies?: string[];
@@ -434,8 +434,8 @@ interface BugzillaPlugin {
 
 // Plugin registry with dependency resolution and version management
 class PluginRegistry {
-  register(plugin: BugzillaPlugin): void;
-  load(pluginName: string): Promise<BugzillaPlugin>;
-  resolve(): BugzillaPlugin[];  // Topological sort by deps
+  register(plugin: MantisPlugin): void;
+  load(pluginName: string): Promise<MantisPlugin>;
+  resolve(): MantisPlugin[];  // Topological sort by deps
 }
 ```

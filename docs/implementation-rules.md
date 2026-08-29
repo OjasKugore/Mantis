@@ -1,7 +1,7 @@
 # Implementation Rules & Best Practices Guide (v2 — Deadline Edition)
 ## Blueprint for Agents Building `implementation_plan.md` — Hard Deadline: Aug 30, 11:59 PM
 
-> **Purpose**: This is the operating manual for an AI coding assistant and engineering team building a modern Bugzilla replacement against a **hard 72-hour deadline**. It replaces open-ended multi-week roadmaps with a tightly scoped, phase-locked, buildable engineering plan. Every deliverable below is selected because it is achievable within the deadline **AND** directly secures high marks on the 100-point evaluator rubric.
+> **Purpose**: This is the operating manual for an AI coding assistant and engineering team building a modern Mantis replacement against a **hard 72-hour deadline**. It replaces open-ended multi-week roadmaps with a tightly scoped, phase-locked, buildable engineering plan. Every deliverable below is selected because it is achievable within the deadline **AND** directly secures high marks on the 100-point evaluator rubric.
 
 **Core Operating Rule**: Build strictly in phase order. Do not start Phase 2 until Phase 1 is functional end-to-end (create a bug, view in list, mutate status, verify audit history, run tests). Do not start Phase 3 until Phase 2's features pass all verification tests. If time runs out, the existing completed phases must be in a 100% demo-ready, error-free state.
 
@@ -13,7 +13,7 @@
    * Use `id BIGINT GENERATED ALWAYS AS IDENTITY (CACHE 1)` as the primary key.
    * Bug identifiers in the UI and URLs must remain sequential integers (`Bug #101`, `/bugs/101`).
    * Never expose UUIDs or random hashes as the primary user-facing bug identifier.
-   * *Note*: Term this "monotonic and collision-free" in plans (not "gapless" — rolled-back transactions can consume an ID, which matches real-world Bugzilla behavior).
+   * *Note*: Term this "monotonic and collision-free" in plans (not "gapless" — rolled-back transactions can consume an ID, which matches real-world Mantis behavior).
 2. **Append-Only Audit Trail (`bugs_activity`)**:
    * Every field mutation must append a row: `(bug_id, who, changed_at, field, old_value, new_value)`.
    * Never execute an `UPDATE` or `DELETE` on the `bugs_activity` table.
@@ -56,7 +56,7 @@
 ```
 
 ### Phase 1: Core Modernization Baseline (Mandatory — Day 1)
-* **Goal**: Deliver a rock-solid, fully functioning bug tracking core replicating Bugzilla's foundational capabilities.
+* **Goal**: Deliver a rock-solid, fully functioning bug tracking core replicating Mantis's foundational capabilities.
 * **Deliverables**:
   1. PostgreSQL schema: `bugs`, `products`, `components`, `users`, `bugs_activity`, `flags`, `groups`, `bug_group_map`.
   2. Authentication: User registration, login, Argon2id hashing, secure session management.
@@ -86,7 +86,7 @@
 * **Order of Execution**:
   1. **Command Palette (`⌘K`)**: `cmdk` modal allowing keyboard navigation, instant ticket jump (`#104`), and zero-mouse actions (`assign:me`, `status:resolved`).
   2. **PostgreSQL Full-Text Search**: Generated `tsvector` column on `bugs(summary, description)` indexed with GIN. Fast search bar supporting word stems without external search daemons.
-  3. **Kanban Status Board**: `@dnd-kit` multi-column board mapping to Bugzilla workflow columns, calling the Phase 1 transition endpoint on drag-drop.
+  3. **Kanban Status Board**: `@dnd-kit` multi-column board mapping to Mantis workflow columns, calling the Phase 1 transition endpoint on drag-drop.
   4. **1-Click "✨ AI Triage Assistant" Endpoint (The AI Shield)**:
      - 45-minute zero-infra endpoint (`POST /api/v1/bugs/:id/ai-triage`) calling `gpt-4o-mini` with a 2s timeout.
      - Distills bug thread into: (a) 2-sentence Root Cause Summary, (b) Suggested Priority & Component with rationale, (c) Action Items.
