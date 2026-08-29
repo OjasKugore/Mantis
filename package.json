@@ -11,13 +11,19 @@
     "setup": "npm run preflight && docker compose up -d db && node -e \"setTimeout(()=>{},5000)\" && npm run migrate && npm run seed",
     "dev:api": "npm --prefix apps/api run dev",
     "dev:web": "npm --prefix apps/web run dev",
-    "dev": "npm run dev:api",
-    "build": "npm --prefix packages/shared run build && npm --prefix apps/web run build",
-    "test": "npm --prefix apps/api test",
-    "test:unit": "npm --prefix apps/api run test:unit",
-    "test:integration": "npm --prefix apps/api run test:integration",
+    "dev": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/web run build",
+    "start": "npm --prefix apps/web run start",
+    "test": "npm --prefix apps/web test",
+    "test:unit": "npm --prefix apps/web run test",
+    "test:integration": "npm --prefix apps/web run test",
     "seed": "npm --prefix apps/api run seed",
     "migrate": "npm --prefix apps/api run migrate"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
