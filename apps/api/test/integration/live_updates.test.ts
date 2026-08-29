@@ -80,7 +80,7 @@ describe('Live Updates Polling Integration Tests (T3.21 – T3.23)', () => {
 
   // T3.23 — Group secrecy: 404 returned for unauthorized user polling a restricted bug
   it('T3.23: Group secrecy: GET /api/v1/bugs/:id/poll returns 404 for non-group member', async () => {
-    const secGroup = await createTestGroup({ name: 'security-team', is_buggroup: true });
+    const secGroup = await createTestGroup('security-team');
     const restrictedBug = await createTestBug(user.id, { summary: 'Embargoed vulnerability' });
 
     await db.query(`INSERT INTO bug_group_map (bug_id, group_id) VALUES ($1, $2)`, [

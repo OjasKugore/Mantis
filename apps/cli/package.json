@@ -1,0 +1,33 @@
+{
+  "name": "@bugzilla/cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "bz": "./dist/index.js",
+    "bugzilla": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/index.js",
+    "dev": "tsc --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bugzilla/shared": "*",
+    "@inquirer/prompts": "^5.0.0",
+    "boxen": "^7.1.1",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.4",
+    "commander": "^12.0.0",
+    "marked": "^12.0.1",
+    "marked-terminal": "^7.0.0",
+    "ofetch": "^1.3.4",
+    "ora": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
