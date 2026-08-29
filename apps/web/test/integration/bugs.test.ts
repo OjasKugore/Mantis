@@ -37,4 +37,14 @@ describe('Bugs Route Handlers Integration', () => {
     expect(data.product_name).toBeDefined();
     expect(data.component_name).toBeDefined();
   });
+
+  it('should return empty clean workspace when scope=user is requested for non-assigned user', async () => {
+    const req = new Request('http://localhost:3000/api/v1/bugs?scope=user&limit=50');
+    const res = await getBugs(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.bugs).toBeDefined();
+    expect(Array.isArray(data.bugs)).toBe(true);
+  });
 });

@@ -35,10 +35,20 @@ export async function GET(request: Request) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '25', 10)));
     const offset = (page - 1) * limit;
-
     const conditions: string[] = ['1=1'];
     const params: any[] = [];
     let pIdx = 1;
+
+    const scope = searchParams.get('scope');
+    if (scope === 'user') {
+      if (userId) {
+        conditions.push(`(b.reporter_id = $${pIdx} OR b.assignee_id = $${pIdx})`);
+        params.push(userId);
+        pIdx++;
+      } else {
+        conditions.push('1=0');
+      }
+    }
 
     if (searchParams.get('status')) {
       conditions.push(`b.status = $${pIdx++}`);
