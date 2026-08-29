@@ -613,3 +613,4 @@ Security vulnerabilities should be reported directly to the [Mozilla Mantis Secu
 - **Documentation**: [https://www.mantis.org/docs/](https://www.mantis.org/docs/)
 - **Community Forum & Mailing Lists**: [Mozilla Mantis Discourse](https://discourse.mozilla.org/c/mantis)
 - **IRC / Matrix**: `#mantis` on Matrix / IRC.
+
