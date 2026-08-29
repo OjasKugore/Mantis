@@ -100,7 +100,7 @@ export default function NewBugPage() {
   };
 
   return (
-    <div className="bg-surface text-on-surface font-body-md antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+    <div className="bg-background text-on-surface font-body-md antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
       {/* SideNavBar */}
       <aside
         className={`h-screen ${
@@ -137,14 +137,22 @@ export default function NewBugPage() {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 text-on-primary-container bg-primary-container rounded-xl transition-colors font-semibold"
+            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
           >
             <span className="material-symbols-outlined">list_alt</span>
             {sidebarOpen && <span className="font-body-md text-body-md">Bug Queue</span>}
           </Link>
 
           <Link
-            href="/dashboard"
+            href="/kanban"
+            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
+          >
+            <span className="material-symbols-outlined">view_kanban</span>
+            {sidebarOpen && <span className="font-body-md text-body-md">Kanban Board</span>}
+          </Link>
+
+          <Link
+            href="/bugs/24/graph"
             className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
           >
             <span className="material-symbols-outlined">hub</span>
@@ -168,7 +176,7 @@ export default function NewBugPage() {
         } flex flex-col min-h-screen transition-all duration-300`}
       >
         {/* TopNavBar */}
-        <header className="bg-surface border-b border-outline-variant/20 top-0 sticky z-40">
+        <header className="bg-background border-b border-outline-variant/20 top-0 sticky z-40">
           <div className="flex justify-between items-center h-16 px-6 w-full max-w-max-width mx-auto">
             <div className="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm">
               <button
@@ -584,7 +592,7 @@ export default function NewBugPage() {
 
       {/* CVSS Modal */}
       {showCvssModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/20 backdrop-blur-sm p-4">
           <CvssModal
             onClose={() => setShowCvssModal(false)}
             onApplyScore={(score, vector, severity) => {
@@ -604,4 +612,5 @@ export default function NewBugPage() {
     </div>
   );
 }
+
 

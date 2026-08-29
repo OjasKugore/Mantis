@@ -12,101 +12,180 @@ interface MetricItem {
 
 const EXPLOITABILITY_METRICS: MetricItem[] = [
   {
-    key: 'AV', label: 'Attack Vector (AV)',
-    options: [{ value: 'N', label: 'Network' }, { value: 'A', label: 'Adjacent' }, { value: 'L', label: 'Local' }, { value: 'P', label: 'Physical' }],
+    key: 'AV',
+    label: 'Attack Vector (AV)',
+    options: [
+      { value: 'N', label: 'Network' },
+      { value: 'A', label: 'Adjacent' },
+      { value: 'L', label: 'Local' },
+      { value: 'P', label: 'Physical' },
+    ],
   },
   {
-    key: 'AC', label: 'Attack Complexity (AC)',
-    options: [{ value: 'L', label: 'Low' }, { value: 'H', label: 'High' }],
+    key: 'AC',
+    label: 'Attack Complexity (AC)',
+    options: [
+      { value: 'L', label: 'Low' },
+      { value: 'H', label: 'High' },
+    ],
   },
   {
-    key: 'AT', label: 'Attack Requirements (AT)',
-    options: [{ value: 'N', label: 'None' }, { value: 'P', label: 'Present' }],
+    key: 'AT',
+    label: 'Attack Requirements (AT)',
+    options: [
+      { value: 'N', label: 'None' },
+      { value: 'P', label: 'Present' },
+    ],
   },
   {
-    key: 'PR', label: 'Privileges Required (PR)',
-    options: [{ value: 'N', label: 'None' }, { value: 'L', label: 'Low' }, { value: 'H', label: 'High' }],
+    key: 'PR',
+    label: 'Privileges Required (PR)',
+    options: [
+      { value: 'N', label: 'None' },
+      { value: 'L', label: 'Low' },
+      { value: 'H', label: 'High' },
+    ],
   },
   {
-    key: 'UI', label: 'User Interaction (UI)',
-    options: [{ value: 'N', label: 'None' }, { value: 'P', label: 'Passive' }, { value: 'A', label: 'Active' }],
+    key: 'UI',
+    label: 'User Interaction (UI)',
+    options: [
+      { value: 'N', label: 'None' },
+      { value: 'P', label: 'Passive' },
+      { value: 'A', label: 'Active' },
+    ],
   },
 ];
 
 const IMPACT_METRICS: MetricItem[] = [
   {
-    key: 'VC', label: 'Vuln. Confidentiality (VC)',
-    options: [{ value: 'H', label: 'High' }, { value: 'L', label: 'Low' }, { value: 'N', label: 'None' }],
+    key: 'VC',
+    label: 'Vuln. Confidentiality (VC)',
+    options: [
+      { value: 'H', label: 'High' },
+      { value: 'L', label: 'Low' },
+      { value: 'N', label: 'None' },
+    ],
   },
   {
-    key: 'VI', label: 'Vuln. Integrity (VI)',
-    options: [{ value: 'H', label: 'High' }, { value: 'L', label: 'Low' }, { value: 'N', label: 'None' }],
+    key: 'VI',
+    label: 'Vuln. Integrity (VI)',
+    options: [
+      { value: 'H', label: 'High' },
+      { value: 'L', label: 'Low' },
+      { value: 'N', label: 'None' },
+    ],
   },
   {
-    key: 'VA', label: 'Vuln. Availability (VA)',
-    options: [{ value: 'H', label: 'High' }, { value: 'L', label: 'Low' }, { value: 'N', label: 'None' }],
+    key: 'VA',
+    label: 'Vuln. Availability (VA)',
+    options: [
+      { value: 'H', label: 'High' },
+      { value: 'L', label: 'Low' },
+      { value: 'N', label: 'None' },
+    ],
   },
   {
-    key: 'SC', label: 'Subsequent Conf. (SC)',
-    options: [{ value: 'H', label: 'High' }, { value: 'L', label: 'Low' }, { value: 'N', label: 'None' }],
+    key: 'SC',
+    label: 'Subsequent Conf. (SC)',
+    options: [
+      { value: 'H', label: 'High' },
+      { value: 'L', label: 'Low' },
+      { value: 'N', label: 'None' },
+    ],
   },
   {
-    key: 'SI', label: 'Subsequent Integ. (SI)',
-    options: [{ value: 'H', label: 'High' }, { value: 'L', label: 'Low' }, { value: 'N', label: 'None' }],
+    key: 'SI',
+    label: 'Subsequent Integ. (SI)',
+    options: [
+      { value: 'H', label: 'High' },
+      { value: 'L', label: 'Low' },
+      { value: 'N', label: 'None' },
+    ],
   },
   {
-    key: 'SA', label: 'Subsequent Avail. (SA)',
-    options: [{ value: 'H', label: 'High' }, { value: 'L', label: 'Low' }, { value: 'N', label: 'None' }],
+    key: 'SA',
+    label: 'Subsequent Avail. (SA)',
+    options: [
+      { value: 'H', label: 'High' },
+      { value: 'L', label: 'Low' },
+      { value: 'N', label: 'None' },
+    ],
   },
 ];
 
 const DEFAULT_METRICS: CvssV4Metrics = {
-  AV: 'N', AC: 'L', AT: 'N', PR: 'N', UI: 'N',
-  VC: 'H', VI: 'H', VA: 'H', SC: 'N', SI: 'N', SA: 'N',
+  AV: 'N',
+  AC: 'L',
+  AT: 'N',
+  PR: 'N',
+  UI: 'N',
+  VC: 'H',
+  VI: 'H',
+  VA: 'H',
+  SC: 'N',
+  SI: 'N',
+  SA: 'N',
 };
 
-const SEVERITY_STYLES: Record<CvssSeverity, { text: string; bg: string; border: string; arc: string }> = {
-  NONE:     { text: 'text-slate-400',   bg: 'bg-slate-800/80',   border: 'border-slate-700', arc: '#64748b' },
-  LOW:      { text: 'text-emerald-400', bg: 'bg-emerald-950/60', border: 'border-emerald-700/60', arc: '#10b981' },
-  MEDIUM:   { text: 'text-yellow-400',  bg: 'bg-yellow-950/60',  border: 'border-yellow-700/60', arc: '#f59e0b' },
-  HIGH:     { text: 'text-orange-400',  bg: 'bg-orange-950/60',  border: 'border-orange-700/60', arc: '#f97316' },
-  CRITICAL: { text: 'text-red-400',     bg: 'bg-red-950/60',     border: 'border-red-700/60',    arc: '#ef4444' },
+const SEVERITY_THEMES: Record<
+  CvssSeverity,
+  {
+    cardBg: string;
+    cardBorder: string;
+    pillBg: string;
+    pillText: string;
+    scoreText: string;
+    strokeColor: string;
+    label: string;
+  }
+> = {
+  CRITICAL: {
+    cardBg: 'bg-error-container/20',
+    cardBorder: 'border-error/20',
+    pillBg: 'bg-error',
+    pillText: 'text-on-error',
+    scoreText: 'text-error',
+    strokeColor: '#ba1a1a',
+    label: 'Critical',
+  },
+  HIGH: {
+    cardBg: 'bg-tertiary-container/20',
+    cardBorder: 'border-tertiary-container/30',
+    pillBg: 'bg-tertiary',
+    pillText: 'text-on-tertiary',
+    scoreText: 'text-tertiary',
+    strokeColor: '#735a31',
+    label: 'High',
+  },
+  MEDIUM: {
+    cardBg: 'bg-tertiary-fixed/30',
+    cardBorder: 'border-tertiary-fixed/40',
+    pillBg: 'bg-tertiary',
+    pillText: 'text-on-tertiary',
+    scoreText: 'text-tertiary',
+    strokeColor: '#b89a6b',
+    label: 'Medium',
+  },
+  LOW: {
+    cardBg: 'bg-primary-container/25',
+    cardBorder: 'border-primary-container/40',
+    pillBg: 'bg-primary',
+    pillText: 'text-on-primary',
+    scoreText: 'text-primary',
+    strokeColor: '#486730',
+    label: 'Low',
+  },
+  NONE: {
+    cardBg: 'bg-surface-container',
+    cardBorder: 'border-outline-variant/30',
+    pillBg: 'bg-surface-variant',
+    pillText: 'text-on-surface-variant',
+    scoreText: 'text-on-surface-variant',
+    strokeColor: '#74796d',
+    label: 'None',
+  },
 };
-
-interface ScoreArcProps { score: number; severity: CvssSeverity }
-
-function ScoreArc({ score, severity }: ScoreArcProps) {
-  const radius = 42;
-  const circumference = Math.PI * radius;
-  const pct = Math.min(1, Math.max(0, score / 10));
-  const dashoffset = circumference * (1 - pct);
-  const color = SEVERITY_STYLES[severity].arc;
-
-  return (
-    <svg width="110" height="60" viewBox="0 0 110 60" className="overflow-visible">
-      <path
-        d="M 10 55 A 45 45 0 0 1 100 55"
-        fill="none"
-        stroke="#1e293b"
-        strokeWidth="8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 10 55 A 45 45 0 0 1 100 55"
-        fill="none"
-        stroke={color}
-        strokeWidth="8"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={dashoffset}
-        style={{ transition: 'stroke-dashoffset 0.35s ease, stroke 0.25s ease' }}
-      />
-      <text x="55" y="50" textAnchor="middle" fill={color} fontSize="18" fontWeight="bold" fontFamily="monospace">
-        {score.toFixed(1)}
-      </text>
-    </svg>
-  );
-}
 
 interface Props {
   bugId?: number;
@@ -121,7 +200,11 @@ export function CvssModal({ bugId, onSave, onApplyScore, onClose }: Props) {
   const [saving, setSaving] = useState(false);
 
   const computed = useMemo(() => computeCvss4Score(metrics), [metrics]);
-  const styles = SEVERITY_STYLES[computed.severity];
+  const theme = SEVERITY_THEMES[computed.severity] || SEVERITY_THEMES.CRITICAL;
+
+  // Gauge calculation: 2 * PI * 45 = 282.743
+  const circumference = 282.7;
+  const dashoffset = circumference * (1 - Math.min(10, Math.max(0, computed.score)) / 10);
 
   const handleSave = async () => {
     if (onApplyScore) {
@@ -147,118 +230,187 @@ export function CvssModal({ bugId, onSave, onApplyScore, onClose }: Props) {
   };
 
   const setMetric = (key: keyof CvssV4Metrics, value: MetricValue) =>
-    setMetrics(prev => ({ ...prev, [key]: value }));
-
-  const renderMetricRow = ({ key, label, options }: MetricItem) => (
-    <div key={key} className="space-y-1">
-      <label className="text-[11px] font-semibold text-slate-300 block">
-        {label}
-      </label>
-      <div className="flex gap-1.5 flex-wrap">
-        {options.map(opt => (
-          <button
-            key={opt.value}
-            id={`cvss-${key}-${opt.value}`}
-            onClick={() => setMetric(key, opt.value)}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all duration-150
-              ${(metrics[key] as string) === opt.value
-                ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/40'
-                : 'bg-slate-800 border-slate-700/80 text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+    setMetrics((prev) => ({ ...prev, [key]: value }));
 
   return (
     <div
       id="cvss-modal"
-      className="bg-slate-900 text-slate-100 rounded-2xl border border-slate-700/80 max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+      className="relative z-50 w-full max-w-5xl bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/30 flex flex-col overflow-hidden max-h-[90vh] animate-fade-in text-on-surface"
     >
-      {/* Fixed Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-        <div>
-          <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            <span>🛡️</span> FIRST.org CVSS v4.0 Calculator
-          </h3>
-          <p className="text-xs text-slate-400">Spec lookup with real-time MacroVector math</p>
+      {/* Header */}
+      <div className="flex items-start justify-between px-6 py-5 border-b border-outline-variant/20 bg-surface-container-low/50 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-2xl">calculate</span>
+          </div>
+          <div>
+            <h2 className="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2 font-bold">
+              FIRST.org CVSS v4.0 Calculator
+            </h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+              Spec lookup with real-time MacroVector math
+            </p>
+          </div>
         </div>
         <button
           id="cvss-modal-close"
           onClick={onClose}
-          className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg transition"
+          className="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant p-2 rounded-full transition-colors flex items-center justify-center"
+          title="Close Modal"
         >
-          ×
+          <span className="material-symbols-outlined text-xl">close</span>
         </button>
       </div>
 
-      {/* Score Banner (Compact Horizontal) */}
-      <div className={`mx-4 sm:mx-5 mt-4 p-3 rounded-xl border flex items-center justify-between ${styles.bg} ${styles.border} transition-colors duration-300`}>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border ${styles.text} ${styles.border}`}>
-              {computed.severity}
-            </span>
-            <span className="text-xs text-slate-400 font-mono">Bug #{bugId}</span>
+      {/* Main Content Scrollable Area */}
+      <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        {/* Score Summary Card */}
+        <div
+          className={`${theme.cardBg} border ${theme.cardBorder} rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden transition-colors duration-300`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-surface-tint/5 to-transparent pointer-events-none" />
+          <div className="relative z-10 space-y-3">
+            <div className="flex items-center gap-3">
+              <span
+                className={`px-3 py-1 ${theme.pillBg} ${theme.pillText} rounded-md font-label-caps text-label-caps tracking-wider uppercase shadow-xs font-bold`}
+              >
+                {theme.label}
+              </span>
+              <span className="font-body-md text-body-md text-on-surface-variant font-medium">
+                {bugId ? `Bug #${bugId}` : 'New Defect'}
+              </span>
+            </div>
+            <div className="font-label-code text-label-code text-on-surface bg-surface-container-low px-3 py-2 rounded-md border border-outline-variant/30 inline-block break-all max-w-xl font-bold">
+              {computed.vector}
+            </div>
           </div>
-          <div className="text-[11px] text-slate-400 font-mono truncate max-w-sm sm:max-w-md">
-            {computed.vector}
+
+          {/* Circular Score Gauge */}
+          <div className="relative z-10 w-24 h-24 flex items-center justify-center shrink-0 self-center sm:self-auto">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle
+                className="text-outline-variant/30"
+                cx="50"
+                cy="50"
+                fill="none"
+                r="45"
+                stroke="currentColor"
+                strokeWidth="8"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                fill="none"
+                r="45"
+                stroke={theme.strokeColor}
+                strokeWidth="8"
+                strokeDasharray={circumference}
+                strokeDashoffset={dashoffset}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.35s ease, stroke 0.25s ease' }}
+              />
+            </svg>
+            <div
+              className={`absolute inset-0 flex items-center justify-center font-headline-md text-headline-md font-extrabold ${theme.scoreText}`}
+            >
+              {computed.score.toFixed(1)}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <ScoreArc score={computed.score} severity={computed.severity} />
+        {/* Two Column Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Left Column (Exploitability) */}
+          <div className="space-y-6">
+            {EXPLOITABILITY_METRICS.map(({ key, label, options }) => (
+              <div key={key} className="space-y-2">
+                <label className="font-body-sm text-body-sm font-semibold text-on-surface-variant block">
+                  {label}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {options.map((opt) => {
+                    const isSelected = (metrics[key] as string) === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        id={`cvss-${key}-${opt.value}`}
+                        type="button"
+                        onClick={() => setMetric(key, opt.value)}
+                        className={`px-4 py-2 rounded-lg font-body-sm text-body-sm transition-all active:scale-95 ${
+                          isSelected
+                            ? 'bg-primary text-on-primary font-bold shadow-sm'
+                            : 'bg-surface-container-highest text-on-surface hover:bg-surface-variant border border-outline-variant/30 font-medium'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Right Column (Impact) */}
+          <div className="space-y-6">
+            {IMPACT_METRICS.map(({ key, label, options }) => (
+              <div key={key} className="space-y-2">
+                <label className="font-body-sm text-body-sm font-semibold text-on-surface-variant block">
+                  {label}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {options.map((opt) => {
+                    const isSelected = (metrics[key] as string) === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        id={`cvss-${key}-${opt.value}`}
+                        type="button"
+                        onClick={() => setMetric(key, opt.value)}
+                        className={`px-4 py-2 rounded-lg font-body-sm text-body-sm transition-all active:scale-95 ${
+                          isSelected
+                            ? 'bg-primary text-on-primary font-bold shadow-sm'
+                            : 'bg-surface-container-highest text-on-surface hover:bg-surface-variant border border-outline-variant/30 font-medium'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Scrollable Metrics Body (2 Columns) */}
-      <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Column 1: Exploitability */}
-          <div className="space-y-3 p-3.5 bg-slate-950/50 rounded-xl border border-slate-800/80">
-            <div className="text-xs font-bold uppercase tracking-wider text-indigo-400 pb-1 border-b border-slate-800 flex items-center gap-1.5">
-              <span>⚡</span> Exploitability Metrics (EQ1 & EQ2)
-            </div>
-            {EXPLOITABILITY_METRICS.map(renderMetricRow)}
-          </div>
-
-          {/* Column 2: Impact */}
-          <div className="space-y-3 p-3.5 bg-slate-950/50 rounded-xl border border-slate-800/80">
-            <div className="text-xs font-bold uppercase tracking-wider text-rose-400 pb-1 border-b border-slate-800 flex items-center gap-1.5">
-              <span>💥</span> Impact Metrics (EQ3 & EQ4)
-            </div>
-            {IMPACT_METRICS.map(renderMetricRow)}
-          </div>
+      {/* Footer Actions */}
+      <div className="px-6 py-4 border-t border-outline-variant/20 bg-surface-container-low/50 flex items-center justify-between shrink-0">
+        <div className="font-label-code text-label-code text-on-surface-variant flex items-center gap-2">
+          MacroVector Score: <span className="text-on-surface font-bold text-lg ml-1">{computed.score.toFixed(1)}</span>
         </div>
-      </div>
-
-      {/* Fixed Footer */}
-      <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
-        <div className="text-xs text-slate-400 font-mono hidden sm:block">
-          MacroVector Score: <strong className="text-white">{computed.score.toFixed(1)}</strong>
-        </div>
-
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex gap-3">
           <button
             id="cvss-modal-cancel"
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+            className="px-6 py-2.5 rounded-lg border border-outline-variant text-on-surface font-body-md text-body-md font-semibold hover:bg-surface-variant transition-colors"
           >
             Close
           </button>
           <button
             id="cvss-modal-save"
+            type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
+            className="px-6 py-2.5 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold shadow-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
           >
-            {saving ? 'Applying…' : `Apply CVSS ${computed.score.toFixed(1)} Score`}
+            <span>{saving ? 'Applying...' : `Apply CVSS ${computed.score.toFixed(1)} Score`}</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </button>
         </div>
       </div>
     </div>
   );
 }
+

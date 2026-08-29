@@ -53,7 +53,6 @@ export function AiTriageCard({
 
       const data = await res.json();
       if (data.fallback || !data.result) {
-        // High-quality deterministic heuristic synthesis if Gemini API key is not configured locally
         setTriage({
           summary: `Automatic heuristic analysis: Investigating defect #${bugId}. Stack traces and discussion indicate potential component isolation and state desynchronization.`,
           suggested_priority: currentPriority === 'P1' ? 'P1' : 'P2',
@@ -91,23 +90,20 @@ export function AiTriageCard({
   };
 
   return (
-    <div className="p-5 rounded-2xl border border-indigo-500/20 bg-gradient-to-b from-indigo-950/20 via-slate-900/60 to-slate-950 shadow-xl space-y-4 relative overflow-hidden backdrop-blur-md">
-      {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="p-6 rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm space-y-4 relative overflow-hidden">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-on-surface flex items-center gap-2 font-headline-sm">
               Gemini AI Triage Assistant
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-indigo-900/50 text-indigo-300 border border-indigo-700/50">
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-primary-container text-on-primary-container font-label-caps">
                 LLM Copilot
               </span>
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-on-surface-variant/70 font-body-sm">
               Analyzes bug summary, stack traces, and collaborator comments.
             </p>
           </div>
@@ -116,7 +112,7 @@ export function AiTriageCard({
         <button
           onClick={runAiTriage}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary text-xs font-bold font-label-caps uppercase shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <>
@@ -133,62 +129,62 @@ export function AiTriageCard({
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg bg-red-950/50 border border-red-800 text-red-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+        <div className="p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 text-xs flex items-center gap-2 font-medium">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-error" />
           <span>{error}</span>
         </div>
       )}
 
       {triage && (
-        <div className="space-y-3 pt-2 border-t border-slate-800 animate-fade-in text-xs">
+        <div className="space-y-3 pt-3 border-t border-outline-variant/20 animate-fade-in text-xs">
           {/* Summary Box */}
-          <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1">
+          <div className="p-3.5 bg-surface-container-low border border-outline-variant/20 rounded-lg space-y-1">
+            <span className="text-[10px] uppercase font-bold text-primary tracking-wider flex items-center gap-1 font-label-caps">
               <Bot className="w-3 h-3" /> Root Cause Synthesis
             </span>
-            <p className="text-slate-200 leading-relaxed font-sans">{triage.summary}</p>
+            <p className="text-on-surface leading-relaxed font-body-sm">{triage.summary}</p>
           </div>
 
           {/* Suggestions Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
-              <div className="flex items-center gap-1 text-[10px] text-slate-400 font-semibold uppercase">
-                <Tag className="w-3 h-3 text-amber-400" /> Suggested Priority
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-surface-container-low border border-outline-variant/20 space-y-1">
+              <div className="flex items-center gap-1 text-[10px] text-on-surface-variant/70 font-bold uppercase font-label-caps">
+                <Tag className="w-3 h-3 text-tertiary" /> Suggested Priority
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-white font-mono">{triage.suggested_priority}</span>
+                <span className="font-bold text-on-surface font-mono">{triage.suggested_priority}</span>
                 {triage.suggested_priority !== currentPriority && (
-                  <span className="text-[10px] text-amber-300 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-800/50">
+                  <span className="text-[10px] text-tertiary font-bold bg-tertiary-container/30 px-2 py-0.5 rounded border border-tertiary-container font-label-caps">
                     Current: {currentPriority}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
-              <div className="flex items-center gap-1 text-[10px] text-slate-400 font-semibold uppercase">
-                <Layers className="w-3 h-3 text-blue-400" /> Suggested Component
+            <div className="p-3 rounded-lg bg-surface-container-low border border-outline-variant/20 space-y-1">
+              <div className="flex items-center gap-1 text-[10px] text-on-surface-variant/70 font-bold uppercase font-label-caps">
+                <Layers className="w-3 h-3 text-secondary" /> Suggested Component
               </div>
-              <div className="font-bold text-white truncate">{triage.suggested_component}</div>
+              <div className="font-bold text-on-surface truncate">{triage.suggested_component}</div>
             </div>
           </div>
 
           {/* Rationale */}
-          <div className="p-2.5 rounded-lg bg-slate-900/40 border border-slate-800/60 text-slate-300">
-            <span className="text-slate-400 font-semibold">Confidence Rationale: </span>
+          <div className="p-3 rounded-lg bg-surface-container-low/50 border border-outline-variant/20 text-on-surface-variant font-body-sm">
+            <span className="font-bold text-on-surface">Confidence Rationale: </span>
             {triage.confidence_reason}
           </div>
 
           {/* Next Steps List */}
           {triage.next_steps.length > 0 && (
-            <div className="space-y-1.5 p-3 rounded-lg bg-slate-950/50 border border-slate-800/60">
-              <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+            <div className="space-y-1.5 p-3 rounded-lg bg-surface-container-low border border-outline-variant/20">
+              <div className="text-[10px] font-bold uppercase text-on-surface-variant/80 tracking-wider font-label-caps">
                 Recommended Action Items
               </div>
               <ul className="space-y-1">
                 {triage.next_steps.map((step, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-slate-300">
-                    <span className="w-4 h-4 rounded-full bg-slate-800 text-slate-300 font-mono text-[9px] flex items-center justify-center shrink-0 mt-0.5">
+                  <li key={idx} className="flex items-start gap-2 text-on-surface font-body-sm">
+                    <span className="w-4 h-4 rounded-full bg-surface-container text-on-surface font-mono text-[9px] flex items-center justify-center shrink-0 mt-0.5 font-bold">
                       {idx + 1}
                     </span>
                     <span>{step}</span>
@@ -204,16 +200,16 @@ export function AiTriageCard({
               <button
                 onClick={handleApply}
                 disabled={applied}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/30 font-label-caps text-xs uppercase font-bold transition disabled:opacity-50"
               >
                 {applied ? (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                     <span>Applied Suggestions</span>
                   </>
                 ) : (
                   <>
-                    <ArrowRight className="w-3.5 h-3.5 text-indigo-400" />
+                    <ArrowRight className="w-3.5 h-3.5 text-primary" />
                     <span>Apply Suggested Fields</span>
                   </>
                 )}
@@ -224,16 +220,16 @@ export function AiTriageCard({
               <button
                 onClick={handleInsert}
                 disabled={inserted}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-800/80 text-indigo-200 font-semibold transition disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary-container hover:bg-primary-container/80 text-on-primary-container font-label-caps text-xs uppercase font-bold transition disabled:opacity-50 shadow-xs"
               >
                 {inserted ? (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                     <span>Inserted in Editor</span>
                   </>
                 ) : (
                   <>
-                    <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                    <Bot className="w-3.5 h-3.5 text-primary" />
                     <span>Insert as Comment</span>
                   </>
                 )}
@@ -245,3 +241,4 @@ export function AiTriageCard({
     </div>
   );
 }
+
