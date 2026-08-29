@@ -6,6 +6,7 @@ import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { CvssModal } from '@/components/CvssModal';
 import { CommentEditor } from '@/components/CommentEditor';
 import { NotificationBell } from '@/components/NotificationBell';
+import { AuthBar } from '@/components/AuthBar';
 
 interface ActivityItem {
   id: number;
@@ -83,7 +84,9 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
   const fetchBug = () => {
     setLoading(true);
-    fetch(`${API_BASE}/api/v1/bugs/${bugId}`)
+    fetch(`${API_BASE}/api/v1/bugs/${bugId}`, {
+      credentials: 'include',
+    })
       .then(async (res) => {
         if (!res.ok) {
           throw new Error(res.status === 404 ? 'Bug not found (or protected under zero-leakage embargo)' : 'Failed to fetch bug');
@@ -109,6 +112,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
       const res = await fetch(`${API_BASE}/api/v1/bugs/${bugId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           status: newStatus,
           resolution: resolution || (newStatus === 'RESOLVED' ? 'FIXED' : undefined),
@@ -138,6 +142,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
       const res = await fetch(`${API_BASE}/api/v1/bugs/${bugId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ body: newComment, format: 'markdown' }),
       });
 
@@ -221,6 +226,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
             >
               🛡️ CVSS Calculator
             </button>
+            <AuthBar />
             <NotificationBell />
           </div>
         </div>

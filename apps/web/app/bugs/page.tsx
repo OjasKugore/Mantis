@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bug } from '@bugzilla/shared';
 import { NotificationBell } from '@/components/NotificationBell';
+import { AuthBar } from '@/components/AuthBar';
 import { Search } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -69,7 +70,9 @@ export default function BugsSearchPage() {
     setLoading(true);
     setSelectedIndex(-1);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/bugs/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`${API_BASE}/api/v1/bugs/search?q=${encodeURIComponent(query)}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const data = await res.json();
         setBugs(data.bugs || []);
@@ -96,6 +99,7 @@ export default function BugsSearchPage() {
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-500 text-xs hidden sm:inline-block">Cmd+S to focus search. Use j/k to navigate results.</span>
+            <AuthBar />
             <NotificationBell />
           </div>
         </div>

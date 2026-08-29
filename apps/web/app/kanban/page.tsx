@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NotificationBell } from '@/components/NotificationBell';
+import { AuthBar } from '@/components/AuthBar';
 import { Bug } from '@bugzilla/shared';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -13,7 +14,9 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/bugs?limit=100`)
+    fetch(`${API_BASE}/api/v1/bugs?limit=100`, {
+      credentials: 'include',
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.bugs) {
@@ -42,6 +45,7 @@ export default function KanbanPage() {
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-400 text-xs hidden sm:inline-block">Drag and drop cards to update status</span>
+            <AuthBar />
             <NotificationBell />
           </div>
         </div>

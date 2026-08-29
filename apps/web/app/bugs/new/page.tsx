@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bug, BugPriority, BugSeverity } from '@bugzilla/shared';
 import { NotificationBell } from '@/components/NotificationBell';
+import { AuthBar } from '@/components/AuthBar';
+import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function NewBugPage() {
   const router = useRouter();
+  const { user, quickLogin } = useAuth();
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
   const [productId, setProductId] = useState<number>(1);
@@ -33,7 +36,9 @@ export default function NewBugPage() {
     const timer = setTimeout(async () => {
       setIsSearchingDups(true);
       try {
-        const res = await fetch(`${API_BASE}/api/v1/bugs/duplicates?q=${encodeURIComponent(summary)}`);
+        const res = await fetch(`${API_BASE}/api/v1/bugs/duplicates?q=${encodeURIComponent(summary)}`, {
+          credentials: 'include',
+        });
         if (res.ok) {
           const data = await res.json();
           setDuplicates(data.duplicates || []);
@@ -59,6 +64,7 @@ export default function NewBugPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           summary,
           description,
@@ -97,7 +103,8 @@ export default function NewBugPage() {
               File a Bug
             </span>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
+            <AuthBar />
             <NotificationBell />
           </div>
         </div>
@@ -108,6 +115,40 @@ export default function NewBugPage() {
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Report a New Defect</h1>
           <p className="text-sm text-slate-400 mt-2">Please provide as much detail as possible to help triagers and engineers reproduce the issue.</p>
         </div>
+
+        {/* Unauthenticated Quick Login Helper Banner */}
+        {!user && (
+          <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-800/60 shadow-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⚡</span>
+                <span className="text-xs font-bold text-indigo-200">
+                  Authentication Required to File Bugs
+                </span>
+              </div>
+              <Link href="/login" className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline">
+                Go to Login Page →
+              </Link>
+            </div>
+            <p className="text-xs text-slate-400">
+              Choose an instant 1-click persona below or log in with your credentials to submit:
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {SEED_PERSONAS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => quickLogin(p.key)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700 hover:border-indigo-500 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5"
+                >
+                  <span className={`w-2 h-2 rounded-full bg-gradient-to-tr ${p.avatarColor}`} />
+                  <span>{p.name}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">({p.role})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="p-4 rounded-lg bg-red-950/50 border border-red-800 text-red-200 text-sm font-semibold">

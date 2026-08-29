@@ -6,6 +6,7 @@ import { DependencyGraph } from '@/components/DependencyGraph';
 import { CvssModal } from '@/components/CvssModal';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { NotificationBell } from '@/components/NotificationBell';
+import { AuthBar } from '@/components/AuthBar';
 
 interface BugItem {
   id: number;
@@ -100,6 +101,7 @@ export default function Home() {
               📚 Swagger Docs
             </a>
             
+            <AuthBar />
             <NotificationBell />
           </div>
         </div>
