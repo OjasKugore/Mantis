@@ -12,6 +12,9 @@ import { dependencyRoutes } from './routes/dependencies.js';
 import { securityRoutes } from './routes/security.js';
 import { searchRoutes } from './routes/search.js';
 import { analyticsRoutes } from './routes/analytics.js';
+import { aiTriageRoutes } from './routes/aiTriage.js';
+import { webhookRoutes } from './routes/webhooks.js';
+import { liveUpdateRoutes } from './routes/liveUpdates.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = fastify({
@@ -85,6 +88,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(securityRoutes, { prefix: '/api/v1' });
   await app.register(searchRoutes, { prefix: '/api/v1' });
   await app.register(analyticsRoutes, { prefix: '/api/v1' });
+  await app.register(aiTriageRoutes, { prefix: '/api/v1' });
+  await app.register(webhookRoutes, { prefix: '/api/v1' });
+  await app.register(liveUpdateRoutes, { prefix: '/api/v1' });
 
   return app;
 }

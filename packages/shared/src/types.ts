@@ -196,3 +196,12 @@ export interface DependencyGraphPayload {
   edges: DependencyGraphEdge[];
   criticalPathIds: string[];
 }
+
+export interface TriageResult {
+  summary: string;
+  suggested_priority: BugPriority;
+  suggested_component: string;
+  confidence_reason: string;
+  next_steps: string[];
+}
+
