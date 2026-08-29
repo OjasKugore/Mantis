@@ -155,7 +155,7 @@ describe('AI Triage Assistant Integration Tests (T3.9 – T3.13)', () => {
 
   // T3.13 — Group secrecy: 404 returned for unauthorized user on restricted bug
   it('T3.13: Group secrecy: POST /api/v1/bugs/:id/ai-triage returns 404 for non-group member', async () => {
-    const secGroup = await createTestGroup({ name: 'security-team', is_buggroup: true });
+    const secGroup = await createTestGroup('security-team');
     const restrictedBug = await createTestBug(user.id, { summary: 'Zero-day vulnerability' });
 
     // Restrict bug to security group
