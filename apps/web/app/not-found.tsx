@@ -18,14 +18,15 @@ export default function NotFound() {
           </span>
         </Link>
 
-
-
         <div className="space-y-2">
+          <div className="inline-block px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/30 text-xs font-mono font-bold text-primary mb-2">
+            404 — Not Found
+          </div>
           <h1 className="font-display-lg text-3xl sm:text-4xl font-bold tracking-tight text-on-surface">
-            Docs &amp; Support Coming Soon
+            Page Not Found
           </h1>
           <p className="text-sm text-on-surface-variant leading-relaxed">
-            The documentation and support portal is currently under development for the Clonefest submission. All core defect workflows, RBAC testing, and graph analytics are live in the app.
+            The page or endpoint you requested does not exist or has been moved.
           </p>
         </div>
 
