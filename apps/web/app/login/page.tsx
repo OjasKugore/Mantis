@@ -71,7 +71,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleOAuthLogin = (provider: 'github' | 'google') => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
     window.location.href = `${apiBase}/api/v1/oauth/${provider}`;
   };
 
