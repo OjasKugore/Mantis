@@ -151,15 +151,13 @@ export default function KanbanPage() {
         </nav>
 
         <div className="mt-auto pt-4 border-t border-outline-variant/30 flex flex-col gap-1">
-          <a
+          <Link
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
-            href="http://localhost:3001/docs"
-            target="_blank"
-            rel="noreferrer"
+            href="/docs"
           >
             <span className="material-symbols-outlined text-lg">help</span>
             {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Support &amp; Docs</span>}
-          </a>
+          </Link>
           <Link
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
             href="/login"
@@ -208,14 +206,12 @@ export default function KanbanPage() {
 
           <div className="flex items-center gap-4">
             <nav className="hidden lg:flex items-center gap-6">
-              <a
+              <Link
                 className="text-on-surface-variant hover:text-primary transition-all font-body-sm font-medium opacity-80 hover:opacity-100"
-                href="http://localhost:3001/docs"
-                target="_blank"
-                rel="noreferrer"
+                href="/docs"
               >
                 API Docs
-              </a>
+              </Link>
             </nav>
 
             <div className="h-6 w-px bg-outline-variant/30 hidden lg:block" />

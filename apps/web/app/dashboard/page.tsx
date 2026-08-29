@@ -258,15 +258,13 @@ export default function DashboardPage() {
 
         {/* Footer Navigation */}
         <div className="mt-auto pt-4 border-t border-outline-variant/20 flex flex-col gap-1">
-          <a
+          <Link
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
-            href="http://localhost:3001/docs"
-            target="_blank"
-            rel="noreferrer"
+            href="/docs"
           >
             <span className="material-symbols-outlined text-[20px]">help</span>
             {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Docs &amp; Support</span>}
-          </a>
+          </Link>
           <Link
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
             href="/login"
@@ -303,14 +301,12 @@ export default function DashboardPage() {
 
           {/* Center: Top Nav Links */}
           <nav className="hidden lg:flex items-center gap-6">
-            <a
+            <Link
               className="text-on-surface-variant hover:text-primary transition-all font-body-sm text-body-sm cursor-pointer opacity-80 hover:opacity-100"
-              href="http://localhost:3001/docs"
-              target="_blank"
-              rel="noreferrer"
+              href="/docs"
             >
               API Docs
-            </a>
+            </Link>
           </nav>
 
           {/* Right: Actions & Profile */}
