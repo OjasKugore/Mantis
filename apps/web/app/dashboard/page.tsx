@@ -6,7 +6,10 @@ import { DependencyGraph } from '@/components/DependencyGraph';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AnalyticsBurndown } from '@/components/AnalyticsBurndown';
+import { KanbanBoard, KanbanBug } from '@/components/KanbanBoard';
 import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
+import { BugStatus } from '@mantis/shared';
+import { applyBugStatusChange } from '@/lib/status-transition';
 
 interface BugItem {
   id: number;
@@ -30,6 +33,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics' | 'governance'>('queue');
+  const [queueViewMode, setQueueViewMode] = useState<'list' | 'kanban'>('list');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -98,7 +102,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="bg-surface text-on-surface font-body-md antialiased h-screen overflow-hidden flex selection:bg-primary-container selection:text-on-primary-container">
+    <div className="bg-background text-on-surface font-body-md antialiased h-screen overflow-hidden flex selection:bg-primary-container selection:text-on-primary-container">
       {/* SideNavBar */}
       <nav
         className={`bg-surface-container-low shadow-sm h-screen ${
@@ -143,9 +147,12 @@ export default function DashboardPage() {
           )}
           <div className="flex flex-col gap-1 pl-1">
             <button
-              onClick={() => setActiveTab('queue')}
+              onClick={() => {
+                setActiveTab('queue');
+                setQueueViewMode('list');
+              }}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'queue'
+                activeTab === 'queue' && queueViewMode === 'list'
                   ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
                   : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
               }`}
@@ -154,6 +161,27 @@ export default function DashboardPage() {
               {sidebarOpen && (
                 <span className="font-label-caps text-label-caps tracking-wide uppercase">
                   Bug Queue
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('queue');
+                setQueueViewMode('kanban');
+              }}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
+                activeTab === 'queue' && queueViewMode === 'kanban'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
+                view_kanban
+              </span>
+              {sidebarOpen && (
+                <span className="font-label-caps text-label-caps tracking-wide uppercase">
+                  Kanban Board
                 </span>
               )}
             </button>
@@ -343,15 +371,19 @@ export default function DashboardPage() {
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
                 <div>
                   <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary text-[32px]">inventory_2</span>
-                    Master Bug Queue
+                    <span className="material-symbols-outlined text-primary text-[32px]">
+                      {queueViewMode === 'kanban' ? 'view_kanban' : 'inventory_2'}
+                    </span>
+                    {queueViewMode === 'kanban' ? 'Kanban Board' : 'Master Bug Queue'}
                   </h2>
                   <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-2xl opacity-80">
-                    Sourced from the PostgreSQL master seed dataset. Review, triage, and assign issues to the engineering graph.
+                    {queueViewMode === 'kanban'
+                      ? 'Drag and drop cards across columns to update triage status in real time.'
+                      : 'Sourced from the PostgreSQL master seed dataset. Review, triage, and assign issues to the engineering graph.'}
                   </p>
                 </div>
 
-                {/* Filter/Search Bar */}
+                {/* Filter/Search Bar & View Toggle */}
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <div className="relative w-full md:w-64">
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-[18px]">
@@ -375,133 +407,172 @@ export default function DashboardPage() {
                   >
                     <span className="material-symbols-outlined text-[20px]">filter_list</span>
                   </button>
-                </div>
-              </div>
 
-              {/* Bento-style Data Container */}
-              <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(135,169,107,0.03)] border border-outline-variant/20 overflow-hidden flex flex-col flex-1 max-h-[800px]">
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container-low/50 border-b border-outline-variant/20 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest sticky top-0 z-10 backdrop-blur-sm">
-                  <div className="col-span-1">ID</div>
-                  <div className="col-span-5">Summary</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-1">Priority</div>
-                  <div className="col-span-1">Severity</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-
-                {/* Table Body */}
-                <div className="overflow-y-auto flex-1 divide-y divide-outline-variant/10">
-                  {loading ? (
-                    <div className="p-12 text-center text-on-surface-variant font-body-sm">Loading bugs from database...</div>
-                  ) : paginatedBugs.length === 0 ? (
-                    <div className="p-12 text-center text-on-surface-variant font-body-sm">
-                      No bugs match your search filter.
-                    </div>
-                  ) : (
-                    paginatedBugs.map((b) => (
-                      <div
-                        key={b.id}
-                        className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-primary-container/5 transition-colors group"
-                      >
-                        <div className="col-span-1 font-label-code text-label-code text-primary/80 font-bold">
-                          #{b.id}
-                        </div>
-
-                        <div className="col-span-5 font-body-sm text-on-surface font-medium pr-4 truncate group-hover:text-primary transition-colors">
-                          <Link href={`/bugs/${b.id}`} className="hover:underline">
-                            {b.summary}
-                          </Link>
-                        </div>
-
-                        <div className="col-span-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full font-label-caps text-[10px] border font-bold ${getStatusBadge(
-                              b.status
-                            )}`}
-                          >
-                            {b.status.replace('_', ' ')}
-                          </span>
-                        </div>
-
-                        <div className="col-span-1">
-                          <span
-                            className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-label-code text-[11px] font-bold ${getPriorityBadge(
-                              b.priority
-                            )}`}
-                          >
-                            {b.priority}
-                          </span>
-                        </div>
-
-                        <div className="col-span-1 text-on-surface-variant font-body-sm text-sm capitalize truncate overflow-hidden whitespace-nowrap group/slide">
-                          <span className="inline-block transition-transform duration-500 ease-in-out group-hover/slide:translate-x-2">
-                            {b.severity}
-                          </span>
-                        </div>
-
-                        <div className="col-span-2 flex justify-end gap-2">
-                          <Link
-                            href={`/bugs/${b.id}`}
-                            className="px-3 py-1 rounded border border-outline-variant/30 text-on-surface-variant font-label-caps text-[10px] hover:border-primary/50 hover:text-primary transition-colors bg-surface-container-lowest font-bold"
-                          >
-                            Details
-                          </Link>
-                          <button
-                            onClick={() => {
-                              setSelectedBugId(Number(b.id));
-                              setActiveTab('graph');
-                            }}
-                            className="px-3 py-1 rounded bg-primary-container/10 text-primary font-label-caps text-[10px] hover:bg-primary-container hover:text-on-primary-container transition-colors flex items-center gap-1 font-bold"
-                          >
-                            Graph
-                            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Table Footer / Pagination */}
-                <div className="px-6 py-3 border-t border-outline-variant/20 bg-surface-container-lowest flex items-center justify-between text-sm text-on-surface-variant">
-                  <span className="font-body-sm text-xs">
-                    Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredBugs.length)} of{' '}
-                    {filteredBugs.length} entries
-                  </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex bg-surface-container-lowest rounded-lg p-0.5 border border-outline-variant/30 shadow-xs">
                     <button
-                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="w-8 h-8 rounded border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant/50 transition-colors disabled:opacity-40"
+                      onClick={() => setQueueViewMode('list')}
+                      className={`px-3 py-1 rounded-md font-body-sm text-body-sm transition-all ${
+                        queueViewMode === 'list'
+                          ? 'bg-surface-container-high text-on-surface font-semibold shadow-xs'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                      Queue
                     </button>
-                    <div className="flex items-center gap-1 font-label-code text-xs">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`w-8 h-8 rounded font-medium flex items-center justify-center transition-colors ${
-                            currentPage === pageNum
-                              ? 'bg-primary-container text-on-primary-container font-bold shadow-sm'
-                              : 'hover:bg-surface-variant/50 text-on-surface-variant'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      ))}
-                    </div>
                     <button
-                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="w-8 h-8 rounded border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant/50 transition-colors disabled:opacity-40"
+                      onClick={() => setQueueViewMode('kanban')}
+                      className={`px-3 py-1 rounded-md font-body-sm text-body-sm transition-all ${
+                        queueViewMode === 'kanban'
+                          ? 'bg-surface-container-high text-on-surface font-semibold shadow-xs'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                      Kanban
                     </button>
                   </div>
                 </div>
               </div>
+
+              {queueViewMode === 'kanban' ? (
+                <div className="flex-1 w-full min-w-0 min-h-[500px]">
+                  <KanbanBoard
+                    initialBugs={bugs as any}
+                    filterQuery={searchQuery}
+                    onStatusChange={async (bugId, newStatus) => {
+                      const currentBug = bugs.find((b) => b.id === bugId);
+                      const currentStatus = (currentBug?.status || 'UNCONFIRMED') as BugStatus;
+                      await applyBugStatusChange(bugId, currentStatus, newStatus);
+                      setBugs((prev) =>
+                        prev.map((b) => (b.id === bugId ? { ...b, status: newStatus } : b))
+                      );
+                    }}
+                  />
+                </div>
+              ) : (
+                /* Bento-style Data Container */
+                <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(135,169,107,0.03)] border border-outline-variant/20 overflow-hidden flex flex-col flex-1 max-h-[800px]">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container-low/50 border-b border-outline-variant/20 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest sticky top-0 z-10 backdrop-blur-sm">
+                    <div className="col-span-1">ID</div>
+                    <div className="col-span-5">Summary</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-1">Priority</div>
+                    <div className="col-span-1">Severity</div>
+                    <div className="col-span-2 text-right">Actions</div>
+                  </div>
+
+                  {/* Table Body */}
+                  <div className="overflow-y-auto flex-1 divide-y divide-outline-variant/10">
+                    {loading ? (
+                      <div className="p-12 text-center text-on-surface-variant font-body-sm">Loading bugs from database...</div>
+                    ) : paginatedBugs.length === 0 ? (
+                      <div className="p-12 text-center text-on-surface-variant font-body-sm">
+                        No bugs match your search filter.
+                      </div>
+                    ) : (
+                      paginatedBugs.map((b) => (
+                        <div
+                          key={b.id}
+                          className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-primary-container/5 transition-colors group"
+                        >
+                          <div className="col-span-1 font-label-code text-label-code text-primary/80 font-bold">
+                            #{b.id}
+                          </div>
+
+                          <div className="col-span-5 font-body-sm text-on-surface font-medium pr-4 truncate group-hover:text-primary transition-colors">
+                            <Link href={`/bugs/${b.id}`} className="hover:underline">
+                              {b.summary}
+                            </Link>
+                          </div>
+
+                          <div className="col-span-2">
+                            <span
+                              className={`inline-block px-2.5 py-0.5 rounded-full font-label-code text-[11px] uppercase border font-semibold ${getStatusBadge(
+                                b.status
+                              )}`}
+                            >
+                              {b.status}
+                            </span>
+                          </div>
+
+                          <div className="col-span-1">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded font-label-code text-xs font-bold ${getPriorityBadge(
+                                b.priority
+                              )}`}
+                            >
+                              {b.priority}
+                            </span>
+                          </div>
+
+                          <div className="col-span-1 font-body-sm text-xs text-on-surface-variant uppercase font-medium">
+                            {b.severity}
+                          </div>
+
+                          <div className="col-span-2 flex items-center justify-end gap-2">
+                            <Link
+                              href={`/bugs/${b.id}`}
+                              className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-primary-container hover:text-on-primary-container text-xs font-label-caps text-label-caps uppercase font-bold transition-all text-on-surface-variant shadow-xs"
+                            >
+                              Inspect
+                            </Link>
+                            <button
+                              onClick={() => {
+                                setSelectedBugId(b.id);
+                                setActiveTab('graph');
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-surface-variant/50 text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 text-xs font-label-caps"
+                              title="View in Graph"
+                            >
+                              Graph
+                              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Table Footer / Pagination */}
+                  <div className="px-6 py-3 border-t border-outline-variant/20 bg-surface-container-lowest flex items-center justify-between text-sm text-on-surface-variant">
+                    <span className="font-body-sm text-xs">
+                      Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredBugs.length)} of{' '}
+                      {filteredBugs.length} entries
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="w-8 h-8 rounded border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant/50 transition-colors disabled:opacity-40"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                      </button>
+                      <div className="flex items-center gap-1 font-label-code text-xs">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-8 h-8 rounded font-medium flex items-center justify-center transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-primary-container text-on-primary-container font-bold shadow-sm'
+                                : 'hover:bg-surface-variant/50 text-on-surface-variant'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="w-8 h-8 rounded border border-outline-variant/30 flex items-center justify-center hover:bg-surface-variant/50 transition-colors disabled:opacity-40"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

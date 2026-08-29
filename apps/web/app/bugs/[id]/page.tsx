@@ -1,31 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { CvssModal } from '@/components/CvssModal';
 import { CommentEditor } from '@/components/CommentEditor';
 import { NotificationBell } from '@/components/NotificationBell';
-import { AuthBar } from '@/components/AuthBar';
 import { AiTriageCard } from '@/components/AiTriageCard';
 import { GitHubScmCard } from '@/components/GitHubScmCard';
 import { FlagsCard } from '@/components/FlagsCard';
-import {
-  ShieldAlert,
-  Radio,
-  CheckCircle2,
-  AlertCircle,
-  Sparkles,
-  GitPullRequest,
-  Flag,
-  Share2,
-  Clock,
-  User,
-  Layers,
-  Tag,
-  Calendar,
-  ExternalLink,
-} from 'lucide-react';
+import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
+import { CheckCircle2 } from 'lucide-react';
 
 interface ActivityItem {
   id: number;
@@ -72,27 +57,11 @@ interface BugDetail {
   activity?: ActivityItem[];
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  UNCONFIRMED: { bg: 'bg-slate-800/80', text: 'text-slate-300', border: 'border-slate-700' },
-  CONFIRMED:   { bg: 'bg-blue-950/80',  text: 'text-blue-300',  border: 'border-blue-800' },
-  IN_PROGRESS: { bg: 'bg-purple-950/80',text: 'text-purple-300',border: 'border-purple-800' },
-  RESOLVED:    { bg: 'bg-emerald-950/80', text: 'text-emerald-300', border: 'border-emerald-800' },
-  VERIFIED:    { bg: 'bg-cyan-950/80',   text: 'text-cyan-300',   border: 'border-cyan-800' },
-  CLOSED:      { bg: 'bg-slate-900',     text: 'text-slate-400',  border: 'border-slate-800' },
-};
-
-const PRIORITY_BADGES: Record<string, string> = {
-  P1: 'text-red-400 bg-red-950/60 border-red-800/60',
-  P2: 'text-orange-400 bg-orange-950/60 border-orange-800/60',
-  P3: 'text-amber-400 bg-amber-950/60 border-amber-800/60',
-  P4: 'text-slate-400 bg-slate-800/60 border-slate-700/60',
-  P5: 'text-slate-500 bg-slate-900 border-slate-800',
-};
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function BugDetailPage({ params }: { params: { id: string } }) {
   const bugId = Number(params.id);
+  const { user, quickLogin, logout } = useAuth();
   const [bug, setBug] = useState<BugDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +72,8 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
   const [sseConnected, setSseConnected] = useState(false);
   const [livePulse, setLivePulse] = useState(false);
   const [activeTab, setActiveTab] = useState<'activity' | 'ai' | 'scm' | 'flags'>('activity');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const fetchBug = (silent = false) => {
     if (!silent) setLoading(true);
@@ -113,7 +84,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
         if (!res.ok) {
           throw new Error(
             res.status === 404
-              ? 'Bug not found (or protected under confidential security group)'
+              ? 'Bug not found (or protected under confidential security group embargo)'
               : 'Failed to fetch bug'
           );
         }
@@ -145,10 +116,9 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
         setSseConnected(true);
       });
 
-      eventSource.addEventListener('update', (e) => {
+      eventSource.addEventListener('update', () => {
         setLivePulse(true);
         setTimeout(() => setLivePulse(false), 2000);
-        // Refresh bug state seamlessly
         fetchBug(true);
       });
 
@@ -222,10 +192,10 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background text-on-surface flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-slate-400 text-sm">Loading Bug #{bugId}...</span>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-on-surface-variant text-sm font-medium">Loading Bug #{bugId}...</span>
         </div>
       </div>
     );
@@ -233,407 +203,689 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
   if (error || !bug) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-8 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
-          <div className="w-12 h-12 bg-red-950/60 border border-red-800 text-red-400 rounded-xl mx-auto flex items-center justify-center text-xl font-bold">
+      <div className="min-h-screen bg-background text-on-surface p-8 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-8 text-center space-y-4 shadow-xl">
+          <div className="w-12 h-12 bg-error-container text-on-error-container border border-error/20 rounded-xl mx-auto flex items-center justify-center text-xl font-bold">
             404
           </div>
-          <h2 className="text-xl font-bold text-white">Bug #{bugId} Unavailable</h2>
-          <p className="text-slate-400 text-xs leading-relaxed">
+          <h2 className="text-xl font-bold text-on-surface font-headline-sm">Bug #{bugId} Unavailable</h2>
+          <p className="text-on-surface-variant text-xs leading-relaxed">
             {error || 'This bug does not exist or is currently restricted under security embargo.'}
           </p>
           <Link
-            href="/"
-            className="inline-flex px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition"
+            href="/dashboard"
+            className="inline-flex px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-bold font-label-caps uppercase hover:bg-primary/90 transition shadow-sm"
           >
-            ← Return to Master Dashboard
+            ← Return to Dashboard
           </Link>
         </div>
       </div>
     );
   }
 
-  const statusStyle = STATUS_COLORS[bug.status] || STATUS_COLORS['CLOSED'];
-  const priorityStyle = PRIORITY_BADGES[bug.priority] || PRIORITY_BADGES['P5'];
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'VERIFIED':
+        return 'bg-secondary-container/30 text-on-secondary-container border-secondary-container';
+      case 'RESOLVED':
+        return 'bg-surface-container-high text-on-surface-variant border-outline-variant/30';
+      case 'IN_PROGRESS':
+        return 'bg-tertiary-container/20 text-tertiary border-tertiary-container';
+      case 'CONFIRMED':
+        return 'bg-primary-container/20 text-primary border-primary/20';
+      case 'UNCONFIRMED':
+        return 'bg-surface-container-high text-on-surface-variant border-outline-variant/30';
+      default:
+        return 'bg-surface-container text-on-surface-variant border-outline-variant/20';
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'P1':
+        return 'bg-error-container text-on-error-container border-error/30 font-bold';
+      case 'P2':
+        return 'bg-tertiary-fixed text-on-tertiary-container border-tertiary/30';
+      case 'P3':
+        return 'bg-tertiary-container/20 text-tertiary border-tertiary-container/40';
+      default:
+        return 'bg-surface-container-high text-on-surface-variant border-outline-variant/30';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white font-sans antialiased">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition text-sm font-semibold"
-            >
-              ← <span className="font-bold text-indigo-400">Dashboard</span>
-            </Link>
-            <span className="text-slate-600">/</span>
-            <span className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-800 text-slate-300">
-              Bug #{bug.id}
-            </span>
-
-            {/* ⚡ Live SSE Indicator */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px]">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  livePulse
-                    ? 'bg-amber-400 animate-ping'
-                    : sseConnected
-                    ? 'bg-emerald-400 animate-pulse'
-                    : 'bg-slate-600'
-                }`}
-              />
-              <span className="text-slate-400 font-mono">
-                {livePulse ? 'Syncing...' : sseConnected ? 'Live SSE' : 'Offline'}
-              </span>
+    <div className="bg-background text-on-surface font-body-md h-screen flex overflow-hidden selection:bg-primary-container selection:text-on-primary-container">
+      {/* SideNavBar */}
+      <aside
+        className={`h-screen ${
+          sidebarOpen ? 'w-64' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'
+        } bg-surface-container-low shadow-sm flex flex-col py-margin-sm px-4 gap-gutter z-20 shrink-0 border-r border-outline-variant/30 transition-all duration-300 overflow-hidden`}
+        id="sidebar"
+      >
+        <div className="flex items-center gap-3 px-2 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary-container font-headline-md shadow-sm shrink-0">
+              <span className="text-sm font-bold">M</span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/bugs/${bug.id}/graph`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-950/40 text-indigo-300 hover:bg-indigo-900/50 text-xs font-semibold transition shadow-sm"
-            >
-              🕸️ View Dependency DAG →
-            </Link>
-            <button
-              onClick={() => setShowCvssModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-500/30 bg-rose-950/40 text-rose-300 hover:bg-rose-900/50 text-xs font-semibold transition shadow-sm"
-            >
-              🛡️ CVSS Calculator
-            </button>
-            <AuthBar />
-            <NotificationBell />
-          </div>
+            {sidebarOpen && (
+              <div>
+                <h1 className="font-headline-sm text-headline-sm font-bold text-primary leading-none text-xl">
+                  Mantis
+                </h1>
+                <p className="font-label-caps text-label-caps text-on-surface-variant uppercase opacity-70 mt-1">
+                  V3.0 Platform
+                </p>
+              </div>
+            )}
+          </Link>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-        {/* Action Flash Alert */}
-        {actionMessage && (
-          <div className="p-3 rounded-xl border border-indigo-800 bg-indigo-950/80 text-indigo-200 text-xs font-semibold transition animate-fade-in flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>{actionMessage}</span>
-          </div>
-        )}
+        <Link
+          href="/bugs/new"
+          className="bg-primary-container text-on-primary-container font-label-caps text-label-caps uppercase py-3 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-primary hover:text-on-primary transition-colors shadow-sm w-full font-bold"
+        >
+          <span className="material-symbols-outlined text-lg">add</span>
+          {sidebarOpen && 'Report Bug'}
+        </Link>
 
-        {/* Embargo Banner if active */}
-        {bug.is_embargoed && bug.embargo_until && (
-          <section className="space-y-2">
-            <EmbargoCountdown embargoUntil={bug.embargo_until} />
-          </section>
-        )}
+        <nav className="flex-1 flex flex-col gap-1 overflow-y-auto">
+          <Link
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-primary font-bold bg-surface-bright border-l-4 border-primary scale-95 duration-150 ease-in-out"
+            href="/dashboard"
+          >
+            <span className="material-symbols-outlined text-[20px]">dashboard</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Dashboard</span>}
+          </Link>
+          <Link
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
+            href="/dashboard"
+          >
+            <span className="material-symbols-outlined text-[20px]">list_alt</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Bug Queue</span>}
+          </Link>
+          <Link
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
+            href="/kanban"
+          >
+            <span className="material-symbols-outlined text-[20px]">view_kanban</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Kanban Board</span>}
+          </Link>
+          <Link
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
+            href={`/bugs/${bug.id}/graph`}
+          >
+            <span className="material-symbols-outlined text-[20px]">hub</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Dependency Graph</span>}
+          </Link>
+          <Link
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
+            href="/dashboard"
+          >
+            <span className="material-symbols-outlined text-[20px]">security</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Governance</span>}
+          </Link>
+        </nav>
 
-        {/* Bug Header Card */}
-        <section className="p-6 rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950 shadow-xl space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
-              {bug.status.replace('_', ' ')}
-            </span>
-            {bug.resolution && (
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300">
-                {bug.resolution}
-              </span>
-            )}
-            <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${priorityStyle}`}>
-              {bug.priority}
-            </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 uppercase tracking-wide">
-              {bug.severity}
-            </span>
-            {bug.cvss_score && (
-              <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950/80 border border-rose-800 text-rose-300">
-                CVSS {bug.cvss_score} ({bug.cvss_severity || 'HIGH'})
-              </span>
-            )}
-          </div>
+        <div className="mt-auto pt-4 border-t border-outline-variant/30 flex flex-col gap-1">
+          <a
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
+            href="http://localhost:3001/docs"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span className="material-symbols-outlined text-lg">help</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Support &amp; Docs</span>}
+          </a>
+          <Link
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
+            href="/login"
+          >
+            <span className="material-symbols-outlined text-lg">account_circle</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Account</span>}
+          </Link>
+        </div>
+      </aside>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
-            {bug.summary}
-          </h1>
+      {/* Main Column */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* TopNavBar */}
+        <header className="w-full bg-background border-b border-outline-variant/30 z-10 shrink-0">
+          <div className="flex justify-between items-center px-4 md:px-margin-lg py-4 w-full max-w-max-width mx-auto">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1 rounded-md hover:bg-surface-container"
+                title="Toggle Sidebar"
+              >
+                <span className="material-symbols-outlined text-2xl">menu</span>
+              </button>
 
-          <div className="text-xs text-slate-400 flex flex-wrap gap-4 pt-2 border-t border-slate-800/80">
-            <div>Product: <span className="text-slate-200 font-semibold">{bug.product_name || 'Firefox'}</span></div>
-            <div>Component: <span className="text-slate-200 font-semibold">{bug.component_name || 'Core'}</span></div>
-            <div>Created: <span className="text-slate-300">{new Date(bug.created_at).toLocaleDateString()}</span></div>
-            <div>Updated: <span className="text-slate-300">{new Date(bug.updated_at).toLocaleDateString()}</span></div>
-          </div>
-        </section>
-
-        {/* 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Description Card */}
-            <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Description & Reproduction</h2>
-              <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-950/60 p-4 rounded-lg border border-slate-800 font-mono text-xs">
-                {bug.description || 'No detailed reproduction steps provided.'}
+              <div className="hidden sm:flex items-center gap-2 text-sm text-on-surface-variant font-body-sm">
+                <Link href="/dashboard" className="hover:text-primary transition-colors">
+                  Dashboard
+                </Link>
+                <span>/</span>
+                <span className="font-medium text-on-surface">Bug #{bug.id}</span>
               </div>
             </div>
 
-            {/* Quick State Transition Actions */}
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Governance & State Machine Actions</h2>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleStatusTransition('CONFIRMED')}
-                  className="px-3 py-1.5 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-800 text-blue-300 text-xs font-semibold transition"
+            <div className="flex items-center gap-4">
+              <nav className="hidden lg:flex items-center gap-6">
+                <a
+                  className="text-on-surface-variant hover:text-primary transition-all font-body-sm font-medium opacity-80 hover:opacity-100"
+                  href="http://localhost:3001/docs"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  ✓ Confirm Bug
-                </button>
-                <button
-                  onClick={() => handleStatusTransition('IN_PROGRESS')}
-                  className="px-3 py-1.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-800 text-purple-300 text-xs font-semibold transition"
-                >
-                  ⚙ Mark IN_PROGRESS
-                </button>
-                <button
-                  onClick={() => handleStatusTransition('RESOLVED', 'FIXED')}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 text-xs font-semibold transition"
-                >
-                  ★ Resolve (FIXED)
-                </button>
-                <button
-                  onClick={() => handleStatusTransition('RESOLVED', 'WONTFIX')}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold transition"
-                >
-                  Resolve (WONTFIX)
-                </button>
-                <button
-                  onClick={() => handleStatusTransition('CLOSED')}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 text-xs font-semibold transition"
-                >
-                  Close Archive
-                </button>
-              </div>
-            </div>
+                  API Docs
+                </a>
+              </nav>
 
-            {/* Feature Tabs: Activity | AI Triage | GitHub SCM | Flags */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 text-xs pb-1">
-                <button
-                  onClick={() => setActiveTab('activity')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
-                    activeTab === 'activity'
-                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Timeline ({bug.activity?.length || 0})</span>
-                </button>
+              <div className="h-6 w-px bg-outline-variant/30 hidden lg:block" />
 
-                <button
-                  onClick={() => setActiveTab('ai')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
-                    activeTab === 'ai'
-                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>AI Triage</span>
-                </button>
+              <div className="flex items-center gap-3">
+                <NotificationBell />
 
-                <button
-                  onClick={() => setActiveTab('scm')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
-                    activeTab === 'scm'
-                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <GitPullRequest className="w-3.5 h-3.5 text-slate-400" />
-                  <span>GitHub SCM</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('flags')}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg font-bold transition border-b-2 ${
-                    activeTab === 'flags'
-                      ? 'border-indigo-500 text-indigo-400 bg-slate-900/50'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Flag className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Flags</span>
-                </button>
-              </div>
-
-              {/* Tab Content 1: AI Triage Assistant */}
-              {activeTab === 'ai' && (
-                <AiTriageCard
-                  bugId={bug.id}
-                  currentPriority={bug.priority}
-                  currentComponent={bug.component_name}
-                  onApplyTriage={(p, c) => {
-                    setActionMessage(`Applied AI suggestions: Priority ${p}`);
-                    setTimeout(() => setActionMessage(null), 3000);
-                  }}
-                  onInsertComment={(txt) => {
-                    setNewComment(txt);
-                    setActiveTab('activity');
-                  }}
-                />
-              )}
-
-              {/* Tab Content 2: GitHub SCM */}
-              {activeTab === 'scm' && <GitHubScmCard bugId={bug.id} />}
-
-              {/* Tab Content 3: Flags */}
-              {activeTab === 'flags' && <FlagsCard bugId={bug.id} />}
-
-              {/* Tab Content 4: Comments & Activity Stream */}
-              {activeTab === 'activity' && (
-                <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Activity & Audit Timeline</h2>
-                    {sseConnected && (
-                      <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Stream Connected
-                      </span>
-                    )}
-                  </div>
-
-                  {bug.activity && bug.activity.length > 0 ? (
-                    <div className="space-y-3">
-                      {bug.activity.map((act) => (
-                        <div key={act.id} className="p-3.5 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between text-slate-400">
-                            <div className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px]">
-                                {act.who_name ? act.who_name[0] : 'U'}
-                              </span>
-                              <span className="font-semibold text-slate-200">{act.who_name || 'System User'}</span>
-                              <span className="text-slate-500 font-mono text-[10px]">@{act.who_username || 'system'}</span>
-                            </div>
-                            <span className="text-[10px] text-slate-500">{new Date(act.changed_at).toLocaleString()}</span>
-                          </div>
-
-                          <div className="text-slate-300 pl-7 prose prose-sm prose-invert max-w-none">
-                            {act.comment ? (
-                              <div dangerouslySetInnerHTML={{ __html: act.comment }} />
-                            ) : (
-                              <p className="text-slate-400">
-                                Changed <span className="font-mono text-indigo-300">{act.field}</span> from{' '}
-                                <span className="text-slate-500">{act.old_value || 'none'}</span> →{' '}
-                                <span className="text-slate-200 font-semibold">{act.new_value}</span>
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center p-6 text-slate-500 text-xs">No prior activity logged.</div>
-                  )}
-
-                  {/* Add Comment Form */}
-                  <div className="pt-4 border-t border-slate-800 space-y-3">
-                    <label className="text-xs font-semibold text-slate-300 block">Add Comment / Mention Collaborators</label>
-                    <CommentEditor
-                      value={newComment}
-                      onChange={setNewComment}
-                      onSubmit={handleAddComment}
-                      isSubmitting={submittingComment}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Sidebar Metadata Column */}
-          <div className="space-y-6">
-            {/* Governance Attributes Card */}
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Governance Attributes</h3>
-
-              <div className="space-y-3 text-xs">
-                <div>
-                  <span className="text-slate-500 block text-[10px] uppercase">Assignee</span>
-                  <span className="font-semibold text-slate-200">{bug.assignee_name || 'Unassigned'}</span>
-                  {bug.assignee_username && (
-                    <span className="text-slate-500 font-mono text-[10px] block">@{bug.assignee_username}</span>
-                  )}
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px] uppercase">Reporter</span>
-                  <span className="font-semibold text-slate-200">{bug.reporter_name || 'Anonymous'}</span>
-                  {bug.reporter_username && (
-                    <span className="text-slate-500 font-mono text-[10px] block">@{bug.reporter_username}</span>
-                  )}
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px] uppercase">Target Milestone</span>
-                  <span className="font-mono text-slate-300">{bug.target_milestone || '---'}</span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[10px] uppercase">Version</span>
-                  <span className="font-mono text-slate-300">{bug.version || 'unspecified'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Time Tracking & Estimations */}
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Effort & Time Tracking</h3>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <div className="text-slate-500 text-[10px]">Estimated</div>
-                  <div className="text-base font-bold text-slate-200">{bug.estimated_time || 0}h</div>
-                </div>
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <div className="text-slate-500 text-[10px]">Remaining</div>
-                  <div className="text-base font-bold text-indigo-400">{bug.remaining_time || 0}h</div>
-                </div>
-              </div>
-            </div>
-
-            {/* CVSS v4.0 Vulnerability Score Card */}
-            <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400">CVSS v4.0 Rating</h3>
                 <button
                   onClick={() => setShowCvssModal(true)}
-                  className="text-[10px] text-rose-400 hover:text-rose-300 underline font-semibold"
+                  title="CVSS Calculator"
+                  className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-variant/50 rounded-full transition-colors"
                 >
-                  Edit Vector
+                  <span className="material-symbols-outlined text-xl">calculate</span>
                 </button>
-              </div>
 
-              {bug.cvss_score ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black text-rose-400 font-mono">{bug.cvss_score}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 border border-rose-800 text-rose-300 uppercase">
-                      {bug.cvss_severity || 'CRITICAL'}
-                    </span>
+                {/* Profile Avatar / Dropdown Trigger */}
+                <div className="relative">
+                  <div
+                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container font-bold flex items-center justify-center border border-outline-variant/50 cursor-pointer hover:ring-2 ring-primary/30 transition-all text-xs"
+                  >
+                    {user ? user.display_name.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  {bug.cvss_vector && (
-                    <div className="p-2 bg-slate-950 rounded border border-slate-800 text-[9px] font-mono text-slate-400 break-all">
-                      {bug.cvss_vector}
+
+                  {profileDropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-72 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-2xl p-4 z-50 animate-fade-in-up space-y-3">
+                      <div className="border-b border-outline-variant/20 pb-2">
+                        <div className="font-bold text-sm text-on-surface">{user ? user.display_name : 'Guest User'}</div>
+                        <div className="text-xs text-on-surface-variant font-mono truncate">
+                          {user ? user.email : 'not logged in'}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 font-label-caps">
+                          1-Click Fast Persona Switch
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
+                          {SEED_PERSONAS.map((p) => (
+                            <button
+                              key={p.key}
+                              onClick={() => {
+                                quickLogin(p.key);
+                                setProfileDropdownOpen(false);
+                              }}
+                              className="text-left px-2 py-1 rounded bg-surface-container-low hover:bg-primary-container/20 text-[11px] font-medium transition"
+                            >
+                              <div className="font-bold truncate text-on-surface">{p.name.split(' ')[0]}</div>
+                              <div className="text-[9px] text-on-surface-variant font-mono">{p.badge}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
+                        <Link href="/login" className="text-xs text-primary font-bold hover:underline font-label-caps uppercase">
+                          Sign In
+                        </Link>
+                        <button
+                          onClick={() => {
+                            logout();
+                            setProfileDropdownOpen(false);
+                          }}
+                          className="text-xs text-error font-bold hover:underline font-label-caps uppercase"
+                        >
+                          Log Out
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
-              ) : (
-                <div className="text-xs text-slate-500">
-                  No CVSS vulnerability vector scored for this defect yet.
-                </div>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </header>
+
+        {/* Main Content Canvas */}
+        <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6 lg:p-gutter">
+
+          <div className="max-w-max-width mx-auto flex flex-col gap-6">
+            {/* Action Flash Alert */}
+            {actionMessage && (
+              <div className="p-3 rounded-xl border border-primary/30 bg-primary-container/20 text-on-surface text-xs font-semibold transition animate-fade-in flex items-center gap-2 shadow-xs">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>{actionMessage}</span>
+              </div>
+            )}
+
+            {/* Embargo Banner if active */}
+            {bug.is_embargoed && bug.embargo_until && (
+              <section className="space-y-2">
+                <EmbargoCountdown embargoUntil={bug.embargo_until} />
+              </section>
+            )}
+
+            {/* Page Header & Actions Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-body-sm">
+                <Link
+                  className="flex items-center text-on-surface-variant hover:text-primary transition-colors group font-medium"
+                  href="/dashboard"
+                >
+                  <span className="material-symbols-outlined text-[18px] mr-1 group-hover:-translate-x-0.5 transition-transform">
+                    arrow_back
+                  </span>
+                  Dashboard
+                </Link>
+                <span className="text-outline-variant">/</span>
+                <span className="font-semibold text-on-surface">Bug #{bug.id}</span>
+                <div className="flex items-center gap-1.5 bg-surface-container-high px-2.5 py-0.5 rounded-full border border-outline-variant/30 ml-2">
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      livePulse
+                        ? 'bg-tertiary animate-ping'
+                        : sseConnected
+                        ? 'bg-primary animate-pulse'
+                        : 'bg-outline'
+                    }`}
+                  />
+                  <span className="font-label-caps text-[10px] uppercase text-on-surface-variant tracking-wider font-bold">
+                    {livePulse ? 'Syncing...' : sseConnected ? 'Live SSE' : 'Offline'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <Link
+                  href={`/bugs/${bug.id}/graph`}
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-outline-variant/40 bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all font-label-caps text-label-caps uppercase font-bold shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[16px]">account_tree</span>
+                  View Dependency DAG
+                </Link>
+                <button
+                  onClick={() => setShowCvssModal(true)}
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-outline-variant/40 bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all font-label-caps text-label-caps uppercase font-bold shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-error">calculate</span>
+                  CVSS Calculator
+                </button>
+              </div>
+            </div>
+
+            {/* Bug Title Card */}
+            <section className="bg-surface-container-lowest rounded-xl p-6 md:p-8 shadow-sm border border-outline-variant/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-secondary-container/20 rounded-bl-full -mr-10 -mt-10 blur-xl pointer-events-none" />
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span
+                  className={`px-2.5 py-1 rounded font-label-caps text-[10px] uppercase tracking-wider border font-bold ${getStatusBadge(
+                    bug.status
+                  )}`}
+                >
+                  {bug.status.replace('_', ' ')}
+                </span>
+                {bug.resolution && (
+                  <span className="px-2.5 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-caps text-[10px] uppercase tracking-wider border border-outline-variant/30 font-bold">
+                    {bug.resolution}
+                  </span>
+                )}
+                <span
+                  className={`px-2.5 py-1 rounded font-label-caps text-[10px] uppercase tracking-wider border ${getPriorityBadge(
+                    bug.priority
+                  )}`}
+                >
+                  {bug.priority}
+                </span>
+                <span className="px-2.5 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-caps text-[10px] uppercase tracking-wider border border-outline-variant/30">
+                  {bug.severity.toUpperCase()}
+                </span>
+                {bug.cvss_score && (
+                  <span className="px-2.5 py-1 rounded bg-error-container text-on-error-container font-label-caps text-[10px] uppercase tracking-wider border border-error/30 font-bold">
+                    CVSS {bug.cvss_score} ({bug.cvss_severity || 'HIGH'})
+                  </span>
+                )}
+              </div>
+
+              <h2 className="font-display-lg text-display-lg text-on-surface mb-6 leading-tight tracking-tight font-bold">
+                {bug.summary}
+              </h2>
+
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-body-sm text-on-surface-variant">
+                <div>
+                  <span className="opacity-70 mr-1">Product:</span>
+                  <span className="font-medium text-on-surface">{bug.product_name || 'Core'}</span>
+                </div>
+                <div>
+                  <span className="opacity-70 mr-1">Component:</span>
+                  <span className="font-medium text-on-surface">{bug.component_name || 'General'}</span>
+                </div>
+                <div>
+                  <span className="opacity-70 mr-1">Created:</span>
+                  <span>{new Date(bug.created_at).toLocaleDateString()}</span>
+                </div>
+                <div>
+                  <span className="opacity-70 mr-1">Updated:</span>
+                  <span>{new Date(bug.updated_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </section>
+
+            {/* 2-Column Main Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column (Main Content) */}
+              <div className="lg:col-span-2 flex flex-col gap-6">
+                {/* Description & Reproduction */}
+                <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20">
+                  <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-4 tracking-widest opacity-80 font-bold">
+                    Description &amp; Reproduction
+                  </h3>
+                  <div className="bg-surface-container p-4 rounded-lg font-label-code text-label-code text-on-surface-variant/90 border border-outline-variant/20 whitespace-pre-wrap">
+                    {bug.description || 'No detailed reproduction steps provided.'}
+                  </div>
+                </section>
+
+                {/* Governance & State Machine Actions */}
+                <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20">
+                  <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-4 tracking-widest opacity-80 font-bold">
+                    Governance &amp; State Machine Actions
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => handleStatusTransition('CONFIRMED')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary-container/20 text-secondary border border-secondary-container hover:bg-secondary-container/40 transition-colors font-body-sm font-medium"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">check</span>
+                      Confirm Bug
+                    </button>
+                    <button
+                      onClick={() => handleStatusTransition('IN_PROGRESS')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-tertiary-container/20 text-tertiary border border-tertiary-container hover:bg-tertiary-container/40 transition-colors font-body-sm font-medium"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">settings</span>
+                      Mark IN_PROGRESS
+                    </button>
+                    <button
+                      onClick={() => handleStatusTransition('RESOLVED', 'FIXED')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary border border-primary hover:bg-primary/90 transition-colors font-body-sm font-medium shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">star</span>
+                      Resolve (FIXED)
+                    </button>
+                    <button
+                      onClick={() => handleStatusTransition('RESOLVED', 'WONTFIX')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high transition-colors font-body-sm font-medium"
+                    >
+                      Resolve (WONTFIX)
+                    </button>
+                    <button
+                      onClick={() => handleStatusTransition('CLOSED')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high transition-colors font-body-sm font-medium"
+                    >
+                      Close Archive
+                    </button>
+                  </div>
+                </section>
+
+                {/* Tabbed Interface & Activity */}
+                <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/20 overflow-hidden flex flex-col">
+                  {/* Tabs Header */}
+                  <div className="flex border-b border-outline-variant/20 px-2 pt-2 bg-surface-container-low/50">
+                    <button
+                      onClick={() => setActiveTab('activity')}
+                      className={`px-5 py-3 font-label-caps text-label-caps uppercase flex items-center gap-2 rounded-t-lg transition-all ${
+                        activeTab === 'activity'
+                          ? 'text-primary border-b-2 border-primary bg-surface-container-lowest font-bold shadow-xs'
+                          : 'text-on-surface-variant hover:text-primary opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">schedule</span>
+                      Timeline ({bug.activity?.length || 0})
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('ai')}
+                      className={`px-5 py-3 font-label-caps text-label-caps uppercase flex items-center gap-2 rounded-t-lg transition-all ${
+                        activeTab === 'ai'
+                          ? 'text-primary border-b-2 border-primary bg-surface-container-lowest font-bold shadow-xs'
+                          : 'text-on-surface-variant hover:text-primary opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                      AI Triage
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('scm')}
+                      className={`px-5 py-3 font-label-caps text-label-caps uppercase flex items-center gap-2 rounded-t-lg transition-all ${
+                        activeTab === 'scm'
+                          ? 'text-primary border-b-2 border-primary bg-surface-container-lowest font-bold shadow-xs'
+                          : 'text-on-surface-variant hover:text-primary opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">account_tree</span>
+                      GitHub SCM
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('flags')}
+                      className={`px-5 py-3 font-label-caps text-label-caps uppercase flex items-center gap-2 rounded-t-lg transition-all ${
+                        activeTab === 'flags'
+                          ? 'text-primary border-b-2 border-primary bg-surface-container-lowest font-bold shadow-xs'
+                          : 'text-on-surface-variant hover:text-primary opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">flag</span>
+                      Flags
+                    </button>
+                  </div>
+
+                  {/* Tab Body */}
+                  <div className="p-6">
+                    {activeTab === 'ai' && (
+                      <AiTriageCard
+                        bugId={bug.id}
+                        currentPriority={bug.priority}
+                        currentComponent={bug.component_name}
+                        onApplyTriage={(p) => {
+                          setActionMessage(`Applied AI suggestions: Priority ${p}`);
+                          setTimeout(() => setActionMessage(null), 3000);
+                        }}
+                        onInsertComment={(txt) => {
+                          setNewComment(txt);
+                          setActiveTab('activity');
+                        }}
+                      />
+                    )}
+
+                    {activeTab === 'scm' && <GitHubScmCard bugId={bug.id} />}
+
+                    {activeTab === 'flags' && <FlagsCard bugId={bug.id} />}
+
+                    {activeTab === 'activity' && (
+                      <div className="space-y-6">
+                        <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-widest opacity-80 font-bold">
+                          Activity &amp; Audit Timeline
+                        </h3>
+
+                        {bug.activity && bug.activity.length > 0 ? (
+                          <div className="space-y-3">
+                            {bug.activity.map((act) => (
+                              <div
+                                key={act.id}
+                                className="p-4 rounded-lg bg-surface-container-low border border-outline-variant/20 space-y-1.5 text-xs"
+                              >
+                                <div className="flex items-center justify-between text-on-surface-variant">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-[10px]">
+                                      {act.who_name ? act.who_name[0] : 'U'}
+                                    </span>
+                                    <span className="font-semibold text-on-surface">{act.who_name || 'System User'}</span>
+                                    <span className="text-on-surface-variant/60 font-mono text-[10px]">
+                                      @{act.who_username || 'system'}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-on-surface-variant/60">
+                                    {new Date(act.changed_at).toLocaleString()}
+                                  </span>
+                                </div>
+
+                                <div className="text-on-surface pl-7 prose prose-sm max-w-none">
+                                  {act.comment ? (
+                                    <div dangerouslySetInnerHTML={{ __html: act.comment }} />
+                                  ) : (
+                                    <p className="text-on-surface-variant font-body-sm">
+                                      Changed <span className="font-mono text-primary font-bold">{act.field}</span> from{' '}
+                                      <span className="text-on-surface-variant/70">{act.old_value || 'none'}</span> →{' '}
+                                      <span className="text-on-surface font-semibold">{act.new_value}</span>
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-10 flex items-center justify-center border-b border-outline-variant/20">
+                            <p className="text-on-surface-variant/60 font-body-sm italic">No prior activity logged.</p>
+                          </div>
+                        )}
+
+                        {/* Comment Editor */}
+                        <div className="pt-2">
+                          <h4 className="font-label-caps text-label-caps uppercase text-on-surface mb-3 font-bold">
+                            Add Comment / Mention Collaborators
+                          </h4>
+                          <CommentEditor
+                            value={newComment}
+                            onChange={setNewComment}
+                            onSubmit={handleAddComment}
+                            isSubmitting={submittingComment}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              {/* Right Column (Sidebar) */}
+              <div className="lg:col-span-1 flex flex-col gap-6">
+                {/* Governance Attributes */}
+                <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20">
+                  <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-5 tracking-widest opacity-80 font-bold">
+                    Governance Attributes
+                  </h3>
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <span className="block font-label-caps text-[10px] uppercase text-on-surface-variant/70 mb-1">
+                        Assignee
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs shrink-0">
+                          {bug.assignee_name ? bug.assignee_name.charAt(0) : 'U'}
+                        </div>
+                        <div>
+                          <div className="font-body-sm font-semibold text-on-surface leading-tight">
+                            {bug.assignee_name || 'Unassigned'}
+                          </div>
+                          <div className="text-[11px] text-on-surface-variant/70 font-mono">
+                            @{bug.assignee_username || 'unassigned'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="block font-label-caps text-[10px] uppercase text-on-surface-variant/70 mb-1">
+                        Reporter
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xs shrink-0">
+                          {bug.reporter_name ? bug.reporter_name.charAt(0) : 'R'}
+                        </div>
+                        <div>
+                          <div className="font-body-sm font-semibold text-on-surface leading-tight">
+                            {bug.reporter_name || 'Anonymous'}
+                          </div>
+                          <div className="text-[11px] text-on-surface-variant/70 font-mono">
+                            @{bug.reporter_username || 'reporter'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="block font-label-caps text-[10px] uppercase text-on-surface-variant/70 mb-1">
+                        Target Milestone
+                      </span>
+                      <div className="font-body-sm text-on-surface opacity-60">
+                        {bug.target_milestone || '---'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="block font-label-caps text-[10px] uppercase text-on-surface-variant/70 mb-1">
+                        Version
+                      </span>
+                      <div className="font-label-code text-label-code text-on-surface bg-surface-container px-2.5 py-1 rounded w-fit border border-outline-variant/20 font-bold">
+                        {bug.version || 'unspecified'}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* CVSS Rating */}
+                <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20 relative overflow-hidden group">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-widest opacity-80 font-bold">
+                      CVSS v4.0 Rating
+                    </h3>
+                    <button
+                      onClick={() => setShowCvssModal(true)}
+                      className="font-label-caps text-[10px] uppercase text-primary hover:underline underline-offset-2 font-bold"
+                    >
+                      Edit Vector
+                    </button>
+                  </div>
+
+                  {bug.cvss_score ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl font-black text-error font-mono">{bug.cvss_score}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container text-on-error-container border border-error/30 uppercase font-label-caps">
+                          {bug.cvss_severity || 'HIGH'}
+                        </span>
+                      </div>
+                      {bug.cvss_vector && (
+                        <div className="p-2 bg-surface-container rounded border border-outline-variant/20 text-[10px] font-mono text-on-surface-variant break-all">
+                          {bug.cvss_vector}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-body-sm text-on-surface-variant/70">
+                      No CVSS vulnerability vector scored for this defect yet.
+                    </p>
+                  )}
+                </section>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
 
       {/* CVSS Modal */}
       {showCvssModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/20 backdrop-blur-sm p-4">
           <CvssModal
             bugId={bug.id}
             onClose={() => setShowCvssModal(false)}
@@ -647,3 +899,5 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+

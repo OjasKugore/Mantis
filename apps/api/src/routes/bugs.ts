@@ -436,9 +436,11 @@ export async function bugRoutes(app: FastifyInstance) {
     }
 
     // Determine final resolution (clear resolution when reopening or moving to non-resolved status)
-    let newResolution = requestedResolution;
-    if (['UNCONFIRMED', 'CONFIRMED', 'IN_PROGRESS'].includes(newStatus)) {
+    let newResolution: string = requestedResolution || '';
+    if (['UNCONFIRMED', 'CONFIRMED', 'IN_PROGRESS', 'VERIFIED'].includes(newStatus)) {
       newResolution = '';
+    } else if (newStatus === 'CLOSED' && !newResolution) {
+      newResolution = currentResolution || 'FIXED';
     }
 
     // Validate resolution rule
