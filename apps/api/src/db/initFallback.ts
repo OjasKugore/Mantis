@@ -406,4 +406,37 @@ async function seedFallbackData() {
       [dep.blocking, dep.blocked, userIds['admin']]
     );
   }
+
+  // 7. Seed Flag Types & Sample Flags
+  await db.query(`
+    INSERT INTO flag_types (id, name, description, target_type) VALUES
+    (1, 'needinfo', 'Request more information from author/reporter', 'b'),
+    (2, 'review', 'Code review approval request for patch', 'b'),
+    (3, 'approval', 'Release management sign-off for uplift', 'b')
+    ON CONFLICT DO NOTHING
+  `);
+
+  await db.query(`
+    INSERT INTO flags (type_id, status, bug_id, setter_id, requestee_id) VALUES
+    (1, '?', 1, '${userIds['carol_sec']}', '${userIds['alice_dev']}'),
+    (2, '?', 1, '${userIds['alice_dev']}', '${userIds['bob_qa']}'),
+    (1, '?', 2, '${userIds['eve_triage']}', '${userIds['alice_dev']}')
+    ON CONFLICT DO NOTHING
+  `);
+
+  // 8. Seed Sample GitHub SCM Commits & PRs
+  await db.query(`
+    INSERT INTO bug_commits (bug_id, repo_full_name, commit_sha, commit_message, author_name, author_email, committed_at, html_url) VALUES
+    (1, 'mozilla/gecko-dev', 'a1f89c42b03', 'Bug 1: Refactor HTTP/3 Necko connection pooling timeout handler', 'Alice Developer', 'alice@mozilla.com', NOW() - INTERVAL '2 hours', 'https://github.com/mozilla/gecko-dev/commit/a1f89c42b03'),
+    (1, 'mozilla/gecko-dev', '7c402ef891d', 'Bug 1: Add unit tests for network loss simulation', 'Bob QA Engineer', 'bob@mozilla.com', NOW() - INTERVAL '1 hour', 'https://github.com/mozilla/gecko-dev/commit/7c402ef891d'),
+    (2, 'mozilla/gecko-dev', '8e2b901aef3', 'Bug 2: Fix Wayland surface buffer synchronization', 'Dave Performance Eng', 'dave@mozilla.com', NOW() - INTERVAL '4 hours', 'https://github.com/mozilla/gecko-dev/commit/8e2b901aef3')
+    ON CONFLICT DO NOTHING
+  `);
+
+  await db.query(`
+    INSERT INTO bug_pull_requests (bug_id, repo_full_name, pr_number, pr_title, pr_state, pr_url, merged_at) VALUES
+    (1, 'mozilla/gecko-dev', 4821, 'Fix Necko HTTP/3 packet loss timeout degradation', 'open', 'https://github.com/mozilla/gecko-dev/pull/4821', NULL),
+    (2, 'mozilla/gecko-dev', 4790, 'Wayland compositor frame callback sync', 'merged', 'https://github.com/mozilla/gecko-dev/pull/4790', NOW() - INTERVAL '3 hours')
+    ON CONFLICT DO NOTHING
+  `);
 }

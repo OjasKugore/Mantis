@@ -109,13 +109,14 @@ function ScoreArc({ score, severity }: ScoreArcProps) {
 }
 
 interface Props {
-  bugId: number;
+  bugId?: number;
   currentVector?: string;
   onSave?: () => void;
+  onApplyScore?: (score: number, vector: string, severity: string) => void;
   onClose?: () => void;
 }
 
-export function CvssModal({ bugId, onSave, onClose }: Props) {
+export function CvssModal({ bugId, onSave, onApplyScore, onClose }: Props) {
   const [metrics, setMetrics] = useState<CvssV4Metrics>(DEFAULT_METRICS);
   const [saving, setSaving] = useState(false);
 
@@ -123,17 +124,25 @@ export function CvssModal({ bugId, onSave, onClose }: Props) {
   const styles = SEVERITY_STYLES[computed.severity];
 
   const handleSave = async () => {
-    setSaving(true);
-    try {
-      await fetch(`http://localhost:3001/api/v1/bugs/${bugId}/security`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ cvss_vector: computed.vector }),
-      });
-      onSave?.();
-    } finally {
-      setSaving(false);
+    if (onApplyScore) {
+      onApplyScore(computed.score, computed.vector, computed.severity);
+      onClose?.();
+      return;
+    }
+
+    if (bugId) {
+      setSaving(true);
+      try {
+        await fetch(`http://localhost:3001/api/v1/bugs/${bugId}/security`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ cvss_vector: computed.vector }),
+        });
+        onSave?.();
+      } finally {
+        setSaving(false);
+      }
     }
   };
 

@@ -2,8 +2,40 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/client.js';
 import { verifyGitHubSignature } from '../lib/hmac.js';
 import { parseBugRefs } from '../services/webhookParser.js';
+import { canUserAccessBug } from '../middleware/groupFilter.js';
 
 export async function webhookRoutes(app: FastifyInstance) {
+  /**
+   * GET /api/v1/bugs/:id/github
+   * Retrieves linked commits and pull requests for a specific bug.
+   */
+  app.get<{ Params: { id: string } }>(
+    '/bugs/:id/github',
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const bugId = Number(request.params.id);
+      if (isNaN(bugId)) {
+        return reply.code(400).send({ error: 'INVALID_ID', message: 'Bug ID must be numeric' });
+      }
+
+      const userId = (request as any).user?.id || null;
+      const hasAccess = await canUserAccessBug(bugId, userId);
+      if (!hasAccess) {
+        return reply.code(404).send({ error: 'NOT_FOUND', message: 'Bug not found' });
+      }
+
+      const { rows: commits } = await db.query(
+        `SELECT * FROM bug_commits WHERE bug_id = $1 ORDER BY committed_at DESC`,
+        [bugId]
+      );
+      const { rows: pull_requests } = await db.query(
+        `SELECT * FROM bug_pull_requests WHERE bug_id = $1 ORDER BY id DESC`,
+        [bugId]
+      );
+
+      return reply.code(200).send({ commits, pull_requests });
+    }
+  );
+
   /**
    * Raw body parser hook for GitHub Webhook HMAC signature verification.
    * Preserves raw Buffer on (request as any).rawBody.
