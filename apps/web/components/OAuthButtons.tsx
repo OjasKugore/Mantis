@@ -29,26 +29,7 @@ export function OAuthButtons({ onLogin, mode = 'signin' }: OAuthButtonsProps) {
 
   return (
     <div className="space-y-3">
-      {/* Mock Mode Banner */}
-      {isMock && (
-        <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-          <span className="material-symbols-outlined text-[16px] text-amber-500 shrink-0 mt-0.5">
-            info
-          </span>
-          <div>
-            <span className="font-bold">Dev / Mock Mode</span> — OAuth is running without real credentials.
-            Clicking GitHub or Google will provision a mock demo account.{' '}
-            <a
-              href="https://github.com/settings/developers"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-semibold hover:text-amber-900 transition-colors"
-            >
-              Set up real OAuth →
-            </a>
-          </div>
-        </div>
-      )}
+
 
       {/* GitHub Button */}
       <button
@@ -64,11 +45,7 @@ export function OAuthButtons({ onLogin, mode = 'signin' }: OAuthButtonsProps) {
           />
         </svg>
         {verb} with GitHub
-        {isMock && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold bg-white/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
-            Mock
-          </span>
-        )}
+
       </button>
 
       {/* Google Button */}
@@ -84,11 +61,7 @@ export function OAuthButtons({ onLogin, mode = 'signin' }: OAuthButtonsProps) {
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
         </svg>
         {verb} with Google
-        {isMock && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
-            Mock
-          </span>
-        )}
+
       </button>
     </div>
   );
