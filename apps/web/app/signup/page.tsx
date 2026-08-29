@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { MantisLogo } from '@/components/MantisLogo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -48,9 +49,7 @@ export default function SignupPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10 animate-fade-in-up">
         <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
-          <span className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-black text-lg shadow-md group-hover:scale-105 transition-transform">
-            M
-          </span>
+          <MantisLogo className="w-10 h-10 group-hover:scale-105 transition-transform" size={40} />
           <span className="font-display-lg text-2xl font-bold tracking-tighter text-on-surface">
             Mantis
           </span>
