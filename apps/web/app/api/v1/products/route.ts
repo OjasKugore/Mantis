@@ -2,11 +2,22 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { getCurrentUser } from '@/lib/services/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { rows } = await db.query(
-      `SELECT id, name, description, is_active, default_milestone FROM products ORDER BY id ASC`
-    );
+    const { searchParams } = new URL(request.url);
+    const scope = searchParams.get('scope');
+    const user = await getCurrentUser();
+
+    // Judge demo accounts see demo catalog (Firefox, Thunderbird, Core)
+    const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
+
+    let query = `SELECT id, name, description, is_active, default_milestone FROM products`;
+    if (!isDemo) {
+      query += ` WHERE id NOT IN (1, 2, 3) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+    }
+    query += ` ORDER BY id ASC`;
+
+    const { rows } = await db.query(query);
     return NextResponse.json(rows.map((r: any) => ({ ...r, id: Number(r.id) })));
   } catch (err: any) {
     return NextResponse.json({ error: 'SERVER_ERROR', message: err.message }, { status: 500 });

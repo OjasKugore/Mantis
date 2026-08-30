@@ -6,6 +6,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('product_id');
+    const scope = searchParams.get('scope');
+    const user = await getCurrentUser();
+
+    const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
     let query = `SELECT id, name, product_id, description, is_active FROM components WHERE is_active = TRUE`;
     const params: any[] = [];
@@ -13,6 +17,8 @@ export async function GET(request: Request) {
     if (productId) {
       query += ` AND product_id = $1`;
       params.push(parseInt(productId, 10));
+    } else if (!isDemo) {
+      query += ` AND product_id NOT IN (1, 2, 3)`;
     }
 
     query += ` ORDER BY id ASC`;
