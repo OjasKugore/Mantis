@@ -61,26 +61,36 @@ npm test
 
 ---
 
-### 🐳 Option 3 — Full-Stack Local Run (Docker + PostgreSQL 16)
+### 🖥️ Option 3 — Run Locally (Zero-Config, No Docker Required)
+
+The app is a **Next.js fullstack application** — no Docker, no separate backend server needed. It auto-seeds a high-speed in-memory database on first run.
 
 ```bash
-# 1. Verify environment and open ports
-npm run preflight
-
-# 2. Boot PostgreSQL 16, apply schema migrations, seed 30 test defects
-docker compose up -d db
-npm run migrate
-npm run seed
-
-# 3. Start both servers concurrently
+git clone https://github.com/OjasKugore/clonefest-2.git
+cd clonefest-2
+npm install
 npm run dev
 ```
+
+Then open [http://localhost:3000](http://localhost:3000) — use the **Judge Demo** quick-login buttons to authenticate instantly as any persona.
+
+> **First load note**: The in-memory database seeds ~25 bugs on the first request after server start. This takes ~3–5 seconds once, then everything is fast.
+
+#### ⚡ Optional: Connect to the Live Neon Database for Instant Responses
+
+If you want the same speed as the Vercel deployment, create `apps/web/.env.local` and add the `DATABASE_URL` (request it from the project author):
+
+```bash
+# apps/web/.env.local
+DATABASE_URL=postgresql://...  # Request from author
+GEMINI_API_KEY=...             # Optional — enables AI Triage feature
+```
+
+Restart `npm run dev` after creating the file.
 
 | Service | URL |
 |---|---|
 | **Web Application** | [http://localhost:3000](http://localhost:3000) |
-| **Fastify API Gateway** | [http://localhost:3001](http://localhost:3001) |
-| **Interactive Swagger / OpenAPI Docs** | [http://localhost:3001/docs](http://localhost:3001/docs) |
 
 ---
 
@@ -485,14 +495,12 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 | Command | Description |
 |---|---|
-| `npm run preflight` | Checks Node.js version, environment variables, and open ports |
-| `npm test` | Runs all 124 unit and integration tests across both packages |
-| `npm run dev` | Starts Fastify API (port 3001) and Next.js (port 3000) concurrently |
-| `npm run dev:api` | Starts only the Fastify API Gateway in watch mode |
-| `npm run dev:web` | Starts only the Next.js web application in development mode |
+| `npm run dev` | Starts the Next.js fullstack app on [http://localhost:3000](http://localhost:3000) (API + UI, all-in-one) |
+| `npm run dev:web` | Alias — starts only the Next.js web application in development mode |
+| `npm test` | Runs all 124 unit and integration tests across all packages |
 | `npm run build` | Builds the shared package and Next.js production bundle |
-| `npm run migrate` | Applies all SQL migrations to PostgreSQL |
-| `npm run seed` | Seeds PostgreSQL with 10 users, 30 bugs, dependencies, flags, and SCM commits |
+| `npm run migrate` | Applies SQL migrations to a PostgreSQL database (requires `DATABASE_URL`) |
+| `npm run seed` | Seeds PostgreSQL with users, bugs, dependencies, flags, and SCM commits (requires `DATABASE_URL`) |
 
 ---
 
