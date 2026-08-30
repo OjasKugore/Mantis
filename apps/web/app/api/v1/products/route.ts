@@ -12,14 +12,19 @@ export async function GET(request: Request) {
     const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
     let query = `SELECT id, name, description, is_active, default_milestone FROM products`;
+    const params: any[] = [];
+
     if (isDemo) {
       query += ` WHERE id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
+    } else if (user?.team_name) {
+      query += ` WHERE (classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1) OR id NOT IN (1, 2, 3)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      params.push(`%${user.team_name}%`);
     } else {
       query += ` WHERE id NOT IN (1, 2, 3) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
     }
     query += ` ORDER BY id ASC`;
 
-    const { rows } = await db.query(query);
+    const { rows } = await db.query(query, params);
     return NextResponse.json(rows.map((r: any) => ({ ...r, id: Number(r.id) })));
   } catch (err: any) {
     return NextResponse.json({ error: 'SERVER_ERROR', message: err.message }, { status: 500 });

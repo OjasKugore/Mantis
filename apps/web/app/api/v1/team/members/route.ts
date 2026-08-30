@@ -27,11 +27,16 @@ export async function GET() {
        LEFT JOIN user_group_map ugm ON ugm.user_id = u.id
        LEFT JOIN groups g ON g.id = ugm.group_id
     `;
+    const params: any[] = [];
 
     if (isDemo) {
-      query += ` WHERE u.email LIKE '%@mozilla.com' OR u.email = 'admin@mantis.local'`;
+      query += ` WHERE (u.email LIKE '%@mozilla.com' OR u.email = 'admin@mantis.local')`;
+    } else if (user.team_name) {
+      query += ` WHERE u.team_name = $1 AND u.email NOT LIKE '%@mozilla.com' AND u.email != 'admin@mantis.local'`;
+      params.push(user.team_name);
     } else {
-      query += ` WHERE u.email NOT LIKE '%@mozilla.com' AND u.email != 'admin@mantis.local'`;
+      query += ` WHERE u.id = $1`;
+      params.push(user.id);
     }
 
     query += `
@@ -39,7 +44,7 @@ export async function GET() {
        ORDER BY COALESCE(u.priority_rank, 100) ASC, u.created_at ASC
     `;
 
-    const { rows: users } = await db.query(query);
+    const { rows: users } = await db.query(query, params);
 
     return NextResponse.json({
       members: users.map((u: any) => ({
