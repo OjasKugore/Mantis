@@ -6,16 +6,20 @@ interface MantisLogoProps {
   alt?: string;
 }
 
-export function MantisLogo({ className = 'w-8 h-8', size = 32, alt = 'Mantis Logo' }: MantisLogoProps) {
+export function MantisLogo({ className = '', size = 32, alt = 'Mantis Logo' }: MantisLogoProps) {
   return (
-    <span className={`inline-flex items-center justify-center shrink-0 bg-transparent ${className}`}>
+    <span
+      style={{ width: size, height: size, minWidth: size, minHeight: size }}
+      className={`inline-flex items-center justify-center shrink-0 bg-transparent ${className}`}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/logo.png"
         alt={alt}
         width={size}
         height={size}
-        className="w-full h-full object-contain bg-transparent"
+        style={{ width: size, height: size }}
+        className="w-full h-full object-contain bg-transparent shrink-0"
       />
     </span>
   );
