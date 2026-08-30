@@ -14,6 +14,7 @@ import { MantisLogo } from '@/components/MantisLogo';
 import { ProfileDropdown } from '@/components/ProfileDropdown';
 import { SavedViewsBar } from '@/components/SavedViewsBar';
 import { ReadinessDashboard } from '@/components/ReadinessDashboard';
+import { AppSidebar } from '@/components/AppSidebar';
 
 interface BugItem {
   id: number;
@@ -180,188 +181,16 @@ function DashboardContent() {
 
   return (
     <div className="bg-background text-on-surface font-body-md antialiased h-screen overflow-hidden flex selection:bg-primary-container selection:text-on-primary-container">
-      {/* SideNavBar */}
-      <nav
-        className={`bg-surface-container-low shadow-sm h-screen ${
-          sidebarOpen ? 'w-64' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'
-        } flex flex-col py-margin-sm px-4 gap-gutter shrink-0 border-r border-outline-variant/20 z-20 transition-all duration-300 overflow-hidden`}
-        id="sidebar"
-      >
-        {/* Brand / Header */}
-        <div className="flex items-center gap-3 px-2 py-4">
-          <Link
-            href="/dashboard"
-            onClick={() => {
-              setActiveTab('queue');
-              setQueueViewMode('list');
-            }}
-            className="flex items-center gap-3"
-          >
-            <MantisLogo className="w-8 h-8 rounded-lg shadow-sm shrink-0" size={32} />
-            {sidebarOpen && (
-              <div>
-                <h1 className="font-headline-md text-headline-md font-bold text-primary leading-none text-xl">
-                  Mantis
-                </h1>
-                <p className="font-label-caps text-label-caps text-on-surface-variant mt-1 opacity-80">
-                  V3.0 Platform
-                </p>
-              </div>
-            )}
-          </Link>
-        </div>
-
-        {/* CTA */}
-        <Link
-          href="/bugs/new"
-          className="w-full bg-primary-container hover:bg-opacity-90 text-on-primary-container font-label-caps text-label-caps py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm mt-2 font-bold uppercase tracking-wider"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          {sidebarOpen && 'Report Bug'}
-        </Link>
-
-        {/* Main Navigation */}
-        <div className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto">
-          {sidebarOpen && (
-            <div className="px-3 py-2 text-label-caps font-label-caps text-on-surface-variant/60 uppercase tracking-wider">
-              Dashboard
-            </div>
-          )}
-          <div className="flex flex-col gap-1 pl-1">
-            <button
-              onClick={() => {
-                setActiveTab('queue');
-                setQueueViewMode('list');
-              }}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'queue' && queueViewMode === 'list'
-                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">list_alt</span>
-              {sidebarOpen && (
-                <span className="font-label-caps text-label-caps tracking-wide uppercase">
-                  Bug Queue
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('queue');
-                setQueueViewMode('kanban');
-              }}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'queue' && queueViewMode === 'kanban'
-                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
-                view_kanban
-              </span>
-              {sidebarOpen && (
-                <span className="font-label-caps text-label-caps tracking-wide uppercase">
-                  Kanban Board
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('graph')}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'graph'
-                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
-                hub
-              </span>
-              {sidebarOpen && (
-                <span className="font-label-caps text-label-caps tracking-wide uppercase">
-                  Dependency Graph
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'analytics'
-                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
-                trending_down
-              </span>
-              {sidebarOpen && (
-                <span className="font-label-caps text-label-caps tracking-wide uppercase">
-                  Sprint Burndown
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('readiness')}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'readiness'
-                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
-                verified
-              </span>
-              {sidebarOpen && (
-                <span className="font-label-caps text-label-caps tracking-wide uppercase">
-                  Release Readiness
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="mt-auto pt-4 border-t border-outline-variant/20 flex flex-col gap-1">
-          {user?.is_admin && (
-            <Link
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
-              href="/settings/products"
-            >
-              <span className="material-symbols-outlined text-[20px]">settings</span>
-              {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Settings</span>}
-            </Link>
-          )}
-          <Link
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
-            href="/audit"
-          >
-            <span className="material-symbols-outlined text-[20px]">manage_search</span>
-            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Audit Explorer</span>}
-          </Link>
-          <Link
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
-            href="/docs"
-          >
-            <span className="material-symbols-outlined text-[20px]">help</span>
-            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Docs &amp; Support</span>}
-          </Link>
-          <button
-            type="button"
-            onClick={async () => {
-              await logout();
-              window.location.href = '/login';
-            }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group w-full text-left cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[20px]">account_circle</span>
-            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Switch Account</span>}
-          </button>
-        </div>
-      </nav>
+      {/* Standardized AppSidebar */}
+      <AppSidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        activeItem={activeTab === 'queue' && queueViewMode === 'kanban' ? 'kanban' : activeTab}
+        onTabChange={(tab, viewMode) => {
+          setActiveTab(tab);
+          if (viewMode) setQueueViewMode(viewMode);
+        }}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">

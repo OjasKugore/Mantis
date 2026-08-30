@@ -9,6 +9,7 @@ import { CvssModal } from '@/components/CvssModal';
 import { useAuth, SEED_PERSONAS } from '@/lib/auth-context';
 import { MantisLogo } from '@/components/MantisLogo';
 import { ProfileDropdown } from '@/components/ProfileDropdown';
+import { AppSidebar } from '@/components/AppSidebar';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -164,73 +165,18 @@ export default function NewBugPage() {
   };
 
   return (
-    <div className="bg-background text-on-surface font-body-md antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
-      {/* SideNavBar */}
-      <aside
-        className={`h-screen ${
-          sidebarOpen ? 'w-64' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'
-        } fixed left-0 top-0 bg-surface-container-low shadow-sm flex flex-col border-r border-outline-variant/30 z-50 transition-all duration-300 overflow-hidden`}
-        id="sidebar"
-      >
-        <div className="p-6">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <MantisLogo className="w-8 h-8 rounded-lg shadow-sm shrink-0" size={32} />
-            {sidebarOpen && (
-              <div>
-                <h1 className="font-headline-sm text-headline-sm font-bold text-primary leading-none text-xl">
-                  Mantis
-                </h1>
-                <p className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mt-1 opacity-80">
-                  Bug Monitoring
-                </p>
-              </div>
-            )}
-          </Link>
-        </div>
-
-        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
-          >
-            <span className="material-symbols-outlined">dashboard</span>
-            {sidebarOpen && <span className="font-body-md text-body-md">Dashboard</span>}
-          </Link>
-
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
-          >
-            <span className="material-symbols-outlined">list_alt</span>
-            {sidebarOpen && <span className="font-body-md text-body-md">Bug Queue</span>}
-          </Link>
-
-          <Link
-            href="/kanban"
-            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
-          >
-            <span className="material-symbols-outlined">view_kanban</span>
-            {sidebarOpen && <span className="font-body-md text-body-md">Kanban Board</span>}
-          </Link>
-
-          <Link
-            href="/bugs/24/graph"
-            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
-          >
-            <span className="material-symbols-outlined">hub</span>
-            {sidebarOpen && <span className="font-body-md text-body-md">Dependency Graph</span>}
-          </Link>
-        </nav>
-      </aside>
+    <div className="bg-background text-on-surface font-body-md antialiased h-screen overflow-hidden flex selection:bg-primary-container selection:text-on-primary-container">
+      {/* Standardized AppSidebar */}
+      <AppSidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        activeItem="new_bug"
+      />
 
       {/* Main Content Area */}
-      <main
-        className={`flex-1 ${
-          sidebarOpen ? 'ml-64' : 'ml-0 md:ml-20'
-        } flex flex-col min-h-screen transition-all duration-300`}
-      >
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         {/* TopNavBar */}
-        <header className="bg-background border-b border-outline-variant/20 top-0 sticky z-40">
+        <header className="bg-background border-b border-outline-variant/20 top-0 shrink-0 z-30">
           <div className="flex justify-between items-center h-16 px-6 w-full max-w-max-width mx-auto">
             <div className="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm">
               <button
@@ -284,8 +230,9 @@ export default function NewBugPage() {
           </div>
         </header>
 
-        {/* Form Canvas */}
-        <div className="flex-1 p-8 md:p-12 max-w-4xl mx-auto w-full">
+        {/* Form Canvas Container */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
+          <div className="max-w-4xl mx-auto w-full">
           <div className="mb-10">
             <h1 className="font-display-lg text-display-lg text-on-surface mb-2 font-bold tracking-tight">
               Report a New Defect
@@ -621,6 +568,7 @@ export default function NewBugPage() {
           </div>
         </div>
       </main>
+    </div>
 
       {/* CVSS Modal */}
       {showCvssModal && (
