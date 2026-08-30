@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { MantisLogo } from '@/components/MantisLogo';
+import { AppleProductShowcase } from '@/components/AppleProductShowcase';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -315,13 +316,11 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setIsPlayingDemo(!isPlayingDemo)}
-                className="px-4 py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 text-on-surface font-label-caps text-xs font-bold uppercase transition flex items-center gap-2 cursor-pointer shadow-xs"
+                onClick={() => handleLaunchDemo(selectedPersona)}
+                className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-label-caps text-xs font-bold uppercase transition flex items-center gap-2 cursor-pointer shadow-md"
               >
-                <span className="material-symbols-outlined text-[18px] text-primary">
-                  {isPlayingDemo ? 'pause_circle' : 'play_circle'}
-                </span>
-                {isPlayingDemo ? 'Pause Tour' : 'Play Tour'}
+                <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                Launch Live Sandbox
               </button>
             </div>
           </div>
@@ -358,42 +357,8 @@ export default function LandingPage() {
               </div>
 
               {/* High-Definition Live Product Tour Canvas */}
-              <div
-                onClick={() => setIsPlayingDemo(!isPlayingDemo)}
-                className="relative aspect-video w-full bg-surface-container flex items-center justify-center overflow-hidden cursor-pointer group/screen"
-              >
-                {/* Live Animated Tour Recording */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/videos/mantis-demo-tour.webp"
-                  alt="Mantis Live Flagship Product Tour"
-                  className={`w-full h-full object-cover select-none transition-opacity duration-300 ${
-                    isPlayingDemo ? 'opacity-100' : 'opacity-85'
-                  }`}
-                />
-
-                {/* Smooth Hover Controls Overlay */}
-                <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] opacity-0 group-hover/screen:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-2xl transform scale-90 group-hover/screen:scale-100 transition-transform">
-                      <span className="material-symbols-outlined text-[36px]">
-                        {isPlayingDemo ? 'pause' : 'play_arrow'}
-                      </span>
-                    </div>
-                    <span className="font-label-caps text-xs font-bold uppercase tracking-widest text-white drop-shadow-md">
-                      {isPlayingDemo ? 'Click to Pause' : 'Click to Resume'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Sleek Bottom Scrubbing Indicator */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
-                  <div
-                    className={`h-full bg-primary transition-all duration-700 ${
-                      isPlayingDemo ? 'w-full animate-pulse' : 'w-1/2'
-                    }`}
-                  />
-                </div>
+              <div className="relative aspect-[16/10] md:aspect-[16/9.5] w-full bg-slate-950 overflow-hidden shadow-inner">
+                <AppleProductShowcase />
               </div>
             </div>
 
