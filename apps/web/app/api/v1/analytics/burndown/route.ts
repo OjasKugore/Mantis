@@ -13,19 +13,23 @@ export async function GET(request: Request) {
     let query = `
       SELECT status, estimated_time, remaining_time, created_at, updated_at
       FROM bugs
-      WHERE (target_milestone = $1 OR ($1 = '128.0' AND target_milestone IN ('128.0', '---')))
+      WHERE 1=1
     `;
-    const params: any[] = [milestone];
+    const params: any[] = [];
+    let pIdx = 1;
 
-    if (scope === 'user') {
-      if (userId) {
-        query += ` AND (reporter_id = $2 OR assignee_id = $2)`;
-        params.push(userId);
-      } else {
-        query += ` AND 1=0`;
-      }
-    } else if (scope === 'demo') {
-      query += ` AND (id <= 24 OR reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local'))`;
+    if (milestone && milestone !== 'all') {
+      query += ` AND (target_milestone = $${pIdx} OR ($${pIdx} = '128.0' AND target_milestone IN ('128.0', '---')))`;
+      params.push(milestone);
+      pIdx++;
+    }
+
+    const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
+
+    if (isDemo) {
+      query += ` AND reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
+    } else {
+      query += ` AND reporter_id NOT IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
     }
 
     const { rows } = await db.query(query, params);

@@ -900,6 +900,16 @@ export default function DashboardPage() {
 
           {activeTab === 'analytics' && (
             <div className="space-y-6 flex-1 overflow-y-auto">
+              <div>
+                <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-[32px]">trending_down</span>
+                  Sprint &amp; Release Burndown
+                </h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
+                  Trajectory of resolved vs pending blockers across sprint milestones and Critical Path Method (CPM) telemetry.
+                </p>
+              </div>
+
               {bugs.length === 0 && !isDemoUser(user) ? (
                 /* ── Sprint Burndown Empty State ───────────────────────────── */
                 <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-8 shadow-xl">

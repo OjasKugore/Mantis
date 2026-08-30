@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TrendingDown, Calendar, CheckCircle2, AlertCircle, RefreshCw, Activity, Zap } from 'lucide-react';
 import { useAuth, isDemoUser } from '@/lib/auth-context';
 
 interface TrajectoryPoint {
@@ -23,7 +22,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export function AnalyticsBurndown() {
   const { user } = useAuth();
-  const [milestone, setMilestone] = useState('128.0');
+  const isDemo = isDemoUser(user);
+  const [milestone, setMilestone] = useState(isDemo ? '128.0' : 'all');
   const [data, setData] = useState<BurndownData | null>(null);
   const [loading, setLoading] = useState(true);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -39,7 +39,7 @@ export function AnalyticsBurndown() {
       if (res.ok) {
         const json = await res.json();
         setData(json);
-        setAnimKey((prev) => prev + 1); // trigger clean re-animation on data load
+        setAnimKey((prev) => prev + 1);
       }
     } catch {
       // Fallback
@@ -53,12 +53,12 @@ export function AnalyticsBurndown() {
   }, [milestone, user]);
 
   const trajectory = data?.trajectory || [];
-  const maxVal = data?.totalBugs || 15;
+  const maxVal = Math.max(data?.totalBugs || 15, 1);
 
   // SVG Chart Geometry Constants
   const width = 600;
   const height = 240;
-  const paddingX = 40;
+  const paddingX = 45;
   const paddingY = 30;
   const chartW = width - paddingX * 2;
   const chartH = height - paddingY * 2;
@@ -93,7 +93,7 @@ export function AnalyticsBurndown() {
   const burnRatePercent = data && data.totalBugs > 0 ? Math.round((data.resolvedCount / data.totalBugs) * 100) : 0;
 
   return (
-    <div className="p-6 rounded-2xl border border-[#e5dde1] bg-[#fbf1f5] shadow-sm space-y-6 text-[#1b1c17]">
+    <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 md:p-8 shadow-sm space-y-6 text-on-surface">
       <style jsx>{`
         @keyframes drawTrajectory {
           0% {
@@ -141,95 +141,111 @@ export function AnalyticsBurndown() {
       `}</style>
 
       {/* Header with Milestone Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/20 pb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary-container/20 border border-primary/30 flex items-center justify-center text-primary">
-            <TrendingDown className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-xs">
+            <span className="material-symbols-outlined text-[22px]">trending_down</span>
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              Sprint & Release Burndown
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container">
-                Live CPM Telemetry
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-on-surface tracking-tight">
+                Sprint Velocity &amp; Release Burndown
+              </h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container font-mono border border-primary/20">
+                Live Telemetry
               </span>
-            </h3>
-            <p className="text-xs text-slate-600">
-              Trajectory of resolved vs pending blockers across sprint milestones.
+            </div>
+            <p className="text-xs text-on-surface-variant mt-0.5">
+              Trajectory of resolved vs. open defect backlog calculated across sprint timelines.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-[#e5dde1] text-xs shadow-sm">
-            <Calendar className="w-3.5 h-3.5 text-primary" />
-            <span className="text-slate-600 font-medium">Milestone:</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 bg-surface-container-high/40 px-3 py-1.5 rounded-xl border border-outline-variant/40 text-xs shadow-xs">
+            <span className="material-symbols-outlined text-primary text-[16px]">flag</span>
+            <span className="text-on-surface-variant font-medium">Milestone:</span>
             <select
               value={milestone}
               onChange={(e) => setMilestone(e.target.value)}
-              className="bg-transparent text-slate-900 font-bold focus:outline-none cursor-pointer"
+              className="bg-transparent text-on-surface font-bold focus:outline-none cursor-pointer pr-1"
             >
-              <option value="128.0" className="bg-white">Firefox 128.0 (Current)</option>
-              <option value="115.0" className="bg-white">Thunderbird 115.0</option>
-              <option value="129.0" className="bg-white">Gecko 129.0 Next</option>
-              <option value="---" className="bg-white">Unspecified (---)</option>
+              {isDemo ? (
+                <>
+                  <option value="128.0">Firefox 128.0 (Current)</option>
+                  <option value="115.0">Thunderbird 115.0</option>
+                  <option value="129.0">Gecko 129.0 Next</option>
+                  <option value="all">All Sprint Milestones</option>
+                </>
+              ) : (
+                <>
+                  <option value="all">All Workspace Issues</option>
+                  <option value="1.0.0">Release 1.0.0</option>
+                  <option value="v1.1">Sprint v1.1</option>
+                  <option value="---">Unscheduled (---)</option>
+                </>
+              )}
             </select>
           </div>
 
           <button
             onClick={() => fetchBurndown(milestone)}
-            className="p-2 rounded-lg bg-white hover:bg-slate-100 border border-[#e5dde1] text-slate-700 transition shadow-sm"
-            title="Refresh Burndown"
+            className="p-2 rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high border border-outline-variant/40 text-on-surface transition shadow-xs cursor-pointer flex items-center justify-center"
+            title="Refresh Burndown Data"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className={`material-symbols-outlined text-[18px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
           </button>
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl bg-white border border-[#e5dde1] shadow-sm space-y-1 transition-transform hover:-translate-y-0.5 duration-200">
-          <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1">
-            <Activity className="w-3 h-3 text-primary" /> Total Scope
+      {/* Metrics Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-xl bg-surface-container-high/30 border border-outline-variant/30 shadow-xs space-y-1.5 transition-transform hover:-translate-y-0.5 duration-200">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label-caps flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-primary text-[15px]">inventory_2</span>
+            Total Scope
           </div>
-          <div className="text-xl font-extrabold text-slate-900 font-mono">{data?.totalBugs ?? 0} Bugs</div>
+          <div className="text-2xl font-extrabold text-on-surface font-mono">{data?.totalBugs ?? 0} Bugs</div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white border border-[#e5dde1] shadow-sm space-y-1 transition-transform hover:-translate-y-0.5 duration-200">
-          <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Resolved
+        <div className="p-4 rounded-xl bg-surface-container-high/30 border border-outline-variant/30 shadow-xs space-y-1.5 transition-transform hover:-translate-y-0.5 duration-200">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label-caps flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-emerald-600 text-[15px]">check_circle</span>
+            Resolved
           </div>
-          <div className="text-xl font-extrabold text-emerald-700 font-mono">{data?.resolvedCount ?? 0} Fixed</div>
+          <div className="text-2xl font-extrabold text-emerald-600 font-mono">{data?.resolvedCount ?? 0} Fixed</div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white border border-[#e5dde1] shadow-sm space-y-1 transition-transform hover:-translate-y-0.5 duration-200">
-          <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3 text-amber-600" /> Remaining
+        <div className="p-4 rounded-xl bg-surface-container-high/30 border border-outline-variant/30 shadow-xs space-y-1.5 transition-transform hover:-translate-y-0.5 duration-200">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label-caps flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-amber-600 text-[15px]">pending</span>
+            Remaining Open
           </div>
-          <div className="text-xl font-extrabold text-amber-700 font-mono">{data?.openCount ?? 0} Open</div>
+          <div className="text-2xl font-extrabold text-amber-600 font-mono">{data?.openCount ?? 0} Open</div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white border border-[#e5dde1] shadow-sm space-y-1 transition-transform hover:-translate-y-0.5 duration-200">
-          <div className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1">
-            <Zap className="w-3 h-3 text-primary" /> Completion Rate
+        <div className="p-4 rounded-xl bg-surface-container-high/30 border border-outline-variant/30 shadow-xs space-y-1.5 transition-transform hover:-translate-y-0.5 duration-200">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-label-caps flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-primary text-[15px]">bolt</span>
+            Burn Rate
           </div>
-          <div className="text-xl font-extrabold text-primary font-mono">{burnRatePercent}%</div>
+          <div className="text-2xl font-extrabold text-primary font-mono">{burnRatePercent}%</div>
         </div>
       </div>
 
       {/* SVG Chart Container */}
-      <div className="p-4 rounded-xl bg-white border border-[#e5dde1] shadow-sm relative overflow-hidden">
-        {/* SVG Chart */}
+      <div className="p-5 rounded-2xl bg-surface-container/20 border border-outline-variant/30 shadow-inner relative overflow-hidden">
         <svg
           key={animKey}
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-56 select-none overflow-visible"
+          className="w-full h-60 select-none overflow-visible"
         >
           <defs>
-            <linearGradient id="burndownLavenderGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#486730" stopOpacity="0.25" />
+            <linearGradient id="burndownPrimaryGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#486730" stopOpacity="0.28" />
               <stop offset="100%" stopColor="#486730" stopOpacity="0.0" />
             </linearGradient>
-            <filter id="glowLavender" x="-20%" y="-20%" width="140%" height="140%">
+            <filter id="glowBurndown" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="2" result="glow" />
               <feComposite in="SourceGraphic" in2="glow" operator="over" />
             </filter>
@@ -246,17 +262,19 @@ export function AnalyticsBurndown() {
                   y1={y}
                   x2={width - paddingX}
                   y2={y}
-                  stroke="#f1e9ed"
+                  stroke="#c4c8ba"
+                  strokeOpacity="0.3"
                   strokeDasharray="4 4"
                   strokeWidth="1"
                 />
                 <text
-                  x={paddingX - 8}
-                  y={y + 3}
+                  x={paddingX - 10}
+                  y={y + 3.5}
                   textAnchor="end"
                   fill="#74796d"
                   fontSize="10"
                   fontFamily="monospace"
+                  fontWeight="bold"
                 >
                   {val}
                 </text>
@@ -268,7 +286,7 @@ export function AnalyticsBurndown() {
           {actualArea && (
             <path
               d={actualArea}
-              fill="url(#burndownLavenderGradient)"
+              fill="url(#burndownPrimaryGradient)"
               className="anim-area"
             />
           )}
@@ -278,7 +296,7 @@ export function AnalyticsBurndown() {
             <path
               d={idealPath}
               fill="none"
-              stroke="#9ca3af"
+              stroke="#94a3b8"
               strokeWidth="2"
               strokeDasharray="6 6"
               opacity="0.8"
@@ -286,14 +304,14 @@ export function AnalyticsBurndown() {
             />
           )}
 
-          {/* Actual Remaining Line (Solid Forest Primary) */}
+          {/* Actual Remaining Line (Solid Mantis Forest Primary) */}
           {actualPath && (
             <path
               d={actualPath}
               fill="none"
               stroke="#486730"
               strokeWidth="3"
-              filter="url(#glowLavender)"
+              filter="url(#glowBurndown)"
               className="anim-line-actual"
             />
           )}
@@ -325,7 +343,7 @@ export function AnalyticsBurndown() {
                   <circle
                     cx={cx}
                     cy={cy}
-                    r={10}
+                    r={12}
                     fill="#486730"
                     opacity="0.2"
                   />
@@ -345,6 +363,7 @@ export function AnalyticsBurndown() {
                 textAnchor="middle"
                 fill="#74796d"
                 fontSize="10"
+                fontWeight="500"
                 fontFamily="sans-serif"
               >
                 {p.day}
@@ -356,35 +375,36 @@ export function AnalyticsBurndown() {
         {/* Hover Tooltip Overlay */}
         {hoverIndex !== null && trajectory[hoverIndex] && (
           <div
-            className="absolute top-6 left-1/2 -translate-x-1/2 bg-white border border-[#c4c8ba] shadow-xl p-2.5 rounded-xl text-xs flex items-center gap-4 animate-fade-in pointer-events-none text-slate-800"
+            className="absolute top-5 left-1/2 -translate-x-1/2 bg-surface-container-lowest border border-outline-variant/50 shadow-2xl p-3 rounded-xl text-xs flex items-center gap-4 animate-fade-in pointer-events-none text-on-surface"
           >
             <div>
-              <span className="text-[10px] text-slate-500 block font-semibold">{trajectory[hoverIndex].day}</span>
-              <span className="text-slate-900 font-bold">{trajectory[hoverIndex].actual ?? trajectory[hoverIndex].ideal} Bugs Left</span>
+              <span className="text-[10px] text-on-surface-variant block font-semibold">{trajectory[hoverIndex].day}</span>
+              <span className="text-on-surface font-bold font-mono">{trajectory[hoverIndex].actual ?? trajectory[hoverIndex].ideal} Bugs Left</span>
             </div>
-            <div className="border-l border-[#e5dde1] pl-3">
+            <div className="border-l border-outline-variant/30 pl-3">
               <span className="text-[10px] text-primary block font-semibold">Ideal Target</span>
-              <span className="text-slate-600 font-mono">{trajectory[hoverIndex].ideal}</span>
+              <span className="text-on-surface-variant font-mono">{trajectory[hoverIndex].ideal}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600 px-1 border-t border-[#e5dde1] pt-3">
+      {/* Legend & Telemetry Engine Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-on-surface-variant px-1 border-t border-outline-variant/20 pt-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-0.5 bg-primary shadow-[0_0_6px_rgba(72,103,48,0.5)]" />
-            <span className="text-slate-800 font-medium">Actual Remaining Defect Backlog</span>
+            <div className="w-5 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(72,103,48,0.5)]" />
+            <span className="text-on-surface font-medium">Actual Remaining Defect Backlog</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-5 h-0.5 border-t border-dashed border-slate-400" />
-            <span>Ideal Sprint Burndown Guideline</span>
+            <div className="w-5 h-0.5 border-t-2 border-dashed border-slate-400" />
+            <span>Ideal Sprint Guideline</span>
           </div>
         </div>
 
-        <div className="text-[11px] text-slate-500 font-mono">
-          Updated live from CPM topological engine
+        <div className="text-[11px] text-on-surface-variant/70 font-mono flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          Critical Path Method (CPM) Realtime Engine
         </div>
       </div>
     </div>
