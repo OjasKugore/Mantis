@@ -18,9 +18,18 @@ export async function POST(request: Request) {
     const parseResult = SignupSchema.safeParse(rawBody);
 
     if (!parseResult.success) {
+      const issue = parseResult.error.issues[0];
+      const field = issue?.path?.[0];
+      let msg = 'Invalid signup payload';
+      if (field === 'password') msg = 'Password must be at least 6 characters';
+      else if (field === 'email') msg = 'Please enter a valid email address';
+      else if (field === 'display_name') msg = 'Full name is required';
+      else if (issue?.message) msg = issue.message;
+
       return NextResponse.json({
         error: 'VALIDATION_ERROR',
-        message: 'Invalid signup payload',
+        code: 'VALIDATION_ERROR',
+        message: msg,
         details: parseResult.error.flatten(),
       }, { status: 400 });
     }

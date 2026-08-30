@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       } else {
         const err = await res.json();
-        return { success: false, error: err.message || 'Signup failed' };
+        return { success: false, error: err.message || 'Signup failed', code: err.code || err.error };
       }
     } catch {
       return { success: false, error: 'Network error during signup' };

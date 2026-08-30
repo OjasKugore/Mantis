@@ -42,7 +42,20 @@ function SignupContent() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || !displayName.trim()) return;
+    if (!displayName.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
+
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
 
     // Client-side username validation
     if (username && !/^[a-zA-Z0-9_]{2,64}$/.test(username)) {
