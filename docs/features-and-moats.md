@@ -1,574 +1,220 @@
-# Mantis — Algorithmic Moats & Advanced Features Specification
+# Mantis — Algorithmic Moats & Complete Feature Specification
 
-> **Platform Architecture**: Fastify 4 + PostgreSQL 16 + Next.js 14 + TypeScript 5
+> **Platform Architecture**: Fastify 4 + PostgreSQL 16 + Next.js 14 + TypeScript 5  
+> **Live Evaluation Sandbox**: [https://mantis-clonefest.vercel.app](https://mantis-clonefest.vercel.app)
 >
-> This document provides the complete technical specification for Mantis's core algorithmic differentiators, data integrity models, security isolation patterns, and intelligent developer ergonomics.
+> This document provides the complete, authoritative technical specification for all live features, algorithmic engines, security isolation patterns, and developer ergonomics in Mantis.
 
 ---
 
-# PART I: ACTIVE 72-HOUR BUILD TARGETS (Live Demo Scope)
-
-The following six features constitute the live functional demo deliverables for Phases 2 and 3.
+## 📑 Feature Navigation
+1. [🕸️ Interactive Dependency Graph & Critical Path Engine (CPM)](#1-️-interactive-dependency-graph--critical-path-engine-cpm)
+2. [🛡️ FIRST.org CVSS v4.0 Vulnerability Math & 90-Day Embargo](#2-️-firstorg-cvss-v40-vulnerability-math--90-day-embargo)
+3. [🔒 Formal Finite State Machine & 404 Zero-Leakage Secrecy](#3--formal-finite-state-machine--404-zero-leakage-secrecy)
+4. [✨ 1-Click AI Triage Assistant (Gemini 2.0 Flash)](#4--1-click-ai-triage-assistant-gemini-20-flash)
+5. [🚩 Three-State Review Flag Governance (? / + / -)](#5--three-state-review-flag-governance-----)
+6. [🔍 Stemmed Full-Text Search & Live Trigram Duplicate Prevention](#6--stemmed-full-text-search--live-trigram-duplicate-prevention)
+7. [💻 Drag-and-Drop Kanban Board with FSM Rollback](#7--drag-and-drop-kanban-board-with-fsm-rollback)
+8. [⌨️ ⌘K Command Palette & Keyboard Ergonomics](#8-️-k-command-palette--keyboard-ergonomics)
+9. [📝 Rich-Text GFM Markdown & @Mentions Collaboration](#9--rich-text-gfm-markdown--mentions-collaboration)
+10. [📊 Milestone Release Readiness & Pure SQL MTTR Analytics](#10--milestone-release-readiness--pure-sql-mttr-analytics)
+11. [🐙 Real-Time GitHub SCM Webhook Automation](#11--real-time-github-scm-webhook-automation)
 
 ---
 
-## 1. 🕸️ Interactive Dependency Graph & Critical Path Engine (Phase 2 Moat)
+## 1. 🕸️ Interactive Dependency Graph & Critical Path Engine (CPM)
 
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), UX & Aesthetics (15 pts), Performance & Reliability (20 pts)  
-**Mantis Gap Addressed**: Overhauls `showdependencygraph.cgi`. Legacy Mantis shelled out to Graphviz `dot` in 2002 to generate static, blurry `.png` image maps. This replaces it with an interactive, live-calculated DAG cockpit.
+Mantis replaces legacy static Graphviz image maps with a real-time, interactive Directed Acyclic Graph (DAG) canvas powered by **React Flow** and **Dagre**.
 
-### 1.1 Data Schema & Integrity Constraints
-```sql
-CREATE TABLE bug_dependencies (
-    blocking_bug_id BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    blocked_bug_id  BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_by      UUID NOT NULL REFERENCES users(id),
-    PRIMARY KEY (blocking_bug_id, blocked_bug_id),
-    CONSTRAINT chk_no_self_dependency CHECK (blocking_bug_id <> blocked_bug_id)
-);
-
-CREATE INDEX idx_bug_dep_blocked ON bug_dependencies(blocked_bug_id, blocking_bug_id);
-CREATE INDEX idx_bug_dep_blocking ON bug_dependencies(blocking_bug_id, blocked_bug_id);
+```
+       [Bug #101: Necko Socket Engine (4h)]  <-- CRITICAL PATH (Pulsing Red)
+                         │
+                         ▼
+        [Bug #102: Wayland Buffer Sync (3h)] <-- CRITICAL PATH (Pulsing Red)
+                         │
+                         ▼
+       [Bug #106: SpiderMonkey JIT Bail (2.5h)] <-- CRITICAL PATH (Total: 9.5h)
 ```
 
-### 1.2 Algorithmic Core: Critical Path Method (CPM) & Server-Side Cycle Rejection
-1. **Critical Path Method (CPM)**:
-   * Computed across the sub-DAG of unresolved issues targeting a milestone or focal ticket.
-   * Path duration is determined by estimated task hours (or hop-count if estimates are absent).
-   * The longest unresolved sequential chain of blockers is identified as the **Critical Path** and rendered with pulsing high-contrast red edges (`#EF4444`).
-2. **Server-Side Recursive CTE Cycle Detection**:
-   * Before committing a new dependency edge, the server executes a recursive path search within the transaction. If a path already exists from `blocked_bug_id` to `blocking_bug_id`, the insertion is aborted with HTTP 422:
-     ```sql
-     WITH RECURSIVE check_cycle AS (
-         SELECT blocking_bug_id, blocked_bug_id FROM bug_dependencies WHERE blocking_bug_id = :new_blocked_id
-         UNION ALL
-         SELECT d.blocking_bug_id, d.blocked_bug_id 
-         FROM bug_dependencies d 
-         JOIN check_cycle c ON d.blocking_bug_id = c.blocked_bug_id
-     )
-     SELECT 1 FROM check_cycle WHERE blocked_bug_id = :new_blocking_id LIMIT 1;
-     ```
+### 1.1 Algorithmic Implementation (Kahn's Topological Sort & Dynamic Programming)
+- **Topological Sorting**: Evaluates the dependency DAG using Kahn's algorithm to resolve task order.
+- **Earliest Finish Time (EFT) Dynamic Programming**: Computes the cumulative path duration across all blocker branches using task time estimates (`estimated_time`).
+- **Critical Path Discovery**: Identifies the longest sequential dependency chain delaying release and marks node IDs into `criticalPathIds`.
+- **Pulsing Visual Representation**: Critical path edges are dynamically rendered with pulsing high-contrast animated red stroke lines (`.critical-edge` in `#EF4444`).
 
-### 1.3 UI & Canvas Architecture
-- **Rendering Engine**: `@xyflow/react` (React Flow) paired with `dagre` for fast, synchronous, deterministic hierarchical layout.
-- **Node Interaction**: Hovering a node highlights immediate upstream blockers and downstream dependents.
-- **Quick-Edit Slide-Over Drawer**: Clicking any node slides open a detailed drawer from the right, allowing triage leads to reassign, change status, or inspect comments without losing spatial canvas context.
+### 1.2 Recursive CTE Cycle Detection & Prevention
+Before adding a dependency edge (`blocking_bug_id` $\rightarrow$ `blocked_bug_id`), the database transaction executes a recursive Common Table Expression (CTE) to check for circular paths:
 
-### 1.4 API Endpoints
-- `POST /api/v1/bugs/:id/dependencies`: Body `{ blocked_bug_id: 104 }`. Inserts edge if no cycle detected; returns HTTP 201 or HTTP 422 `{ error: "CYCLIC_DEPENDENCY_DETECTED" }`.
-- `DELETE /api/v1/bugs/:id/dependencies/:blocked_id`: Removes dependency edge.
-- `GET /api/v1/bugs/:id/graph`: Returns `{ nodes: [...], edges: [...], criticalPathIds: [101, 104, 109] }`.
-
-### 1.5 Automated Test Specifications
-* **Unit Tests (`test/unit/graph_cpm.test.ts`)**:
-  - Validates CPM calculation on standard DAG: `A(2h) -> B(4h) -> D(1h)` vs `A(2h) -> C(1h) -> D(1h)` correctly flags `[A, B, D]` as critical.
-  - Validates graceful handling of single-node and disconnected subgraphs.
-* **Integration Tests (`test/integration/dependencies.test.ts`)**:
-  - Asserts self-linking `101 -> 101` rejects with HTTP 400 (`chk_no_self_dependency`).
-  - Asserts direct cycle `101 -> 102` then `102 -> 101` rejects with HTTP 422 and rolls back.
-  - Asserts multi-hop cycle `101 -> 102 -> 103` then `103 -> 101` rejects with HTTP 422.
+```sql
+WITH RECURSIVE check_cycle AS (
+    SELECT blocking_bug_id, blocked_bug_id 
+    FROM bug_dependencies 
+    WHERE blocking_bug_id = $blocked_id
+  UNION ALL
+    SELECT d.blocking_bug_id, d.blocked_bug_id 
+    FROM bug_dependencies d 
+    JOIN check_cycle c ON d.blocking_bug_id = c.blocked_bug_id
+)
+SELECT 1 FROM check_cycle WHERE blocked_bug_id = $blocking_id LIMIT 1;
+```
+If a cycle is detected, the transaction aborts and returns HTTP `422 CYCLIC_DEPENDENCY_DETECTED`.
 
 ---
 
-## 2. 🛡️ Enterprise Vulnerability Disclosure: CVSS v4.0 & Embargo Countdown (Phase 2 Moat)
+## 2. 🛡️ FIRST.org CVSS v4.0 Vulnerability Math & 90-Day Embargo
 
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts), Performance & Reliability (20 pts)  
-**Mantis Gap Addressed**: Mantis is historically the world's primary zero-day vulnerability tracker (Mozilla, Red Hat, Linux Kernel). Yet it relied on arbitrary text flags with zero mathematical severity calculation and no automated disclosure clocks.
+Mantis provides a full mathematical implementation of the official FIRST.org Common Vulnerability Scoring System (CVSS) version 4.0.
 
-### 2.1 Data Schema
-```sql
-ALTER TABLE bugs ADD COLUMN is_embargoed BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE bugs ADD COLUMN embargo_until TIMESTAMPTZ DEFAULT NULL;
-ALTER TABLE bugs ADD COLUMN cvss_version VARCHAR(8) DEFAULT '4.0';
-ALTER TABLE bugs ADD COLUMN cvss_vector VARCHAR(128) DEFAULT NULL;
-ALTER TABLE bugs ADD COLUMN cvss_score DECIMAL(3,1) DEFAULT NULL;
-ALTER TABLE bugs ADD COLUMN cvss_severity VARCHAR(16) DEFAULT NULL; -- 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+### 2.1 Discrete MacroVector Math Engine
+Computes 5 distinct MacroVectors ($EQ1$ through $EQ5$) across metric dimensions:
+- **EQ1 (Exploitability)**: Attack Vector (`AV`), Attack Complexity (`AC`), Attack Requirements (`AT`)
+- **EQ2 (Privileges & Interaction)**: Privileges Required (`PR`), User Interaction (`UI`)
+- **EQ3 (Vulnerable System Impact)**: Confidentiality (`VC`), Integrity (`VI`), Availability (`VA`)
+- **EQ4 (Subsequent System Impact)**: Confidentiality (`SC`), Integrity (`SI`), Availability (`SA`)
+- **EQ5 (Exploit Maturity)**: Exploit Maturity (`E`)
 
-CREATE INDEX idx_bugs_embargo ON bugs(is_embargoed, embargo_until);
+The engine calculates numeric scores ($0.0–10.0$) and maps them to severity tiers:
+- `0.0`: **NONE**
+- `0.1 – 3.9`: **LOW**
+- `4.0 – 6.9`: **MEDIUM**
+- `7.0 – 8.9`: **HIGH**
+- `9.0 – 10.0`: **CRITICAL**
+
+### 2.2 Interactive Metric Modal & 90-Day Embargo Banner
+- **Live Vector Generator**: Interactive modal lets security analysts toggle metrics (e.g. `AV:N`, `AC:L`, `PR:N`, `UI:N`, `VC:H`, `VI:H`, `VA:H`) with real-time vector string output.
+- **Automated 90-Day Embargo Disclosure Banner**: Toggling a bug to "Embargoed" sets `embargo_until = NOW() + INTERVAL '90 days'` and locks access to the `security-team` group. The detail page displays a live ticking **`DD:HH:MM:SS` countdown timer banner**.
+
+---
+
+## 3. 🔒 Formal Finite State Machine & 404 Zero-Leakage Secrecy
+
+### 3.1 Strict State Transition Rules
+Mantis enforces a formal finite state machine (FSM) preventing invalid lifecycle shortcuts:
+
+```
+UNCONFIRMED ──► CONFIRMED ──► IN_PROGRESS ──► RESOLVED ──► VERIFIED ──► CLOSED
+                    ▲              │              │           │
+                    └──────────────┴──────────────┴───────────┘ (Reopen)
 ```
 
-### 2.2 Algorithmic Core: CVSS v4.0 Math & Client Countdown
-1. **Interactive CVSS v4.0 Calculator**:
-   * Evaluates metrics across MacroVectors:
-     * $EQ1$: Exploitability (Attack Vector, Complexity, Attack Requirements, Privileges, User Interaction).
-     * $EQ2$: Vulnerable System Impact (Confidentiality, Integrity, Availability: None/Low/High).
-     * $EQ3$: Subsequent System Impact (SC, SI, SA: None/Low/High).
-   * Implements FIRST.org published vector equations in TypeScript, generating score `0.0–10.0` and vector string (e.g. `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N`).
-2. **Embargo Countdown & Group Isolation**:
-   * Client renders active countdown clock (`Days:Hours:Mins:Secs`) derived from `embargo_until`.
-   * Unauthenticated or non-security-group requests to `/api/v1/bugs/:id` return HTTP 404 when `is_embargoed = true`.
+| Current Status | Permitted Target Statuses |
+|---|---|
+| `UNCONFIRMED` | `CONFIRMED`, `RESOLVED` |
+| `CONFIRMED` | `IN_PROGRESS`, `RESOLVED` |
+| `IN_PROGRESS` | `RESOLVED`, `CONFIRMED` *(reopen/unassign)* |
+| `RESOLVED` | `VERIFIED`, `CONFIRMED` *(reopen)* |
+| `VERIFIED` | `CLOSED`, `CONFIRMED` *(reopen)* |
+| `CLOSED` | `CONFIRMED` *(reopen)* |
 
-### 2.3 UI & Workflow Architecture
-- **Vulnerability Badge**: Security tickets display an interactive CVSS score pill (e.g. `9.3 CRITICAL` in crimson).
-- **Embedded Scoring Modal**: Clicking the badge opens the interactive metric picker. Selecting values dynamically recomputes the score in real time.
-- **Embargo Banner**: High-visibility header banner with real-time countdown timer warning team members of the public disclosure date.
+- **Resolution Guard**: Transitioning to `RESOLVED` mandates an explicit resolution code (`FIXED`, `INVALID`, `WONTFIX`, `DUPLICATE`, `WORKSFORME`, `INCOMPLETE`). Reopening a defect automatically clears the resolution.
 
-### 2.4 Automated Test Specifications
-* **Unit Tests (`test/unit/cvss4.test.ts`)**:
-  - Verifies score calculation against official FIRST.org benchmark test vectors:
-    - `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N` $\rightarrow$ `9.3 (CRITICAL)`
-    - `CVSS:4.0/AV:L/AC:H/AT:P/PR:L/UI:P/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N` $\rightarrow$ `1.8 (LOW)`
-* **Integration Tests (`test/integration/security_bugs.test.ts`)**:
-  - Verifies unauthorized user GET on embargoed bug returns HTTP 404.
-  - Verifies authorized security member GET returns full bug details with `is_embargoed: true` and `embargo_until`.
+### 3.2 404 Zero-Leakage Group Secrecy
+When an unauthorized user attempts to access an embargoed security defect:
+- The server returns **HTTP 404 Not Found** (never 403 Forbidden).
+- Prevents attackers from enumerating bug IDs or confirming the existence of quarantined zero-day vulnerabilities.
+
+### 3.3 Immutable Append-Only Audit Trail
+Every field change (status, priority, assignee, CVSS score, embargo timestamp) is permanently recorded in `bugs_activity`:
+- `(bug_id, who_id, field, old_value, new_value, changed_at, comment)`
+- Rows are never updated or deleted, providing complete compliance tracking.
 
 ---
 
-## 3. ⌨️ Sub-10ms Command Palette (`Cmd+K` / `Ctrl+K`) (Phase 3 Polish)
+## 4. ✨ 1-Click AI Triage Assistant (Gemini 2.0 Flash)
 
-**Target Rubric Areas**: User Experience & Accessibility (15 pts), Innovation (20 pts)  
-**Mantis Gap Addressed**: Legacy Mantis required dozens of mouse clicks across multiple form pages. This brings Linear/VS Code keyboard ergonomics to the bug tracker.
+Integrated with Google DeepMind's **Gemini 2.0 Flash**, Mantis distills long, messy comment threads into structured triage summaries in < 2 seconds.
 
-### 3.1 Technical Architecture
-- **Component**: Built using `cmdk` (shadcn CommandDialog).
-- **In-Memory Fuzzy Cache**: Client preloads recent tickets, projects, and allowed status actions.
-- **Instant Shortcuts**:
-  * `assign:me` $\rightarrow$ Instantly reassigns the active bug.
-  * `status:resolved` / `status:in_progress` $\rightarrow$ Triggers state machine transition.
-  * `copy:branch` $\rightarrow$ Copies formatted Git branch name (`fix/104-auth-timeout`) to clipboard.
-  * `104` $\rightarrow$ Instant navigation jump to Bug #104.
+### 4.1 Structured Synthesis Output
+Sends the defect summary, description, and up to 30 comment threads to Gemini 2.0 Flash, returning:
+1. **2-Sentence Root Cause Summary**: Core diagnosis of the underlying defect.
+2. **Suggested Priority (`P1`–`P5`)**: Mathematical priority recommendation with rationale.
+3. **Suggested Component**: Accurate subsystem routing (e.g. `JS Engine`, `Networking`).
+4. **Actionable Next Steps**: Concrete instructions for engineers assigned to the bug.
 
-### 3.2 Automated Test Specifications
-* **Unit Tests (`test/unit/command_palette.test.ts`)**:
-  - Verifies typing `res` matches action `status:resolved`.
-  - Verifies numeric string `104` triggers direct URL push `/bugs/104`.
+### 4.2 High Availability & Fallback Protection
+Protected with a **2.5-second hard timeout** using `AbortController` to guarantee that external AI latency never degrades or blocks the user interface.
 
 ---
 
-## 4. 🔍 PostgreSQL Full-Text Search (`tsvector` & GIN) (Phase 3 Polish)
+## 5. 🚩 Three-State Review Flag Governance (`?`, `+`, `-`)
 
-**Target Rubric Areas**: Performance & Reliability (20 pts), Core Functionality (20 pts)  
-**Mantis Gap Addressed**: Replaces slow SQL `LIKE '%query%'` table scans with high-performance native PostgreSQL lexical full-text search.
+Mantis separates code review, patch sign-off, and information requests from ticket status.
 
-### 4.1 Data Schema & GIN Index
-```sql
-ALTER TABLE bugs ADD COLUMN search_vector tsvector 
-GENERATED ALWAYS AS (
-    to_tsvector('english', coalesce(summary, '') || ' ' || coalesce(description, ''))
-) STORED;
+- **Three Distinct States**:
+  - `?`: Request pending (e.g. `review?`, `needinfo?`, `approval?`)
+  - `+`: Request granted / patch approved
+  - `-`: Request denied / changes requested
+- **Targeted Requestees**: Requests can be assigned to specific engineers (e.g. `review?alice_dev`) or open to reviewer pools.
+- **Grant Group Authorization**: Granting (`+`) or denying (`-`) flags verifies that the actor belongs to the authorized group (e.g. `release-managers` or `security-team`).
 
-CREATE INDEX idx_bugs_search_vector ON bugs USING GIN(search_vector);
-```
+---
 
-### 4.2 Query Execution & API
-- **Endpoint**: `GET /api/v1/bugs/search?q=crash`
-- **Query**:
+## 6. 🔍 Stemmed Full-Text Search & Live Trigram Duplicate Prevention
+
+### 6.1 PostgreSQL Full-Text Search (`tsvector` + GIN)
+- **Automatic FTS Generation**: PostgreSQL automatically maintains a `search_vector` column generated from `to_tsvector('english', summary || ' ' || description)`.
+- **English Stemming**: Searching `"parse"` matches `"parsing"`, `"parsed"`, and `"parser"`.
+- **Relevance Highlight Tags**: Results return matching query tokens highlighted in `<mark>` tags.
+
+### 6.2 Proactive Typeahead Duplicate Detection (`pg_trgm`)
+- As an engineer types a summary on `/bugs/new`, a debounced background query executes trigram similarity matching:
   ```sql
-  SELECT id, summary, status, priority, ts_rank(search_vector, websearch_to_tsquery('english', :q)) AS rank
-  FROM bugs
-  WHERE search_vector @@ websearch_to_tsquery('english', :q)
-    AND (is_embargoed = FALSE OR :user_id IN (SELECT user_id FROM user_group_map WHERE group_name = 'security'))
-  ORDER BY rank DESC
-  LIMIT 25;
+  SELECT id, summary, similarity(summary, $1) AS score 
+  FROM bugs 
+  WHERE similarity(summary, $1) > 0.28 
+  ORDER BY score DESC LIMIT 5;
   ```
-
-### 4.3 Automated Test Specifications
-* **Integration Tests (`test/integration/search.test.ts`)**:
-  - Verifies English word stemming matches: querying `parse` successfully matches a bug containing `parsing`.
-  - Verifies security isolation: an unprivileged search query never returns an embargoed bug matching the search term.
+- If candidate duplicates exist, an alert card surfaces potential duplicate bug IDs *before* the engineer clicks Submit.
 
 ---
 
-## 5. 📋 Drag-and-Drop Kanban Status Board (Phase 3 Polish)
+## 7. 💻 Drag-and-Drop Kanban Board with FSM Rollback
 
-**Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
-**Mantis Gap Addressed**: Legacy Mantis offered no visual board views. Modern agile teams require visual Kanban workflows without losing state-machine rigor.
+The `/kanban` board provides agile workflow visualization with strict state machine integrity:
 
-### 5.1 Architecture & Workflow
-- **Component**: Built using `@dnd-kit/core`.
-- **Columns**: Mapped directly to Mantis status columns (`UNCONFIRMED`, `CONFIRMED`, `IN_PROGRESS`, `RESOLVED`, `VERIFIED`, `CLOSED`).
-- **State Machine Enforcement**: Dropping a card calls `PATCH /api/v1/bugs/:id/status`.
-  * If valid move $\rightarrow$ Card drops into column; updates `bugs_activity` audit trail.
-  * If invalid move (e.g. `UNCONFIRMED` $\rightarrow$ `CLOSED`) $\rightarrow$ Server returns HTTP 422; frontend smoothly animates card back to source column with error toast.
-
-### 5.2 Automated Test Specifications
-* **Integration Tests (`test/integration/kanban.test.ts`)**:
-  - Verifies card drop from `CONFIRMED` to `IN_PROGRESS` returns HTTP 200 and logs activity.
-  - Verifies illegal card drop returns HTTP 422 without modifying database state.
+- **6 Status Columns**: `UNCONFIRMED`, `CONFIRMED`, `IN_PROGRESS`, `RESOLVED`, `VERIFIED`, `CLOSED`.
+- **Draggable Bug Cards**: Rendered with priority dots, severity tags, CVSS badges, and assignee avatars.
+- **Optimistic UI with Automatic Rollback**: Dragging a card to a column immediately updates the UI; if the server state machine rejects the transition (e.g. dragging `CONFIRMED` $\rightarrow$ `CLOSED` without resolution), the card **automatically bounces back to its original column** and displays an explanatory error toast.
 
 ---
 
-## 6. ✨ 1-Click AI Triage Assistant (Phase 3 Polish — The AI Shield)
+## 8. ⌨️ ⌘K Command Palette & Keyboard Ergonomics
 
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), Problem Understanding (20 pts)  
-**Mantis Gap Addressed**: Automates manual triage and distills 50+ comment discussions into instant executive context with zero complex infrastructure.
+Mantis provides sub-10ms keyboard navigation for power users:
 
-### 6.1 Architecture & Fastify Endpoint
-- **Endpoint**: `POST /api/v1/bugs/:id/ai-triage`
-- **Zero-Infra Implementation**: Fast, direct LLM completion call (`gpt-4o-mini` or `gemini-1.5-flash`) with a 2.5-second timeout and graceful fallback.
-- **Output Schema (JSON)**:
-  ```json
-  {
-    "summary": "Memory leak caused by unclosed WebSocket subscriptions in the WebAssembly audio worker.",
-    "suggested_priority": "P1",
-    "suggested_component": "AudioEngine",
-    "confidence_reason": "Crash frequency reported by 4 users after commit #78b1a; matches regression pattern.",
-    "next_steps": [
-      "Verify worker termination in socket_handler.ts:102",
-      "Attach heap profile dump to verify leak closure"
-    ]
-  }
-  ```
-- **UI**: Sleek glassmorphic card rendered in the bug sidebar with a 1-click **"✨ AI Triage Assist"** button.
-
-### 6.2 Automated Test Specifications
-* **Unit Tests (`test/unit/ai_triage.test.ts`)**:
-  - Verifies prompt assembly contains bug title, description, and comment corpus.
-  - Verifies structured JSON response parsing (summary, suggested priority, action items).
-  - Graceful fallback: If LLM service times out or API key is absent, returns clean `{ error: "AI_SERVICE_UNAVAILABLE", fallback: true }` without crashing the page.
+- **`⌘K` / `Ctrl+K` Spotlight Bar**: Accessible anywhere on the platform.
+- **Instant Numeric Jump**: Typing `104` or `#104` navigates directly to `/bugs/104`.
+- **Quick Status Actions**: Typing `status:resolved` or `status:confirmed` opens transition dialogs.
+- **Fast Navigation**: Instant jump to `/kanban`, `/bugs/new`, `/dashboard`, or `/settings`.
 
 ---
 
-## 7. ⚡ Lightweight Live Updates (Polling / Broadcast) (Phase 3 Polish)
+## 9. 📝 Rich-Text GFM Markdown & @Mentions Collaboration
 
-**Target Rubric Areas**: User Experience (15 pts), Performance & Reliability (20 pts)  
-**Mantis Gap Addressed**: Users were blind to concurrent changes until manual browser page reloads.
-
-### 7.1 Architecture
-- Simple 5-second short-polling or lightweight WebSocket broadcast channel (`/ws/events`).
-- Broadcasts domain events: `{ type: "bug:updated", id: 104, field: "status", newValue: "RESOLVED" }`.
-- Client viewports listening to Bug #104 update their UI badge smoothly without full page refresh.
+- **GitHub-Flavored Markdown (GFM)**: Comment editor supports dual-tab **Write / Preview** modes, bullet lists, bold/italic, and tables.
+- **Syntax Highlighting & Code Copy**: Formatted code blocks (` ```typescript `, ` ```sql `, etc.) render with syntax highlighting and a 1-click **Copy to Clipboard** button.
+- **Interactive @Mentions Autocomplete**: Typing `@` in any comment box opens an avatar typeahead menu. Mentioned users receive in-app notification bell alerts.
 
 ---
 
-## 8. 🔔 @Mentions in Comments with Autocomplete (Phase 3 Polish)
+## 10. 📊 Milestone Release Readiness & Pure SQL MTTR Analytics
 
-**Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
-**Mantis Gap Addressed**: Mantis's CC list is a blunt instrument — there is no way to directly address a team member inside a comment thread. This replaces that primitive mechanism with inline `@username` mentions backed by a real-time autocomplete typeahead.
+### 10.1 0–100% Release Readiness Score
+An explainable circular health gauge that scores release risk for any target milestone:
+$$\text{Readiness} = \max(0, 100 - 15 \times N_{\text{CPM}} - 20 \times N_{\text{CVSS\_Crit}} - 10 \times N_{\text{CVSS\_High}} - 5 \times N_{\text{Pending\_Flags}} - 8 \times N_{\text{P1\_Open}})$$
+- Displays an interactive breakdown listing the exact defect IDs blocking the release.
 
-### 8.1 Data Schema
-```sql
-CREATE TABLE comment_mentions (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    comment_id  BIGINT NOT NULL REFERENCES bug_comments(id) ON DELETE CASCADE,
-    mentioned_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (comment_id, mentioned_user_id)
-);
-
-CREATE INDEX idx_mentions_user ON comment_mentions(mentioned_user_id);
-```
-
-### 8.2 Backend Logic
-- **Autocomplete Endpoint**: `GET /api/v1/users/search?q=jo&limit=8`  
-  Returns `[{ id, display_name, avatar_url }]` filtered to users who share at least one product/group with the requester. Restricted users are never surfaced.
-- **Mention Extraction on Save**: When `POST /api/v1/bugs/:id/comments` is called, the server parses the comment body with a regex (`/@([\w.-]+)/g`), resolves matching usernames to user IDs, and inserts rows into `comment_mentions` in the same transaction. Each mentioned user receives an in-app notification immediately.
-- **Notification Payload**:
-  ```json
-  { "type": "mention", "bug_id": 104, "comment_id": 88, "actor": "jsmith", "excerpt": "@jsmith can you check the stack trace?" }
-  ```
-
-### 8.3 UI & Component Architecture
-- **Trigger**: Typing `@` inside the comment textarea activates a floating dropdown anchored below the caret.
-- **Typeahead Component**: Debounced 150ms fetch to `/api/v1/users/search?q=<typed>`. Renders user avatar, display name, and username. Keyboard-navigable (`↑`/`↓`, `Enter` to select, `Esc` to dismiss).
-- **Rendered Mention**: In saved comments, `@jsmith` is rendered as a styled `<a>` pill linking to the user profile, visually distinct from surrounding text.
-- **Separation from CC list**: Mentions trigger targeted notifications only; they do not automatically add the user to the bug's CC list (preserving the semantic distinction).
-
-### 8.4 API Endpoints
-- `GET /api/v1/users/search?q=<term>&limit=8`: Returns matching users visible to the current session.
-- `POST /api/v1/bugs/:id/comments`: Existing endpoint — extracts and persists mentions as a side-effect within the same transaction.
-- `GET /api/v1/notifications`: Returns pending mention notifications for the authenticated user.
-
-### 8.5 Automated Test Specifications
-* **Unit Tests (`test/unit/mention_parser.test.ts`)**:
-  - Verifies regex extracts `['jsmith', 'alice']` from `"@jsmith and @alice please review"`.
-  - Verifies mention extraction on a comment with no `@` symbols returns an empty array.
-  - Verifies duplicate mentions (same user mentioned twice) deduplicate to a single `comment_mentions` row.
-* **Integration Tests (`test/integration/mentions.test.ts`)**:
-  - `POST /api/v1/bugs/101/comments` with body `"@jsmith can you check?"`: Asserts `comment_mentions` contains one row for `jsmith`'s user ID.
-  - Asserts `GET /api/v1/notifications` for `jsmith` returns the pending mention notification.
-  - Asserts mentioning a user in a restricted group bug (that the commenter is not a member of) is rejected with HTTP 403.
+### 10.2 Pure SQL MTTR & Velocity Analytics
+- Computes **Mean Time To Resolve (MTTR)** (mean and median days) aggregated by product.
+- Tracks 14-day and 30-day resolution velocity trends over the immutable `bugs_activity` audit stream.
 
 ---
 
-## 9. 📝 Rich-Text / Markdown Support in Comments (Phase 3 Polish)
+## 11. 🐙 Real-Time GitHub SCM Webhook Automation
 
-**Target Rubric Areas**: User Experience & Accessibility (15 pts), Core Functionality (20 pts)  
-**Mantis Gap Addressed**: Mantis stores and renders all comments as plain text. Code snippets, reproduction steps, and stack traces are completely unformatted, making long bug threads extremely hard to read.
+Mantis bridges source code management directly to issue tracking:
 
-### 9.1 Data Schema
-```sql
-ALTER TABLE bug_comments ADD COLUMN format VARCHAR(16) NOT NULL DEFAULT 'markdown'
-    CHECK (format IN ('plain', 'markdown'));
-```
-Existing plain-text comments are preserved with `format = 'plain'` and rendered as-is. All new comments default to `format = 'markdown'`.
-
-### 9.2 Backend Logic
-- **Storage**: Raw Markdown source is stored in `bug_comments.body` — the server never stores pre-rendered HTML, eliminating stored XSS vectors.
-- **Sanitization**: On `GET`, the API returns the raw Markdown. The frontend renders it client-side. If a server-side HTML render is ever needed (e.g. email), the body is processed through `marked` + `DOMPurify` server-side before dispatch.
-- **No schema migration needed for content**: The `body TEXT` column already exists; only the `format` column is added.
-
-### 9.3 UI & Component Architecture
-- **Editor**: The comment textarea is enhanced with a lightweight toolbar (Bold, Italic, Code, Code Block, Link, Ordered/Unordered List). Toolbar actions wrap the current selection with the appropriate Markdown syntax.
-- **Live Preview Tab**: A two-tab interface — **Write** | **Preview** — toggled above the textarea. The Preview tab renders `react-markdown` with `remark-gfm` (GitHub Flavored Markdown: tables, strikethrough, task lists) and `rehype-highlight` for syntax-highlighted code fences.
-- **Rendered Comments**: Saved comments use the same `react-markdown` + `remark-gfm` pipeline. Code blocks render with a monospace font, line numbers, and a **Copy** button. Inline `@mention` pills are handled by a custom `react-markdown` renderer for the mention syntax.
-- **Backward Compatibility**: Comments with `format = 'plain'` are wrapped in a `<pre>` block, preserving original whitespace and appearance.
-
-### 9.4 API Endpoints
-- `POST /api/v1/bugs/:id/comments`: Accepts `{ body: string, format: 'markdown' | 'plain' }`. Stores raw source.
-- `GET /api/v1/bugs/:id/comments`: Returns `{ id, body, format, author, created_at }` — raw source plus format discriminator so the client renders correctly.
-
-### 9.5 Automated Test Specifications
-* **Unit Tests (`test/unit/markdown_sanitizer.test.ts`)**:
-  - Verifies a server-side render of `**bold**` produces `<strong>bold</strong>`.
-  - Verifies a malicious payload `<script>alert(1)</script>` in Markdown body is stripped to an empty string after `DOMPurify` sanitization.
-  - Verifies a triple-backtick code fence preserves raw content without HTML-escaping issues.
-* **Integration Tests (`test/integration/comments.test.ts`)**:
-  - `POST /api/v1/bugs/101/comments` with `{ body: "## Root Cause", format: "markdown" }`: Returns HTTP 201 and stores raw Markdown.
-  - `GET /api/v1/bugs/101/comments`: Returns the comment with `format: "markdown"` and the unmodified raw body.
-  - Asserts that a comment posted with `format: "plain"` is returned with `format: "plain"` and body unchanged.
-
----
-
-## 10. 🔗 Git / GitHub Webhook Integration (Phase 3 Polish)
-
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), Core Functionality (20 pts)  
-**Mantis Gap Addressed**: Legacy Mantis has zero awareness of source control. Engineers must manually paste commit links into comments. This integration auto-links commits to bugs via commit message conventions, auto-closes bugs on merge, and surfaces linked PRs directly on the bug detail page.
-
-### 10.1 Data Schema
-```sql
-CREATE TABLE bug_commits (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    bug_id      BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    repo_full_name VARCHAR(256) NOT NULL,          -- e.g. 'org/repo'
-    commit_sha  VARCHAR(40) NOT NULL,
-    commit_message TEXT NOT NULL,
-    author_name VARCHAR(256),
-    author_email VARCHAR(256),
-    committed_at TIMESTAMPTZ,
-    html_url    TEXT,                              -- GitHub permalink
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (bug_id, commit_sha)
-);
-
-CREATE TABLE bug_pull_requests (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    bug_id      BIGINT NOT NULL REFERENCES bugs(id) ON DELETE CASCADE,
-    repo_full_name VARCHAR(256) NOT NULL,
-    pr_number   INT NOT NULL,
-    pr_title    TEXT NOT NULL,
-    pr_state    VARCHAR(16) NOT NULL,              -- 'open', 'closed', 'merged'
-    pr_url      TEXT NOT NULL,
-    merged_at   TIMESTAMPTZ,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (bug_id, repo_full_name, pr_number)
-);
-
-CREATE INDEX idx_bug_commits_bug ON bug_commits(bug_id);
-CREATE INDEX idx_bug_prs_bug ON bug_pull_requests(bug_id);
-```
-
-### 10.2 Algorithmic Core: Commit Message Parsing & Auto-Close
-1. **Commit Message Convention** — the server scans commit messages for these patterns (case-insensitive):
-   - **Link only**: `Refs #104`, `See #104`, `Related to #104`
-   - **Auto-close**: `Fixes #104`, `Closes #104`, `Resolves #104`
-2. **Regex extraction**:
-   ```typescript
-   const BUG_REF_RE = /(?:fixes|closes|resolves|refs|see|related to)\s+#(\d+)/gi;
-   ```
-3. **Auto-close logic**: When a `push` event arrives with a commit targeting the repository's default branch (`refs/heads/main` or `refs/heads/master`) and the message contains a closing keyword, the server transitions the referenced bug to `RESOLVED` (if currently `IN_PROGRESS` or `CONFIRMED`) and appends a `bugs_activity` audit row: `{ field: 'status', old_value: 'IN_PROGRESS', new_value: 'RESOLVED', who: 'github-bot', comment: 'Auto-closed by commit abc1234' }`.
-4. **PR Merge Close**: On `pull_request` event with `action: 'closed'` and `merged: true` targeting the default branch, the same auto-close logic fires.
-
-### 10.3 Webhook Receiver Architecture
-- **Endpoint**: `POST /api/v1/webhooks/github`
-- **Signature Verification**: Validates `X-Hub-Signature-256` HMAC-SHA256 header using a per-repository `GITHUB_WEBHOOK_SECRET` environment variable. Requests with invalid or missing signatures return HTTP 401 immediately.
-- **Event Routing**:
-  ```
-  push event           → parse commits → extract bug refs → upsert bug_commits → auto-close if keyword matched
-  pull_request event   → upsert bug_pull_requests → auto-close on merge
-  ```
-- **Idempotency**: `UNIQUE (bug_id, commit_sha)` and `UNIQUE (bug_id, repo_full_name, pr_number)` constraints ensure replayed webhooks are no-ops.
-- **Setup Instructions** (shown in the UI Settings page): User pastes the Fastify endpoint URL and the randomly generated webhook secret into their GitHub repository's Webhook settings. No OAuth is required.
-
-### 10.4 UI: Linked Commits & PRs on Bug Detail Page
-- **"Activity & Commits" Section**: A dedicated tab on the bug detail page shows two sub-lists:
-  - **Commits**: Each entry shows `[short SHA]` (linking to GitHub), author avatar, commit message, and relative timestamp.
-  - **Pull Requests**: Each entry shows PR number + title (linking to GitHub), state badge (`OPEN` in green / `MERGED` in purple / `CLOSED` in grey), and merge timestamp if applicable.
-- **Auto-close Banner**: When a bug was auto-resolved via a commit or PR merge, an info banner on the bug detail page reads: *"✅ Auto-resolved by commit `abc1234` on Aug 30, 2026."*
-
-### 10.5 API Endpoints
-- `POST /api/v1/webhooks/github`: Receives GitHub webhook payloads. Validates HMAC signature. Returns HTTP 200 on success, HTTP 401 on signature failure, HTTP 422 on unrecognized event type.
-- `GET /api/v1/bugs/:id/commits`: Returns `[{ sha, message, author_name, html_url, committed_at }]` for the bug.
-- `GET /api/v1/bugs/:id/pull-requests`: Returns `[{ pr_number, pr_title, pr_state, pr_url, merged_at }]` for the bug.
-
-### 10.6 Automated Test Specifications
-* **Unit Tests (`test/unit/webhook_parser.test.ts`)**:
-  - Verifies `"Fixes #104: null pointer in auth handler"` extracts `[{ bugId: 104, autoClose: true }]`.
-  - Verifies `"Refs #101 and #102"` extracts `[{ bugId: 101, autoClose: false }, { bugId: 102, autoClose: false }]`.
-  - Verifies a commit message with no bug reference returns an empty array.
-  - Verifies a PR merge event targeting a non-default branch (`feature/xyz`) does **not** trigger auto-close.
-* **Integration Tests (`test/integration/webhooks.test.ts`)**:
-  - `POST /api/v1/webhooks/github` with a valid HMAC signature and a `push` payload containing `"Fixes #101"`: Asserts `bug_commits` row inserted and bug #101 transitions to `RESOLVED` with an auto-close `bugs_activity` record.
-  - `POST /api/v1/webhooks/github` with an invalid signature: Returns HTTP 401 and makes zero database mutations.
-  - `POST /api/v1/webhooks/github` with a `pull_request` `merged` event for `"Closes #102"`: Asserts `bug_pull_requests` row upserted with `pr_state: 'merged'` and bug #102 auto-resolves.
-  - Replayed identical webhook payload: Returns HTTP 200 but creates no duplicate rows (idempotency assertion).
-  - `GET /api/v1/bugs/101/commits`: Returns the linked commit after the push webhook is processed.
-
----
-
-# PART II: EXTENDED ENTERPRISE ROADMAP (Documented Architecture)
-
-The following eleven features represent the comprehensive enterprise roadmap. They are preserved in complete technical detail to demonstrate architectural rigor and long-term viability.
-
----
-
-## 7. 👥 Real-Time Collaboration & CRDT Multiplayer Layer (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Problem Understanding (20 pts), Performance & Reliability (20 pts), Technical Architecture (15 pts)  
-**Mantis Gap Addressed**: Legacy Mantis famously threw a fatal error: *"Mid-air collision detected! Someone modified this bug while you were editing it,"* wiping out all unsaved text.
-
-### 7.1 CRDT State Model & 3-Tier Persistence
-- **Engine**: **Yjs** synchronized over WebSockets.
-- **3-Tier Persistence Architecture**:
-  1. *L1 (In-Memory)*: Active Yjs document in Fastify WebSocket server for sub-millisecond local typing.
-  2. *L2 (Write-Ahead Buffer via `y-redis`)*: Every client binary delta is written to Redis Streams before acknowledgment. If the server crashes or restarts, reconnected clients immediately hydrate from Redis with **zero lost keystrokes**.
-  3. *L3 (Compacted Storage)*: A BullMQ worker debounces and periodically flushes compacted state vectors (`Y.encodeStateAsUpdate(doc)`) to PostgreSQL `issue_collaborative_documents (issue_id, state_vector, text_snapshot)`.
-- **Live Presence**: Displays live peer cursor positions and selection ranges with distinct user color tags.
-- **Embedded Loom Recorder**: In-browser video recording (`MediaRecorder` API) for 30-second screen repros.
-
----
-
-## 8. 🔍 Code Navigation & Fault Localization (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Innovation & Differentiation (20 pts), Technical Architecture (15 pts)  
-**Mantis Gap Addressed**: Bridges bug reports directly to source code repositories without switching to external IDEs.
-
-### 8.1 Architecture & Pipeline
-- **Repository Linking**: OAuth connection to GitHub/GitLab repositories.
-- **Three-Tier Fault Localization**:
-  1. *Regex Stack Trace Parser*: Automatically extracts file path and line number from crash logs (Python, Java, Node, Go).
-  2. *AST Semantic Chunking*: Codebase files chunked at the function level using Tree-sitter and matched against natural language bug descriptions.
-  3. *Embedded Monaco Editor*: Read-only `@monaco-editor/react` viewer highlighting offending lines in amber, with 1-click GitHub permalink buttons.
-
----
-
-## 9. 🤖 AI-Powered Triage Assistant & Semantic Vector Search (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Innovation (20 pts), Technical Implementation (15 pts)  
-**Mantis Gap Addressed**: Automates manual triage and eliminates duplicate reports disguised by different wording.
-
-### 9.1 Technical Architecture
-- **Vector Embeddings**: Dense embeddings stored in PostgreSQL via `pgvector` with HNSW cosine distance indexing.
-- **Real-Time Duplicate Interception**: Debounced client typing hook compares draft summaries against active issues; flags semantic duplicates ($> 0.85$ cosine similarity).
-- **Git-Blame Author Routing**: Interrogates `git log` and `git blame` on affected modules; applies exponential decay ($ARF_u = \sum e^{-\lambda \Delta t}$) to recommend the best engineer.
-- **1-Click Thread Summarizer**: LLM distillation condensing 50+ comment threads into Root Cause, Decisions, and Next Actions.
-
----
-
-## 10. 📊 Real-Time Analytics & Team Health Cockpit (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Performance & Reliability (20 pts), UX & Aesthetics (15 pts)  
-**Mantis Gap Addressed**: Replaces legacy 24-hour cron jobs (`collectstats.pl`) with live metric rollups.
-
-### 10.1 Key Metrics
-- **Continuous Rollup Views**: PostgreSQL materialized views (`mv_daily_bug_metrics`) computing defect escape rate, time-to-triage (TTT), and time-to-fix (TTF).
-- **Gini Workload Balancing**: Real-time distribution matrix calculating open bug concentration per engineer to prevent burnout.
-- **SLA Breach Pulse Alerts**: Dynamic banners warning when tickets are within 15% of SLA threshold.
-
----
-
-## 11. ⚙️ Event-Driven Automation & SLA Escalation Engine (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Innovation (20 pts), Core Functionality (20 pts)  
-**Mantis Gap Addressed**: Replaces primitive scheduled nag emails ("Whining") with a modern event-driven workflow engine.
-
-### 11.1 Technical Architecture
-- **Engine**: BullMQ queue processor executing declarative JSON logic rule trees (`automation_rules`).
-- **Triggers & Actions**: Triggers on status changes, SLA breaches, or inactivity; executes Slack/PagerDuty alerts and automated multi-tier escalation ladders.
-
----
-
-## 12. 🔔 Intelligent Notification Center & Multi-Channel Routing (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Problem Understanding (20 pts), Reliability (20 pts)  
-**Mantis Gap Addressed**: Replaces raw email diff floods with intelligent batching and modern chat integrations.
-
-### 12.1 Technical Architecture
-- **15-Minute Digest Queue**: Collapses rapid sequential edits on the same bug into a single aggregated digest notification.
-- **Channels**: In-app notification bell with unread counters, bi-directional Slack/Teams bots, and Web Push.
-
----
-
-## 13. 🔐 Advanced Access Control & Compliance (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Technical Implementation (15 pts), Reliability (20 pts)  
-**Mantis Gap Addressed**: Replaces simple UNIX-style groups with enterprise Role-Based Access Control (RBAC).
-
-### 13.1 Technical Architecture
-- **RBAC Matrix**: Granular capability permissions across Organization, Product, and Issue scopes.
-- **Compliance Tooling**: Immutable audit trail exports (SOC 2, ISO 27001) and automated GDPR PII scrubbing scripts.
-
----
-
-## 14. 📤 Data Portability & Real-Time API Ecosystem (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Technical Implementation (15 pts), Performance (20 pts)  
-**Mantis Gap Addressed**: Replaces legacy Perl XML-RPC with OpenAPI 3.1 REST and GraphQL Subscriptions.
-
-### 14.1 Technical Architecture
-- OpenAPI 3.1 Swagger UI playground.
-- Live GraphQL Subscriptions over WebSockets for third-party bots and dashboards.
-- Streaming S3 cloud backup pipeline for multi-gigabyte project exports.
-
----
-
-## 15. 📱 Mobile-First Progressive Web App (PWA) (Phase 4 Roadmap)
-
-**Target Rubric Areas**: User Experience & Accessibility (15 pts)  
-**Mantis Gap Addressed**: Legacy Mantis is completely unusable on mobile viewports.
-
-### 15.1 Technical Architecture
-- Workbox Service Worker caching the last 100 accessed tickets with background sync for offline comment drafting.
-- Mobile touch swipe gestures (swipe left to assign, swipe right to resolve).
-- Direct camera integration for hardware screen capture.
-
----
-
-## 16. ♿ Accessibility (WCAG 2.1 AA) & Global i18n (Phase 4 Roadmap)
-
-**Target Rubric Areas**: User Experience & Accessibility (15 pts)  
-**Mantis Gap Addressed**: Fixes severe legacy accessibility shortcomings (missing ARIA roles, unlabelled forms).
-
-### 16.1 Technical Architecture
-- Strict WCAG 2.1 AA contrast compliance and `focus-visible` keyboard rings.
-- Dynamic ARIA live regions for real-time updates.
-- Full bidirectional Right-to-Left (RTL) layout switching for Arabic, Hebrew, and Persian.
-
----
-
-## 17. 🌐 Multi-Instance Migration & Plugin Marketplace (Phase 4 Roadmap)
-
-**Target Rubric Areas**: Innovation (20 pts), Technical Architecture (15 pts)  
-**Mantis Gap Addressed**: Eliminates barriers to enterprise migration and extensibility.
-
-### 17.1 Technical Architecture
-- SAX-based streaming XML parser capable of importing 5GB+ legacy Mantis dumps without memory exhaustion.
-- Sandboxed TypeScript plugin runtime with zero-downtime hot reloading.
-
----
-
-## 🏆 Master Ranking & Rubric Alignment Matrix
-
-| Rank | Feature Area | Execution Status | Primary Rubric Target | Key Evaluator "WOW" Factor |
-|:---:|---|:---:|---|---|
-| **1** | **Interactive Dependency Graph & Critical Path** | 🟢 **Phase 2 (Live Demo)** | Innovation (20) + UX (15) + Tech (15) | Live React Flow DAG, pulsing red Critical Path, server-side cycle rejection. |
-| **2** | **Enterprise CVSS v4.0 & Embargo Countdown** | 🟢 **Phase 2 (Live Demo)** | Innovation (20) + Problem (20) + Tech (15) | FIRST.org CVSS v4.0 math calculator, live 90-day embargo countdown clock. |
-| **3** | **Sub-10ms Command Palette (`Cmd+K`)** | 🟢 **Phase 3 (Live Demo)** | UX & Aesthetics (15) + Innovation (20) | Linear-style keyboard-driven navigation and zero-mouse quick actions. |
-| **4** | **PostgreSQL Full-Text Search (`tsvector`)** | 🟢 **Phase 3 (Live Demo)** | Performance & Reliability (20) | Sub-20ms stemmed search with GIN indexing and group security isolation. |
-| **5** | **Drag-and-Drop Kanban Status Board** | 🟢 **Phase 3 (Live Demo)** | UX & Aesthetics (15) + Core Func (20) | Visual board calling server state machine with invalid move rollback. |
-| **6** | **1-Click AI Triage Assistant** | 🟢 **Phase 3 (Live Demo)** | Innovation (20) + Problem (20) | Instant LLM thread summary, priority recommendation, and action plan. |
-| **7** | **Lightweight Live Updates** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Performance (20) | Real-time visual badge refreshes via polling / WebSocket broadcast. |
-| **8** | **@Mentions in Comments with Autocomplete** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Core Func (20) | Real-time typeahead, mention pill rendering, targeted notifications — replaces blunt CC list. |
-| **9** | **Rich-Text / Markdown Support in Comments** | 🟢 **Phase 3 (Live Demo)** | UX (15) + Core Func (20) | GFM renderer with syntax-highlighted code fences and live Write/Preview toggle. |
-| **10** | **Git / GitHub Webhook Integration** | 🟢 **Phase 3 (Live Demo)** | Innovation (20) + Core Func (20) | HMAC-verified webhook receiver; auto-links commits, auto-closes on merge, surfaces PR state badges. |
-| **11** | **CRDT Multiplayer Ticket Editing** | 📄 Phase 4 (Roadmap) | Problem (20) + Reliability (20) + Tech (15) | Yjs/y-redis 3-tier persistence eliminating Mantis Mid-Air Collisions. |
-| **12** | **Code Navigation & Fault Localization** | 📄 Phase 4 (Roadmap) | Innovation (20) + Tech Arch (15) | Stack trace regex parser and embedded Monaco culprit line viewer. |
-| **13** | **AI Semantic Vector Search & Blame Routing** | 📄 Phase 4 (Roadmap) | Innovation (20) + Problem (20) | pgvector HNSW duplicate search and Git-blame author routing. |
-| **14** | **Real-Time Analytics & Team Health Cockpit** | 📄 Phase 4 (Roadmap) | Performance (20) + UX (15) | PostgreSQL materialized view rollups, defect escape rates, SLA heatmaps. |
-| **15** | **Event-Driven Automation & SLA Escalation** | 📄 Phase 4 (Roadmap) | Innovation (20) + Core Func (20) | BullMQ event queue processing declarative JSON logic rule trees. |
-| **16** | **Intelligent Notification Center** | 📄 Phase 4 (Roadmap) | Problem Understanding (20) | 15-minute sliding digest bundling and multi-channel bots. |
-| **17** | **Enterprise RBAC & Audit Compliance** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | Granular permission matrix, SOC 2 exports, and GDPR PII scrubbing. |
-| **18** | **Data Portability & GraphQL Subscriptions** | 📄 Phase 4 (Roadmap) | Technical Architecture (15) | OpenAPI 3.1 Swagger playground and live GraphQL subscriptions. |
-| **19** | **Mobile-First Progressive Web App (PWA)** | 📄 Phase 4 (Roadmap) | UX & Accessibility (15) | Offline Workbox service workers and mobile camera/voice capture. |
-| **20** | **Accessibility (WCAG 2.1 AA) & Plugin Sandbox** | 📄 Phase 4 (Roadmap) | UX (15) + Tech (15) | Screen-reader tested, RTL support, and sandboxed TypeScript plugin runtime. |
+- **Cryptographic Security**: Validates incoming payload signatures using HMAC-SHA256 (`x-hub-signature-256`) and timing-safe equality checks.
+- **Commit Message Parsing**: Extracts issue keywords (`Fixes #1`, `Closes #2`, `Resolves #3`, `Bug 4`).
+- **Automatic Resolution**: Pushing a commit with `Fixes #1` to the default branch automatically transitions Bug #1 to `RESOLVED (FIXED)` and records the commit SHA, author, and diff link in the audit history.
+- **Dedicated SCM Tab**: Displays linked commits and pull requests directly on the defect detail page.

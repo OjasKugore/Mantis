@@ -1,22 +1,27 @@
 # 🦗 Mantis — GitHub SCM Webhook & Traceability Demo
 
 > **Live Evaluation Sandbox:** [https://mantis-clonefest.vercel.app](https://mantis-clonefest.vercel.app)  
+> **Official Demo SCM Repository:** [https://github.com/OjasKugore/mantis-webhook-demo](https://github.com/OjasKugore/mantis-webhook-demo)  
+>
 > **Repository Purpose:** This repository is pre-configured with Mantis webhooks so judges, evaluators, and engineers can test real-time Git commit traceability, automatic defect resolution, and audit logging.
 
 ---
 
 ## ⚡ 1. Fast Test for Judges & Evaluators (30 Seconds)
 
-You can verify live Git-to-Bugzilla traceability right now by committing directly to this repository:
+You can verify live Git-to-Bugzilla traceability right now by committing directly to the demo repository:
 
-### Step 1: Clone this repo or edit a file on GitHub
+### Step 1: Clone the Webhook Demo Repository
 ```bash
 git clone https://github.com/OjasKugore/mantis-webhook-demo.git
 cd mantis-webhook-demo
 ```
+👉 Direct GitHub Link: **[https://github.com/OjasKugore/mantis-webhook-demo](https://github.com/OjasKugore/mantis-webhook-demo)**
 
-### Step 2: Make a commit referencing any Mantis Bug ID
-Include `Fixes #<id>`, `Closes #<id>`, or `Bug <id>` in your commit message:
+---
+
+### Step 2: Make a Commit Referencing Any Mantis Bug ID
+Include `Fixes #<id>`, `Closes #<id>`, `Resolves #<id>`, or `Bug <id>` in your commit message:
 
 ```bash
 # Example for Bug #1 (or any bug ID in your workspace)
@@ -24,8 +29,10 @@ git commit --allow-empty -m "Fix memory leak in network pipeline (Fixes #1)"
 git push origin main
 ```
 
-### Step 3: Watch it update live in Mantis!
-1. Open [https://mantis-clonefest.vercel.app/bugs/1](https://mantis-clonefest.vercel.app/bugs/1).
+---
+
+### Step 3: Watch it Update Live in Mantis!
+1. Open **[https://mantis-clonefest.vercel.app/bugs/1](https://mantis-clonefest.vercel.app/bugs/1)**.
 2. Click the **"SCM"** tab under the activity panel.
 3. Your commit hash, author name, timestamp, and GitHub diff link will appear **instantly**, and the defect will automatically transition to **`RESOLVED (FIXED)`**.
 
@@ -44,9 +51,9 @@ Mantis parses incoming GitHub push and pull request webhooks for standard issue 
 
 ---
 
-## 🔌 3. How to Connect Your Own Real Repository to Mantis
+## 🔌 3. How to Connect Any Repository to Mantis
 
-If you want to connect an actual repository and use it with Mantis for your team or custom project:
+If you want to connect another repository to Mantis for your team:
 
 ### Step 1: Open GitHub Repository Settings
 1. Go to your repository on GitHub (`https://github.com/<your-org>/<your-repo>`).
@@ -59,7 +66,7 @@ Fill in the fields exactly as follows:
 
 * **Payload URL:** `https://mantis-clonefest.vercel.app/api/v1/webhooks/github`
 * **Content type:** Select **`application/json`** *(Do not use `x-www-form-urlencoded`)*
-* **Secret:** *(Leave blank or enter your workspace secret)*
+* **Secret:** `dev-github-webhook-secret` *(or enter your workspace secret)*
 * **SSL verification:** Select **Enable SSL verification**
 * **Which events would you like to trigger this webhook?** Select **"Just the push event"** (and optionally *Pull requests*)
 * **Active:** Ensure the **Active** checkbox is checked `[x]`.
@@ -72,7 +79,8 @@ Fill in the fields exactly as follows:
 ---
 
 ## 🛡️ 4. Key Architectural Highlights Tested
-* **Bi-directional Isolation:** SCM activity in the Judge Demo Sandbox remains separate from custom non-judge workspaces.
-* **Zero-Leakage Security:** Code references to quarantined security bugs under active 90-day embargoes maintain strict visibility restrictions.
-* **Audit Trail Compliance:** Produces a permanent, unalterable log mapping commits to engineers for security audits (SOC2 / ISO 27001).
-* **Automated Workflow Acceleration:** Eliminates manual administrative overhead by keeping tickets in sync with GitHub branch merges.
+* **HMAC-SHA256 Signature Verification**: Validates `x-hub-signature-256` headers using `crypto.timingSafeEqual` to prevent replay and spoofing attacks.
+* **Bi-directional Isolation**: SCM activity in the Judge Demo Sandbox remains separate from custom non-judge workspaces.
+* **Zero-Leakage Security**: Code references to quarantined security bugs under active 90-day embargoes maintain strict visibility restrictions.
+* **Audit Trail Compliance**: Produces a permanent, unalterable log mapping commits to engineers for security audits (SOC2 / ISO 27001).
+* **Automated Workflow Acceleration**: Eliminates manual administrative overhead by keeping tickets in sync with GitHub branch merges.

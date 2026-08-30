@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'NOT_FOUND', message: 'Bug not found' }, { status: 404 });
     }
 
-    const isDemo = user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local');
+    const isDemo = !user || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
     let commitsQuery = `
       SELECT id, bug_id, repo_full_name, commit_sha, commit_message, author_name, author_email, committed_at, html_url, created_at
