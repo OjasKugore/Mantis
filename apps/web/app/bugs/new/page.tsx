@@ -173,7 +173,7 @@ export default function NewBugPage() {
         id="sidebar"
       >
         <div className="p-6">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3">
             <MantisLogo className="w-8 h-8 rounded-lg shadow-sm shrink-0" size={32} />
             {sidebarOpen && (
               <div>

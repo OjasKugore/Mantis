@@ -89,7 +89,7 @@ export default function BugsSearchPage() {
       <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-slate-400 hover:text-slate-200 transition text-sm font-semibold">
+            <Link href="/dashboard" className="text-slate-400 hover:text-slate-200 transition text-sm font-semibold">
               ← <span className="font-bold text-indigo-400">Dashboard</span>
             </Link>
             <span className="text-slate-600">/</span>

@@ -189,7 +189,14 @@ function DashboardContent() {
       >
         {/* Brand / Header */}
         <div className="flex items-center gap-3 px-2 py-4">
-          <Link href="/" className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            onClick={() => {
+              setActiveTab('queue');
+              setQueueViewMode('list');
+            }}
+            className="flex items-center gap-3"
+          >
             <MantisLogo className="w-8 h-8 rounded-lg shadow-sm shrink-0" size={32} />
             {sidebarOpen && (
               <div>
@@ -370,7 +377,14 @@ function DashboardContent() {
               <span className="material-symbols-outlined">menu</span>
             </button>
             <div className="hidden sm:flex items-center text-sm font-body-sm text-on-surface-variant gap-2">
-              <Link href="/" className="hover:text-primary cursor-pointer transition-colors">
+              <Link
+                href="/dashboard"
+                onClick={() => {
+                  setActiveTab('queue');
+                  setQueueViewMode('list');
+                }}
+                className="hover:text-primary cursor-pointer transition-colors"
+              >
                 Mantis
               </Link>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>

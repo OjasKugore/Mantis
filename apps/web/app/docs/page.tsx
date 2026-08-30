@@ -101,7 +101,7 @@ export default function DocsPage() {
       <header className="sticky top-0 z-40 bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant/30 px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+            <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
               <MantisLogo size={32} className="shrink-0" />
               <span className="font-display-lg text-xl font-bold tracking-tight text-on-surface">
                 Mantis
