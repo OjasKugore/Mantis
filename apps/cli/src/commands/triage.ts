@@ -5,7 +5,7 @@ import { theme } from '../theme.js';
 export async function triageCommand(bugId: string, options: { json?: boolean }) {
   try {
     console.log(pc.gray(`Running Gemini AI triage assistant on bug #${bugId}...`));
-    const res = await apiRequest(`/api/v1/bugs/${bugId}/ai-triage`);
+    const res = await apiRequest(`/api/v1/bugs/${bugId}/ai-triage`, { method: 'POST' });
 
     if (options.json) {
       console.log(JSON.stringify(res, null, 2));

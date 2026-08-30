@@ -12,7 +12,7 @@ export async function graphCommand(bugId: string, options: { json?: boolean }) {
       return;
     }
 
-    const asciiOutput = renderAsciiGraph(res);
+    const asciiOutput = renderAsciiGraph(res, parseInt(bugId, 10));
     console.log(asciiOutput);
   } catch (err: any) {
     console.error(pc.red(`Error generating graph for bug #${bugId}: ${err.message}`));
