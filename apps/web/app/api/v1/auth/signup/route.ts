@@ -26,20 +26,24 @@ export async function POST(request: Request) {
     }
 
     const { email, password, display_name } = parseResult.data;
+    // Always normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
     const username =
-      parseResult.data.username ||
-      email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+      parseResult.data.username?.trim() ||
+      normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
 
     // Check existing email or username
     const existing = await db.query(
-      `SELECT id, email, username FROM users WHERE email = $1 OR username = $2`,
-      [email, username]
+      `SELECT id, email, username FROM users WHERE LOWER(email) = $1 OR username = $2`,
+      [normalizedEmail, username]
     );
 
     if (existing.rows.length > 0) {
-      const isEmail = existing.rows.some((r: any) => r.email.toLowerCase() === email.toLowerCase());
+      const isEmail = existing.rows.some((r: any) => r.email.toLowerCase() === normalizedEmail);
+      const errorCode = isEmail ? 'EMAIL_ALREADY_EXISTS' : 'USERNAME_ALREADY_EXISTS';
       return NextResponse.json({
-        error: isEmail ? 'EMAIL_ALREADY_EXISTS' : 'USERNAME_ALREADY_EXISTS',
+        error: errorCode,
+        code: errorCode,
         message: isEmail
           ? 'An account with this email already exists'
           : 'This username is already taken',
@@ -51,7 +55,7 @@ export async function POST(request: Request) {
       `INSERT INTO users (email, display_name, username, password_hash)
        VALUES ($1, $2, $3, $4)
        RETURNING id, email, display_name, username, is_admin, is_enabled, avatar_url, created_at`,
-      [email, display_name, username, passwordHash]
+      [normalizedEmail, display_name.trim(), username, passwordHash]
     );
 
     const newUser = rows[0];

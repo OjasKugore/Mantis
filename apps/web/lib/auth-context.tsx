@@ -82,7 +82,7 @@ export const SEED_PERSONAS: Persona[] = [
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (payload: { email: string; password: string; display_name: string; username?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   quickLogin: (personaKey: string) => Promise<{ success: boolean; error?: string }>;
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, []);
 
-  const login = async (email: string, password = 'password123') => {
+  const login = async (email: string, password: string) => {
     try {
       const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: 'POST',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -62,13 +62,20 @@ const PERSONAS = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, quickLogin } = useAuth();
+  const { user, loading, login, quickLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedPersona, setSelectedPersona] = useState<string>('alice');
   const [launchingPersona, setLaunchingPersona] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect already-logged-in users away from the login page
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, loading, router]);
 
   const handleOAuthLogin = (provider: 'github' | 'google') => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
@@ -77,10 +84,11 @@ export default function LoginPage() {
 
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password) return;
     setSubmitting(true);
     setError(null);
 
-    const res = await login(email, password);
+    const res = await login(email.trim().toLowerCase(), password);
     setSubmitting(false);
 
     if (res.success) {
@@ -104,6 +112,23 @@ export default function LoginPage() {
     }
   };
 
+  // Show nothing while checking auth state (avoids flash)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Already logged in — redirect handled by useEffect, show nothing
+  if (user) return null;
+
+  // Get error from URL params (e.g. OAuth errors)
+  const urlError = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('error')
+    : null;
+
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col justify-center py-12 px-6 lg:px-8 relative selection:bg-primary-container selection:text-on-primary-container font-body-sm">
       {/* Background ambient lighting */}
@@ -120,8 +145,10 @@ export default function LoginPage() {
           Sign in to your command center
         </h1>
         <p className="mt-2 text-sm text-on-surface-variant">
-          Sign in for a clean workspace, or use the 1-click{' '}
-          <span className="font-bold text-primary">Judge Demo Sandbox</span> below.
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="font-semibold text-primary hover:underline transition">
+            Create one for free
+          </Link>
         </p>
       </div>
 
@@ -139,21 +166,23 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {error && (
+          {(error || urlError) && (
             <div className="p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 text-xs font-semibold">
-              {error}
+              {error || urlError}
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleManualLogin} className="space-y-4">
+          <form onSubmit={handleManualLogin} className="space-y-4" noValidate>
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
+              <label htmlFor="login-email" className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
                 Email Address
               </label>
               <input
+                id="login-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="developer@mantis.io"
@@ -162,12 +191,14 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
+              <label htmlFor="login-password" className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
                 Password
               </label>
               <input
+                id="login-password"
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -177,7 +208,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={submitting || !email || !password}
+              disabled={submitting || !email.trim() || !password}
               className="w-full py-3 px-4 rounded-lg bg-primary-container text-on-primary-container hover:bg-opacity-90 disabled:opacity-50 font-label-caps text-label-caps uppercase font-bold transition shadow-md flex items-center justify-center gap-2"
             >
               {submitting ? 'Authenticating...' : 'Sign In'}
@@ -185,7 +216,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Hackathon Judge Demo Hub (Matching Landing Page) */}
+        {/* Hackathon Judge Demo Hub */}
         <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden border border-slate-100 flex flex-col relative text-left">
           {/* Subtle brand top bar */}
           <div className="h-2 w-full bg-[#4a5e3a]" />
@@ -195,14 +226,12 @@ export default function LoginPage() {
               {/* Title and Description */}
               <div className="flex-1">
                 <div className="flex items-center flex-wrap gap-3 mb-3">
-                  {/* Lightning Icon */}
                   <svg className="w-5 h-5 text-[#87a96b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                   </svg>
                   <h2 className="text-sm sm:text-base font-bold tracking-widest uppercase text-slate-900 font-label-caps">
                     Hackathon Evaluator Quick Access
                   </h2>
-                  {/* Badge */}
                   <span className="bg-[#f1f5ee] text-[#4a5e3a] text-xs font-semibold px-3 py-1 rounded-full border border-[#87a96b]/20 font-mono">
                     Pre-Seeded Dataset
                   </span>

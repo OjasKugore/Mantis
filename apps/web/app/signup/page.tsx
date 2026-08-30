@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -9,39 +9,71 @@ import { OAuthButtons } from '@/components/OAuthButtons';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const { user, loading, signup } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
-  const handleOAuthLogin = (provider: 'github' | 'google') => {
+  // Redirect already-logged-in users away from the signup page
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  const handleOAuthSignup = (provider: 'github' | 'google') => {
     window.location.href = `${apiBase}/api/v1/oauth/${provider}`;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password || !displayName.trim()) return;
+
+    // Client-side username validation
+    if (username && !/^[a-zA-Z0-9_]{2,64}$/.test(username)) {
+      setError('Username can only contain letters, numbers, and underscores (2–64 characters)');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
+    setErrorCode(null);
 
     const res = await signup({
-      email,
+      email: email.trim().toLowerCase(),
       password,
-      display_name: displayName,
-      username: username || undefined,
+      display_name: displayName.trim(),
+      username: username.trim() || undefined,
     });
     setSubmitting(false);
 
     if (res.success) {
       router.push('/dashboard');
     } else {
+      // Parse the specific error code from the API message to give a better UX hint
+      const code = (res as any).code || '';
+      setErrorCode(code);
       setError(res.error || 'Failed to create account');
     }
   };
+
+  // Show nothing while checking auth state (avoids flash)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Already logged in — redirect handled by useEffect
+  if (user) return null;
 
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col justify-center py-12 px-6 lg:px-8 relative selection:bg-primary-container selection:text-on-primary-container font-body-sm">
@@ -69,7 +101,7 @@ export default function SignupPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl relative z-10 animate-fade-in-up delay-100">
         <div className="glass-panel bg-surface-container/70 border border-outline-variant/30 rounded-2xl p-8 shadow-2xl backdrop-blur-xl space-y-6">
           {/* OAuth Buttons Section */}
-          <OAuthButtons onLogin={handleOAuthLogin} mode="signup" />
+          <OAuthButtons onLogin={handleOAuthSignup} mode="signup" />
 
           {/* Divider */}
           <div className="relative flex items-center justify-center">
@@ -79,20 +111,33 @@ export default function SignupPage() {
             </span>
           </div>
 
+          {/* Error display with smart actionable hints */}
           {error && (
-            <div className="p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 text-xs font-semibold">
-              {error}
+            <div className="p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 text-xs font-semibold space-y-1">
+              <p>{error}</p>
+              {error.toLowerCase().includes('email already exists') && (
+                <p className="font-normal">
+                  <Link href="/login" className="underline font-bold hover:opacity-80">
+                    Sign in to your existing account →
+                  </Link>
+                </p>
+              )}
+              {error.toLowerCase().includes('username') && (
+                <p className="font-normal">Try a different username or leave it blank to auto-generate one.</p>
+              )}
             </div>
           )}
 
-          <form onSubmit={handleSignup} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4" noValidate>
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
+              <label htmlFor="signup-name" className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
                 Full Name
               </label>
               <input
+                id="signup-name"
                 type="text"
                 required
+                autoComplete="name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Ada Lovelace"
@@ -101,25 +146,34 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
+              <label htmlFor="signup-username" className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
                 Username <span className="text-[10px] text-on-surface-variant lowercase font-normal">(optional)</span>
               </label>
               <input
+                id="signup-username"
                 type="text"
+                autoComplete="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  // Only allow valid characters as the user types
+                  setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''));
+                }}
                 placeholder="ada_lead"
+                maxLength={64}
                 className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
               />
+              <p className="text-[11px] text-on-surface-variant/60 mt-1">Letters, numbers, underscores only. Auto-generated from email if left blank.</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
+              <label htmlFor="signup-email" className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
                 Email Address
               </label>
               <input
+                id="signup-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ada@company.com"
@@ -128,24 +182,26 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
+              <label htmlFor="signup-password" className="block text-xs font-bold text-on-surface mb-1 font-label-caps uppercase">
                 Password
               </label>
               <input
+                id="signup-password"
                 type="password"
                 required
                 minLength={6}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg px-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
               />
-              <p className="text-[11px] text-on-surface-variant/70 mt-1">Minimum 6 characters with Argon2id cryptographic hashing</p>
+              <p className="text-[11px] text-on-surface-variant/70 mt-1">Minimum 6 characters · Argon2id cryptographic hashing</p>
             </div>
 
             <button
               type="submit"
-              disabled={submitting || !email || !password || !displayName}
+              disabled={submitting || !email.trim() || !password || !displayName.trim()}
               className="w-full py-3 px-4 rounded-lg bg-primary-container text-on-primary-container hover:bg-opacity-90 disabled:opacity-50 font-label-caps text-label-caps uppercase font-bold transition shadow-md flex items-center justify-center gap-2"
             >
               {submitting ? 'Creating Workspace...' : 'Create Account'}
@@ -156,4 +212,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
