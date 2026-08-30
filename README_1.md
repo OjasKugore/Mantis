@@ -1,6 +1,6 @@
 # Mantis — Modern Defect & Vulnerability Management Platform
 
-A high-performance modernization of the Mantis open-source defect tracking platform, re-architected into a TypeScript monorepo powered by **Next.js 14** (App Router & API Routes), **PostgreSQL 16**, and **TypeScript**.
+A high-performance modernization of the Mantis open-source defect tracking platform, re-architected into a TypeScript monorepo powered by **Fastify 4** (API Gateway on port 3001), **Next.js 14** (Web UI on port 3000), **PostgreSQL 16**, and the **Mantis CLI** (`mantis` / `bz`).
 
 ---
 
@@ -18,7 +18,7 @@ A high-performance modernization of the Mantis open-source defect tracking platf
 - **Markdown Comments & @Mentions**: GitHub-Flavored Markdown editor with code copy buttons, `@username` popover autocomplete, and in-app notifications.
 - **Git SCM Webhooks Automation**: HMAC-verified webhook endpoint that auto-resolves bugs on commit pushes or PR merges containing `Fixes #ID`.
 - **Milestone Release Readiness & Analytics**: 0–100% circular health score based on critical path risks and MTTR engineering velocity analytics.
-- **`bz-monitor` CLI Crash Interceptor**: Terminal developer CLI that intercepts test/compiler stack traces and files bugs directly from shell commands.
+- **Mantis Terminal CLI (`mantis` / `bz`)**: Developer CLI supporting 1-click persona quick-logins (`mantis auth login --persona admin`), ASCII dependency trees, offline CVSS scoring, and terminal triage.
 
 ---
 
@@ -33,7 +33,7 @@ npm test
 *Executes 88 unit and integration tests across 19 test files in seconds via `pg-mem`.*
 
 ### Option B: Full-Stack Local Setup (Docker + PostgreSQL)
-To launch the complete application with persistent storage, pre-populated seed data, and live APIs:
+Launch the complete application with persistent storage, pre-populated seed data, and live APIs:
 
 ```bash
 # 1. Verify Node.js & environment requirements
@@ -44,8 +44,25 @@ docker compose up -d db
 npm run migrate
 npm run seed
 
-# 3. Start development server (Web Interface & API Routes at http://localhost:3000)
-npm run dev:web
+# 3. Start Fastify API Gateway (http://localhost:3001) & Next.js Web UI (http://localhost:3000)
+npm run dev:api   # API Gateway & Interactive OpenAPI Swagger Docs at http://localhost:3001/docs
+npm run dev:web   # Next.js 14 Web Application
+```
+
+### Option C: Developer CLI Tool (`mantis` / `bz`)
+Interact with Mantis directly from your terminal:
+
+```bash
+# Build shared packages & CLI binary
+npm --prefix packages/shared run build
+npm --prefix apps/cli run build
+
+# 1-Click persona quick-login (admin, alice, bob, carol, dave, eve)
+node apps/cli/dist/index.js auth login --persona alice
+
+# View active user identity & list bugs in terminal
+node apps/cli/dist/index.js auth me
+node apps/cli/dist/index.js bug list
 ```
 
 ---
@@ -55,12 +72,18 @@ npm run dev:web
 ```text
 clonefest-2/
 ├── apps/
-│   ├── web/                   # Next.js 14 App Router Frontend & API Routes (/api/v1)
-│   │   ├── app/               # App Router pages & REST API endpoints (bugs, auth, webhooks)
+│   ├── api/                   # Fastify 4 REST API Gateway (Port 3001 & Swagger at /docs)
+│   │   ├── src/
+│   │   │   ├── db/            # Schema migrations & PostgreSQL pool setup
+│   │   │   ├── lib/           # Core algorithmic engines (FSM, CPM, CVSS v4, AI)
+│   │   │   ├── middleware/    # Auth, RBAC & 404 Group Secrecy enforcement
+│   │   │   └── routes/        # REST endpoints (bugs, auth, webhooks, search, etc.)
+│   │   └── test/              # Vitest test suite (Unit & Integration)
+│   ├── web/                   # Next.js 14 App Router Frontend (Port 3000)
+│   │   ├── app/               # Web application pages & interactive views
 │   │   ├── components/        # React components (Interactive DAG, Triage, Webhooks)
-│   │   └── lib/               # UI state management & database client utilities
-│   ├── api/                   # Dedicated API Gateway package
-│   └── cli/                   # Developer CLI tool for Mantis environment operations
+│   │   └── lib/               # UI state management & API client utilities
+│   └── cli/                   # Mantis Developer CLI (`mantis` / `bz` commands)
 ├── packages/
 │   └── shared/                # Shared TypeScript definitions, schemas & utilities
 ├── docs/                      # Technical specifications & architecture guides
@@ -68,6 +91,7 @@ clonefest-2/
 │   ├── additional-features.md
 │   ├── bug_workflow.md
 │   └── implementation-rules.md
+├── cli.md                     # Complete CLI User & Developer Manual
 ├── docker-compose.yml         # PostgreSQL 16 container configuration
 ├── seed.ts                    # Database seeding script for test entities
 └── package.json               # Workspace root configuration & scripts
@@ -79,7 +103,9 @@ clonefest-2/
 
 | Component | Technology | Description |
 | :--- | :--- | :--- |
-| **Frontend & API** | Next.js 14, React 18, Tailwind CSS | App Router SPA with server components, dark mode, and integrated REST API routes (`/api/v1`). |
+| **API Gateway** | Fastify 4, TypeScript | High-throughput REST API with Zod schema validation & OpenAPI docs (`/docs`). |
+| **Web Frontend** | Next.js 14, React 18, Tailwind CSS | App Router SPA with server components, dark mode, and interactive views. |
+| **Terminal CLI** | Commander.js, Chalk, Cli-Table3 | Terminal command center (`mantis` / `bz`) with persona logins & terminal triage. |
 | **Database** | PostgreSQL 16 | Relational store with full-text search vectors, triggers, and transactions. |
 | **AI Engine** | Gemini 2.0 Flash | Automated bug triage, summary synthesis, and duplicate detection. |
 | **Testing** | Vitest, `pg-mem` | Isolated test execution with 100% in-memory database mocks. |
@@ -93,7 +119,8 @@ clonefest-2/
 | `npm run preflight` | Checks Node.js version, environment variables, and pre-requisites. |
 | `npm test` | Runs backend unit and integration test suites. |
 | `npm run setup` | Executes preflight checks, launches database container, runs migrations, and seeds test data. |
-| `npm run dev:web` | Starts the Next.js web application and API in development mode (`http://localhost:3000`). |
+| `npm run dev:api` | Starts the Fastify API Gateway server in watch mode (`http://localhost:3001`). |
+| `npm run dev:web` | Starts the Next.js web application in development mode (`http://localhost:3000`). |
 | `npm run build` | Builds the shared package and Next.js production bundle. |
 | `npm run migrate` | Executes database migrations against PostgreSQL. |
 | `npm run seed` | Seeds the database with test projects, components, users, and bugs. |
@@ -102,8 +129,9 @@ clonefest-2/
 
 ## 📚 Technical Documentation
 
-For in-depth architectural specs and subsystem guides, see the [`docs/`](docs) directory:
+For in-depth architectural specs and subsystem guides:
 
+- [`cli.md`](cli.md) — Complete Developer CLI User & Triage Manual (`mantis` / `bz`).
 - [`docs/bug_workflow.md`](docs/bug_workflow.md) — Bug lifecycle FSM rules & state transition rules.
 - [`docs/MANTIS_WEBHOOK_DEMO_README.md`](docs/MANTIS_WEBHOOK_DEMO_README.md) — Webhook configuration, payload formats, and verification.
 - [`docs/additional-features.md`](docs/additional-features.md) — Overview of security moats and algorithmic features.
