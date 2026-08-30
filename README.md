@@ -10,7 +10,9 @@
 [![SCM Demo](https://img.shields.io/badge/SCM_Demo-mantis--webhook--demo-blue?logo=github)](https://github.com/OjasKugore/mantis-webhook-demo)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Mantis** is a ground-up enterprise modernization of the Bugzilla defect tracking, vulnerability scoring, and release governance platform. Built with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14 App Router**, it replaces 25-year-old Perl CGI infrastructure with five unbeatable algorithmic and security moats: an interactive CPM critical path engine, a FIRST.org CVSS v4.0 math calculator with 90-day live embargo countdowns, strict 404 zero-leakage group secrecy, formal FSM defect lifecycle transitions, and 1-Click Gemini 2.0 Flash AI triage — all verified by 141 automated tests running in under 5 seconds.
+>BugZilla? More like Bugs-Illa 😳
+>
+>**Mantis** is a ground-up enterprise modernization of the Bugzilla defect tracking, vulnerability scoring, and release governance platform. Built with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14 App Router**, it replaces 25-year-old Perl CGI infrastructure with five unbeatable algorithmic and security moats: an interactive CPM critical path engine, a FIRST.org CVSS v4.0 math calculator with 90-day live embargo countdowns, strict 404 zero-leakage group secrecy, formal FSM defect lifecycle transitions, and 1-Click Gemini 2.0 Flash AI triage — all verified by 141 automated tests running in under 5 seconds.
 
 ---
 
