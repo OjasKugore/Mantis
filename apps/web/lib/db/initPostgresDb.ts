@@ -95,7 +95,8 @@ export async function initPostgresDb(pool: any) {
       classification_id INTEGER,
       description TEXT NOT NULL DEFAULT '',
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      default_milestone VARCHAR(64) NOT NULL DEFAULT '---'
+      default_milestone VARCHAR(64) NOT NULL DEFAULT '---',
+      team_name VARCHAR(255)
     );
 
     CREATE TABLE IF NOT EXISTS components (
@@ -260,6 +261,14 @@ export async function initPostgresDb(pool: any) {
       name VARCHAR(64) NOT NULL,
       query_json JSONB NOT NULL
     );
+
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS team_name VARCHAR(255);
+    UPDATE products 
+    SET team_name = TRIM(SUBSTRING(description FROM 'Main product for (.*)'))
+    WHERE (team_name IS NULL OR team_name = '') AND description LIKE 'Main product for %';
+    UPDATE products
+    SET team_name = 'Mozilla'
+    WHERE (team_name IS NULL OR team_name = '') AND (id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core'));
   `);
 
   // Step 2: Wipe ALL non-demo user data (sessions, flags, bugs, group memberships, team invites, then users)
@@ -329,10 +338,10 @@ async function seedDemoDataIfMissing(pool: any) {
     ON CONFLICT DO NOTHING
   `);
   await pool.query(`
-    INSERT INTO products (id, name, classification_id, description, default_milestone) VALUES
-      (1, 'Firefox', 1, 'Mozilla flagship browser', '128.0'),
-      (2, 'Thunderbird', 1, 'Desktop email client', '115.0'),
-      (3, 'Core', 1, 'Shared platform engine and graphics', '---')
+    INSERT INTO products (id, name, classification_id, description, default_milestone, team_name) VALUES
+      (1, 'Firefox', 1, 'Mozilla flagship browser', '128.0', 'Mozilla'),
+      (2, 'Thunderbird', 1, 'Desktop email client', '115.0', 'Mozilla'),
+      (3, 'Core', 1, 'Shared platform engine and graphics', '---', 'Mozilla')
     ON CONFLICT DO NOTHING
   `);
 

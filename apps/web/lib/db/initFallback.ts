@@ -96,7 +96,8 @@ export async function initInMemoryFallbackDb() {
       classification_id INTEGER,
       description TEXT NOT NULL DEFAULT '',
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      default_milestone VARCHAR(64) NOT NULL DEFAULT '---'
+      default_milestone VARCHAR(64) NOT NULL DEFAULT '---',
+      team_name VARCHAR(255)
     );
 
     CREATE TABLE IF NOT EXISTS components (
@@ -281,10 +282,10 @@ async function seedFallbackData(executor: any) {
 
   // 1. Classification & Products
   await executor.query(`INSERT INTO classifications (id, name, sortkey) VALUES (1, 'Mozilla Products', 1)`);
-  await executor.query(`INSERT INTO products (id, name, classification_id, description, default_milestone) VALUES 
-    (1, 'Firefox', 1, 'Mozilla flagship browser', '128.0'),
-    (2, 'Thunderbird', 1, 'Desktop email client', '115.0'),
-    (3, 'Core', 1, 'Shared platform engine and graphics', '---')`);
+  await executor.query(`INSERT INTO products (id, name, classification_id, description, default_milestone, team_name) VALUES 
+    (1, 'Firefox', 1, 'Mozilla flagship browser', '128.0', 'Mozilla'),
+    (2, 'Thunderbird', 1, 'Desktop email client', '115.0', 'Mozilla'),
+    (3, 'Core', 1, 'Shared platform engine and graphics', '---', 'Mozilla')`);
 
   // 2. Components
   const compData = [

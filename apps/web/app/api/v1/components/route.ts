@@ -18,9 +18,15 @@ export async function GET(request: Request) {
       query += ` AND product_id = $1`;
       params.push(parseInt(productId, 10));
     } else if (isDemo) {
-      query += ` AND product_id IN (1, 2, 3)`;
+      query += ` AND product_id IN (SELECT id FROM products WHERE team_name = 'Mozilla' OR team_name IS NULL OR id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core'))`;
+    } else if (user?.team_name) {
+      query += ` AND product_id IN (SELECT id FROM products WHERE (team_name = $1 OR (team_name IS NULL AND description ILIKE $2) OR classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core'))`;
+      params.push(user.team_name, `%${user.team_name}%`);
+    } else if (user?.id) {
+      query += ` AND product_id IN (SELECT id FROM products WHERE (team_name = $1 OR team_name = $2) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core'))`;
+      params.push(user.email, user.username);
     } else {
-      query += ` AND product_id NOT IN (1, 2, 3)`;
+      query += ` AND product_id IN (1, 2, 3)`;
     }
 
     query += ` ORDER BY id ASC`;
