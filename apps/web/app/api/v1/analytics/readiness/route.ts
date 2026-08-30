@@ -219,8 +219,11 @@ export async function GET(request: Request) {
       });
     }
 
-    const baseScore = Math.round((resolvedCount / totalCount) * 100);
-    const finalScore = Math.max(0, Math.min(100, Math.round(baseScore - penalties * 0.5)));
+    const baseResolution = totalCount > 0 ? (resolvedCount / totalCount) * 100 : 100;
+    const qualityScore = Math.max(0, 100 - penalties);
+    const finalScore = resolvedCount === totalCount
+      ? 100
+      : Math.max(0, Math.min(100, Math.round((baseResolution * 0.6) + (qualityScore * 0.4))));
     const status = finalScore >= 85 ? 'READY_FOR_RELEASE' : finalScore >= 60 ? 'NEEDS_ATTENTION' : 'BLOCKED';
 
     return NextResponse.json({
