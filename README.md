@@ -46,7 +46,7 @@ Push a commit with `Fixes #1` in the message to the demo repo and watch Bug #1 a
 
 ---
 
-### 🧪 Option 2 — Run All 124 Tests (Pure Node.js, No Database Required)
+### 🧪 Option 2 — Run All 141 Tests (Pure Node.js, No Database Required)
 
 Verify every algorithm, security rule, and integration assertion in **under 5 seconds** — no Docker, no database, no configuration:
 
@@ -57,7 +57,7 @@ npm install
 npm test
 ```
 
-> All 124 tests run via an integrated high-speed in-memory PostgreSQL engine (`pg-mem`), exercising real SQL with no mocking.
+> All 141 tests run via an integrated high-speed in-memory PostgreSQL engine (`pg-mem`), exercising real SQL with no mocking.
 
 ---
 
@@ -497,7 +497,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 |---|---|
 | `npm run dev` | Starts the Next.js fullstack app on [http://localhost:3000](http://localhost:3000) (API + UI, all-in-one) |
 | `npm run dev:web` | Alias — starts only the Next.js web application in development mode |
-| `npm test` | Runs all 124 unit and integration tests across all packages |
+| `npm test` | Runs all 141 unit and integration tests across all packages |
 | `npm run build` | Builds the shared package and Next.js production bundle |
 | `npm run migrate` | Applies SQL migrations to a PostgreSQL database (requires `DATABASE_URL`) |
 | `npm run seed` | Seeds PostgreSQL with users, bugs, dependencies, flags, and SCM commits (requires `DATABASE_URL`) |
