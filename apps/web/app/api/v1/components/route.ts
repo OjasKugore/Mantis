@@ -17,7 +17,9 @@ export async function GET(request: Request) {
     if (productId) {
       query += ` AND product_id = $1`;
       params.push(parseInt(productId, 10));
-    } else if (!isDemo) {
+    } else if (isDemo) {
+      query += ` AND product_id IN (1, 2, 3)`;
+    } else {
       query += ` AND product_id NOT IN (1, 2, 3)`;
     }
 

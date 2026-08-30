@@ -28,7 +28,9 @@ export async function GET() {
        LEFT JOIN groups g ON g.id = ugm.group_id
     `;
 
-    if (!isDemo) {
+    if (isDemo) {
+      query += ` WHERE u.email LIKE '%@mozilla.com' OR u.email = 'admin@mantis.local'`;
+    } else {
       query += ` WHERE u.email NOT LIKE '%@mozilla.com' AND u.email != 'admin@mantis.local'`;
     }
 

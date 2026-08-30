@@ -12,7 +12,9 @@ export async function GET(request: Request) {
     const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
     let query = `SELECT id, name, description, is_active, default_milestone FROM products`;
-    if (!isDemo) {
+    if (isDemo) {
+      query += ` WHERE id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
+    } else {
       query += ` WHERE id NOT IN (1, 2, 3) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
     }
     query += ` ORDER BY id ASC`;
