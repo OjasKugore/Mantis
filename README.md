@@ -174,6 +174,8 @@ Flags are tracked independently of defect status, can be targeted at specific en
 | **Milestone Release Readiness** | Custom Risk Formula | 0–100% circular health gauge penalizing open CPM blockers, CVSS criticals, and pending flags |
 | **Pure SQL MTTR & Velocity** | PostgreSQL Aggregations | Mean Time To Resolve metrics and sprint burndown velocity computed directly over the `bugs_activity` audit stream |
 | **Live Activity Feed** | Server-Sent Events / Polling | Real-time badge refresh on the bug list and notification bell without a page reload |
+| **Workspace & Product Hierarchy** | Fastify + Next.js Admin | Self-service creation of products, milestone management, and sub-components with auto-assignee routing (`/settings/products`) |
+| **Team Invites & RBAC Binding** | Crypto Tokens + PostgreSQL | Secure time-limited invite links (`/invite?token=...`), role auto-provisioning (`dev-team`, `qa-team`, `security-team`), and priority rank management (`/settings/team`) |
 
 ---
 

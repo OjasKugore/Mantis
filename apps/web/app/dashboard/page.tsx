@@ -13,6 +13,8 @@ import { BugStatus } from '@mantis/shared';
 import { applyBugStatusChange } from '@/lib/status-transition';
 import { MantisLogo } from '@/components/MantisLogo';
 import { ProfileDropdown } from '@/components/ProfileDropdown';
+import { SavedViewsBar } from '@/components/SavedViewsBar';
+import { ReadinessDashboard } from '@/components/ReadinessDashboard';
 
 interface BugItem {
   id: number;
@@ -38,7 +40,8 @@ export default function DashboardPage() {
   const [apiOnline, setApiOnline] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics' | 'readiness'>('queue');
+  const [activeSavedViewName, setActiveSavedViewName] = useState<string | null>(null);
   const [queueViewMode, setQueueViewMode] = useState<'list' | 'kanban'>('list');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
@@ -287,6 +290,24 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
+
+            <button
+              onClick={() => setActiveTab('readiness')}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
+                activeTab === 'readiness'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
+                verified
+              </span>
+              {sidebarOpen && (
+                <span className="font-label-caps text-label-caps tracking-wide uppercase">
+                  Release Readiness
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -301,6 +322,13 @@ export default function DashboardPage() {
               {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Settings</span>}
             </Link>
           )}
+          <Link
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
+            href="/audit"
+          >
+            <span className="material-symbols-outlined text-[20px]">manage_search</span>
+            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Audit Explorer</span>}
+          </Link>
           <Link
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
             href="/docs"
@@ -578,6 +606,16 @@ export default function DashboardPage() {
                     )}
                   </div>
 
+                  <a
+                    href={`/api/v1/bugs/export?status=${encodeURIComponent(filterStatus)}&priority=${encodeURIComponent(filterPriority)}&severity=${encodeURIComponent(filterSeverity)}&embargo=${encodeURIComponent(filterEmbargo)}&search=${encodeURIComponent(searchQuery)}`}
+                    download
+                    className="p-2 rounded-lg border border-outline-variant/50 bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all shadow-xs flex items-center gap-1.5 text-xs font-semibold shrink-0 cursor-pointer"
+                    title="Export filtered bug queue to CSV"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-primary">download</span>
+                    <span className="hidden sm:inline">Export</span>
+                  </a>
+
                   <div className="flex bg-surface-container-lowest rounded-lg p-0.5 border border-outline-variant/30 shadow-xs">
                     <button
                       onClick={() => setQueueViewMode('list')}
@@ -602,6 +640,25 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Saved Views / Named Queries Bar */}
+              <SavedViewsBar
+                currentFilters={{
+                  status: filterStatus,
+                  priority: filterPriority,
+                  severity: filterSeverity,
+                  embargo: filterEmbargo,
+                }}
+                onApplyView={(filters, viewName) => {
+                  setFilterStatus(filters.status || 'all');
+                  setFilterPriority(filters.priority || 'all');
+                  setFilterSeverity(filters.severity || 'all');
+                  setFilterEmbargo(filters.embargo || 'all');
+                  setActiveSavedViewName(viewName || null);
+                  setCurrentPage(1);
+                }}
+                activeViewName={activeSavedViewName}
+              />
 
               {queueViewMode === 'kanban' ? (
                 <div className="flex-1 w-full min-w-0 min-h-[500px]">

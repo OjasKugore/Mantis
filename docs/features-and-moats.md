@@ -19,6 +19,7 @@
 9. [📝 Rich-Text GFM Markdown & @Mentions Collaboration](#9--rich-text-gfm-markdown--mentions-collaboration)
 10. [📊 Milestone Release Readiness & Pure SQL MTTR Analytics](#10--milestone-release-readiness--pure-sql-mttr-analytics)
 11. [🐙 Real-Time GitHub SCM Webhook Automation](#11--real-time-github-scm-webhook-automation)
+12. [🏢 Enterprise Workspace, Product & Team Administration](#12--enterprise-workspace-product--team-administration)
 
 ---
 
@@ -218,3 +219,23 @@ Mantis bridges source code management directly to issue tracking:
 - **Commit Message Parsing**: Extracts issue keywords (`Fixes #1`, `Closes #2`, `Resolves #3`, `Bug 4`).
 - **Automatic Resolution**: Pushing a commit with `Fixes #1` to the default branch automatically transitions Bug #1 to `RESOLVED (FIXED)` and records the commit SHA, author, and diff link in the audit history.
 - **Dedicated SCM Tab**: Displays linked commits and pull requests directly on the defect detail page.
+
+---
+
+## 12. 🏢 Enterprise Workspace, Product & Team Administration
+
+Mantis provides complete self-service administration for engineering organizations to scale products, components, and teams:
+
+### 12.1 Product & Subsystem Hierarchy (`/settings/products`)
+- **Product Lifecycle Governance**: Administrators can create new products (e.g. `Gecko Core`, `Thunderbird`, `SpiderMonkey`), configure default milestones, and toggle active/archived states.
+- **Granular Component Routing**: Each product supports granular sub-components (e.g. `Necko / Network`, `Layout / Reflow`, `Wasm JIT Compiler`) with designated default assignees. Newly filed defects in a component automatically default to the component lead.
+
+### 12.2 Secure Team Invitations & Role Provisioning (`/settings/team`)
+- **Time-Limited Tokenized Invites**: Admins can generate secure, cryptographically random invitation tokens with optional email scoping.
+- **Automated Role & Group Binding**: Invites can be pre-configured with specific permissions (`dev-team`, `qa-team`, `security-team`, or `Administrator`). When accepted via `/invite?token=...`, the user is immediately provisioned into the appropriate groups.
+- **Priority Ranking & Account Governance**: Admins can adjust engineer triage priority ranks (e.g. `Rank 1` for core triage leads), grant/revoke security clearance, or toggle account status (`Enabled` / `Disabled`).
+
+### 12.3 Seamless Onboarding Engine (`/onboarding`)
+- **Zero-Friction Team Discovery**: New signups are automatically matched against pending domain invitations upon account creation.
+- **Workspace Bootstrapping**: Allows teams without an invite to initialize their own workspace with sensible product defaults, component hierarchies, and triage queues in seconds.
+

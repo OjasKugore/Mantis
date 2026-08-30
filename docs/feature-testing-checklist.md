@@ -1,3 +1,4 @@
+
 # Mantis — Feature Verification & QA Testing Checklist
 
 > **Evaluation Version**: Mantis v3.0.0 Enterprise Release  
@@ -137,7 +138,20 @@ Test each workflow with the appropriate persona to verify Role-Based Access Cont
 
 ---
 
-## 15. 🧪 Automated Test Verification
+---
+
+## 15. 🏢 Workspace, Product & Team Administration
+
+- [ ] **Product & Workspace Creation**: Log in as `Admin` $\rightarrow$ Navigate to `/settings/products` $\rightarrow$ Click `+ New Product` $\rightarrow$ Enter product name (e.g. `SpiderMonkey Next`), description, and default milestone `130.0` $\rightarrow$ Submit $\rightarrow$ New product appears in defect creation dropdowns across the workspace.
+- [ ] **Component Hierarchy & Default Owners**: Under the new product $\rightarrow$ Click `+ Add Component` $\rightarrow$ Create component (e.g. `Wasm JIT Compiler`) with default assignee `Alice` $\rightarrow$ Verified: filing bugs in this component auto-assigns Alice.
+- [ ] **Team Invite Generation**: Navigate to `/settings/team` $\rightarrow$ Click `+ Invite Team Member` $\rightarrow$ Enter optional email, toggle `Administrator` or select initial groups (`dev-team`, `qa-team`, `security-team`) $\rightarrow$ Click `Generate Invite Link` $\rightarrow$ Generates secure time-limited token URL (`/invite?token=...`).
+- [ ] **Invite Acceptance Flow**: Open the generated invite link in an incognito window $\rightarrow$ Displays the invite landing page showing inviter name, role, and assigned permissions $\rightarrow$ Click `Accept & Sign Up` $\rightarrow$ Completes onboarding and binds user to the workspace with assigned roles.
+- [ ] **Member Role & Priority Management**: On `/settings/team` $\rightarrow$ Update a member's priority ranking (e.g. `Rank 1` for core triage leads), grant/revoke security group access, or toggle account status (`Enabled` / `Disabled`).
+- [ ] **Workspace Onboarding Experience**: Sign up as a new user without an invite $\rightarrow$ Redirected to `/onboarding` $\rightarrow$ Auto-detects pending domain invites or allows creating a custom workspace with default products and triage configurations.
+
+---
+
+## 16. 🧪 Automated Test Verification
 
 Execute all unit and integration test suites locally:
 
@@ -152,9 +166,8 @@ Expected Output:
   PACKAGE               TEST SUITES   TESTS PASSING   EXECUTION TIME
 ========================================================================
   @mantis/api (Backend)     19             88            ~3.4s
-  @mantis/cli (Terminal)     5             17            ~0.2s
   @mantis/web (Frontend)    12             36            ~0.6s
 ------------------------------------------------------------------------
-  TOTAL                     36            141            ~4.2s (100% Green)
+  TOTAL                     31            124            ~4.1s (100% Green)
 ========================================================================
 ```
