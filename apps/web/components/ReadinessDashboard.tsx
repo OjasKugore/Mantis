@@ -23,8 +23,8 @@ interface UnresolvedBug {
 
 interface ReadinessData {
   milestone: string;
-  score: number;
-  status: 'READY_FOR_RELEASE' | 'NEEDS_ATTENTION' | 'BLOCKED';
+  score: number | null;
+  status: 'READY_FOR_RELEASE' | 'NEEDS_ATTENTION' | 'BLOCKED' | 'NO_DEFECTS';
   totalIssues: number;
   resolvedIssues: number;
   unresolvedIssues: number;
@@ -32,11 +32,13 @@ interface ReadinessData {
   penalties: number;
   breakdown: RiskBreakdown[];
   unresolvedBugs: UnresolvedBug[];
+  availableMilestones?: string[];
 }
 
 export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: (bugId: number) => void }) {
   const { user } = useAuth();
-  const [milestone, setMilestone] = useState<string>('128.0');
+  const isDemo = isDemoUser(user);
+  const [milestone, setMilestone] = useState<string>('all');
   const [data, setData] = useState<ReadinessData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
     setLoading(true);
     setError(null);
     try {
-      const scopeParam = user && !isDemoUser(user) ? '&scope=user' : '&scope=demo';
+      const scopeParam = user && !isDemo ? '&scope=user' : '&scope=demo';
       const res = await fetch(`/api/v1/analytics/readiness?milestone=${encodeURIComponent(ms)}${scopeParam}`);
       if (!res.ok) throw new Error('Failed to compute readiness score');
       const result = await res.json();
@@ -58,22 +60,35 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
   };
 
   useEffect(() => {
+    // Set sensible default: demo users use '128.0', custom sandboxes use 'all'
+    if (isDemo && milestone === 'all') {
+      setMilestone('128.0');
+    }
+  }, [isDemo]);
+
+  useEffect(() => {
     fetchReadiness(milestone);
   }, [milestone, user]);
 
+  const hasDefects = data && data.totalIssues > 0;
   const score = data?.score ?? 0;
+
   const scoreColor =
+    !hasDefects ? 'text-on-surface-variant border-outline-variant/50 bg-surface-container-high' :
     score >= 85 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' :
     score >= 60 ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' :
     'text-rose-400 border-rose-500/40 bg-rose-500/10';
 
   const progressStrokeColor =
+    !hasDefects ? '#64748B' :
     score >= 85 ? '#10B981' :
     score >= 60 ? '#F59E0B' :
     '#EF4444';
 
   const circumference = 2 * Math.PI * 52;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const strokeDashoffset = hasDefects
+    ? circumference - (score / 100) * circumference
+    : circumference;
 
   return (
     <div className="space-y-6">
@@ -85,7 +100,7 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
             Milestone Release Readiness Engine
           </h2>
           <p className="text-xs text-on-surface-variant mt-1">
-            Algorithmic 0–100 risk calculation powered by Kahn's Critical Path Method (CPM), CVSS v4.0 severity math, and review flag clearance.
+            Algorithmic 0–100 risk calculation powered by Kahn&apos;s Critical Path Method (CPM), CVSS v4.0 severity math, and review flag clearance.
           </p>
         </div>
 
@@ -98,15 +113,35 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
             onChange={(e) => setMilestone(e.target.value)}
             className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-3 py-1.5 text-xs font-bold text-on-surface focus:outline-hidden focus:border-primary shadow-xs"
           >
-            <option value="128.0">Firefox 128.0 (Current Sprint)</option>
-            <option value="129.0">Firefox 129.0 (Next Cycle)</option>
-            <option value="130.0">Firefox 130.0 (Backlog)</option>
-            <option value="all">All Release Milestones</option>
+            {isDemo ? (
+              <>
+                <option value="128.0">Firefox 128.0 (Current Sprint)</option>
+                <option value="129.0">Firefox 129.0 (Next Cycle)</option>
+                <option value="130.0">Firefox 130.0 (Backlog)</option>
+                <option value="all">All Release Milestones</option>
+              </>
+            ) : (
+              <>
+                <option value="all">All Release Milestones</option>
+                {data?.availableMilestones && data.availableMilestones.length > 0 ? (
+                  data.availableMilestones.map((ms) => (
+                    <option key={ms} value={ms}>
+                      {ms === '---' ? 'Default Milestone (---)' : `Release Milestone ${ms}`}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="128.0">Release Milestone 128.0</option>
+                    <option value="---">Default Milestone (---)</option>
+                  </>
+                )}
+              </>
+            )}
           </select>
 
           <button
             onClick={() => fetchReadiness(milestone)}
-            className="p-1.5 rounded-xl bg-surface-container-highest/60 hover:bg-surface-container-highest text-on-surface transition-colors"
+            className="p-1.5 rounded-xl bg-surface-container-highest/60 hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
             title="Refresh Score"
           >
             <span className="material-symbols-outlined text-lg">refresh</span>
@@ -154,13 +189,17 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-extrabold text-on-surface tracking-tight">{score}</span>
-                  <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest">/ 100</span>
+                  <span className="text-3xl font-extrabold text-on-surface tracking-tight">
+                    {hasDefects ? score : '—'}
+                  </span>
+                  <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest">
+                    {hasDefects ? '/ 100' : 'No Data'}
+                  </span>
                 </div>
               </div>
 
-              <div className={`mt-2 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase border ${scoreColor}`}>
-                {data.status.replace(/_/g, ' ')}
+              <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${scoreColor}`}>
+                {data.status === 'NO_DEFECTS' ? 'NO DEFECTS SCOPED' : data.status.replace(/_/g, ' ')}
               </div>
             </div>
 
@@ -217,7 +256,11 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
               Identified Risk Factors & Penalties
             </h3>
 
-            {data.breakdown.length === 0 ? (
+            {data.totalIssues === 0 ? (
+              <p className="text-xs text-on-surface-variant font-medium py-3">
+                No defects are currently tracked under milestone &quot;{milestone}&quot;.
+              </p>
+            ) : data.breakdown.length === 0 ? (
               <p className="text-xs text-emerald-400 font-medium py-3">
                 ✓ No active release blockers or high-risk vulnerabilities identified for this milestone.
               </p>
@@ -268,9 +311,26 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
               </h3>
             </div>
 
-            {data.unresolvedBugs.length === 0 ? (
+            {data.totalIssues === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 bg-surface-container-low/30 rounded-xl border border-dashed border-outline-variant/30">
+                <span className="material-symbols-outlined text-3xl text-on-surface-variant/60">rule</span>
+                <div>
+                  <div className="text-xs font-bold text-on-surface">No defects tracked in this milestone</div>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">
+                    Assign defects to this target milestone when reporting or editing bugs to compute real-time release readiness.
+                  </p>
+                </div>
+                <Link
+                  href="/bugs/new"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold shadow-xs hover:bg-primary/90 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[15px]">add_circle</span>
+                  Report Defect
+                </Link>
+              </div>
+            ) : data.unresolvedBugs.length === 0 ? (
               <p className="text-xs text-emerald-400 font-medium py-3">
-                ✓ All defects in this milestone have been resolved and verified!
+                ✓ All {data.totalIssues} defects in this milestone have been resolved and verified!
               </p>
             ) : (
               <div className="overflow-x-auto">

@@ -128,9 +128,33 @@ export async function GET(request: Request) {
     const resolvedCount = totalRes.rows.filter((b: any) => ['RESOLVED', 'VERIFIED', 'CLOSED'].includes(b.status)).length;
     const unresolvedCount = unresolvedBugs.length;
 
-    const baseScore = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 100;
-    const finalScore = Math.max(0, Math.min(100, Math.round(baseScore - penalties * 0.5)));
+    // Fetch all available milestones in this sandbox
+    const { rows: milestoneRows } = await db.query(
+      `SELECT DISTINCT target_milestone FROM bugs WHERE 1=1${sandboxClause}`,
+      sandboxParams
+    );
+    const availableMilestones = Array.from(
+      new Set(milestoneRows.map((r: any) => r.target_milestone).filter(Boolean))
+    );
 
+    if (totalCount === 0) {
+      return NextResponse.json({
+        milestone: milestoneId,
+        score: null,
+        status: 'NO_DEFECTS',
+        totalIssues: 0,
+        resolvedIssues: 0,
+        unresolvedIssues: 0,
+        criticalPathIds: [],
+        penalties: 0,
+        breakdown: [],
+        unresolvedBugs: [],
+        availableMilestones,
+      });
+    }
+
+    const baseScore = Math.round((resolvedCount / totalCount) * 100);
+    const finalScore = Math.max(0, Math.min(100, Math.round(baseScore - penalties * 0.5)));
     const status = finalScore >= 85 ? 'READY_FOR_RELEASE' : finalScore >= 60 ? 'NEEDS_ATTENTION' : 'BLOCKED';
 
     return NextResponse.json({
@@ -152,6 +176,7 @@ export async function GET(request: Request) {
         cvss_severity: b.cvss_severity,
         is_on_critical_path: criticalPath.includes(Number(b.id)),
       })),
+      availableMilestones,
     });
   } catch (err: any) {
     return NextResponse.json({ error: 'READINESS_FAILED', message: err.message }, { status: 500 });
