@@ -87,7 +87,7 @@ export default function DashboardPage() {
   }, [filterDropdownOpen]);
 
   useEffect(() => {
-    if (user && !isDemoUser(user) && !user.onboarded) {
+    if (user && !isDemoUser(user) && !user.onboarded && !user.team_name) {
       router.replace('/onboarding');
     }
   }, [user, router]);

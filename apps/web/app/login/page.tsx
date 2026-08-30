@@ -73,7 +73,7 @@ export default function LoginPage() {
   // Redirect already-logged-in users away from the login page
   useEffect(() => {
     if (!loading && user) {
-      if (user.onboarded || isDemoUser(user)) {
+      if (user.onboarded || Boolean(user.team_name) || isDemoUser(user)) {
         router.replace('/dashboard');
       } else {
         router.replace('/onboarding');
