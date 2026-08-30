@@ -31,9 +31,12 @@ export async function POST(request: Request) {
       [teamName, user.id]
     );
 
-    // 2. Ensure classification exists
+    // 2. Ensure classification exists for this team
     let classId: number;
-    const classRes = await db.query(`SELECT id FROM classifications LIMIT 1`);
+    const classRes = await db.query(
+      `SELECT id FROM classifications WHERE name ILIKE $1 LIMIT 1`,
+      [`%${teamName}%`]
+    );
     if (classRes.rows.length > 0) {
       classId = Number(classRes.rows[0].id);
     } else {
@@ -44,17 +47,21 @@ export async function POST(request: Request) {
       classId = Number(newClass.rows[0].id);
     }
 
-    // 3. Create initial product (or reuse if existing)
+    // 3. Create initial product (or reuse if existing for this team)
     let productId: number;
-    const prodExisting = await db.query(`SELECT id FROM products WHERE LOWER(name) = LOWER($1)`, [productName]);
+    const prodExisting = await db.query(
+      `SELECT id FROM products WHERE LOWER(name) = LOWER($1) AND (team_name = $2 OR description LIKE $3)`,
+      [productName, teamName, `%${teamName}%`]
+    );
     if (prodExisting.rows.length > 0) {
       productId = Number(prodExisting.rows[0].id);
+      await db.query(`UPDATE products SET team_name = $1, classification_id = $2 WHERE id = $3`, [teamName, classId, productId]);
     } else {
       const prodRes = await db.query(
-        `INSERT INTO products (name, classification_id, description, default_milestone)
-         VALUES ($1, $2, $3, '1.0')
+        `INSERT INTO products (name, classification_id, description, default_milestone, team_name)
+         VALUES ($1, $2, $3, '1.0', $4)
          RETURNING id`,
-        [productName, classId, productDesc]
+        [productName, classId, productDesc, teamName]
       );
       productId = Number(prodRes.rows[0].id);
     }

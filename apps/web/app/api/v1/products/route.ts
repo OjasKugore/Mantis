@@ -9,18 +9,21 @@ export async function GET(request: Request) {
     const user = await getCurrentUser();
 
     // Judge demo accounts see demo catalog (Firefox, Thunderbird, Core)
-    const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
+    const isDemo = scope === 'demo' || (!scope && !user) || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
-    let query = `SELECT id, name, description, is_active, default_milestone FROM products`;
+    let query = `SELECT id, name, description, is_active, default_milestone, team_name FROM products`;
     const params: any[] = [];
 
     if (isDemo) {
-      query += ` WHERE id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
+      query += ` WHERE team_name = 'Mozilla' OR team_name IS NULL OR id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
     } else if (user?.team_name) {
-      query += ` WHERE (classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1) OR id NOT IN (1, 2, 3)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
-      params.push(`%${user.team_name}%`);
+      query += ` WHERE (team_name = $1 OR (team_name IS NULL AND description ILIKE $2) OR classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      params.push(user.team_name, `%${user.team_name}%`);
+    } else if (user?.id) {
+      query += ` WHERE (team_name = $1 OR team_name = $2) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      params.push(user.email, user.username);
     } else {
-      query += ` WHERE id NOT IN (1, 2, 3) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      query += ` WHERE team_name = 'Mozilla' OR id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
     }
     query += ` ORDER BY id ASC`;
 
@@ -41,34 +44,42 @@ export async function POST(request: Request) {
     const name = body.name?.trim();
     const description = body.description?.trim() || '';
     const defaultMilestone = body.default_milestone?.trim() || '---';
+    const teamName = user.team_name || (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local' ? 'Mozilla' : user.username);
 
     if (!name || name.length < 1 || name.length > 64) {
       return NextResponse.json({ error: 'VALIDATION_ERROR', message: 'Product name is required (1–64 characters)' }, { status: 400 });
     }
 
-    // Check for duplicate name
-    const existing = await db.query(`SELECT id FROM products WHERE LOWER(name) = LOWER($1)`, [name]);
+    // Check for duplicate name in the same workspace/team
+    const existing = await db.query(
+      `SELECT id FROM products WHERE LOWER(name) = LOWER($1) AND (team_name = $2 OR (team_name IS NULL AND $2 = 'Mozilla'))`,
+      [name, teamName]
+    );
     if (existing.rows.length > 0) {
-      return NextResponse.json({ error: 'CONFLICT', message: `A product named "${name}" already exists` }, { status: 409 });
+      return NextResponse.json({ error: 'CONFLICT', message: `A product named "${name}" already exists in your workspace` }, { status: 409 });
     }
 
-    // Ensure a classification exists (use first one or create default)
+    // Ensure a classification exists (scoped to team)
     let classId: number;
-    const classRes = await db.query(`SELECT id FROM classifications LIMIT 1`);
+    const classRes = await db.query(
+      `SELECT id FROM classifications WHERE name ILIKE $1 LIMIT 1`,
+      [`%${teamName}%`]
+    );
     if (classRes.rows.length > 0) {
       classId = Number(classRes.rows[0].id);
     } else {
       const newClass = await db.query(
-        `INSERT INTO classifications (name, sortkey) VALUES ('General', 0) RETURNING id`
+        `INSERT INTO classifications (name, sortkey) VALUES ($1, 0) RETURNING id`,
+        [`${teamName} Products`]
       );
       classId = Number(newClass.rows[0].id);
     }
 
     const { rows } = await db.query(
-      `INSERT INTO products (name, classification_id, description, default_milestone)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, description, is_active, default_milestone`,
-      [name, classId, description, defaultMilestone]
+      `INSERT INTO products (name, classification_id, description, default_milestone, team_name)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, description, is_active, default_milestone, team_name`,
+      [name, classId, description, defaultMilestone, teamName]
     );
 
     return NextResponse.json({ ...rows[0], id: Number(rows[0].id) }, { status: 201 });

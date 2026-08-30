@@ -10,7 +10,11 @@ export interface GraphEdge {
 }
 
 export function computeCPM(nodes: GraphNode[], edges: GraphEdge[]): number[] {
-  if (nodes.length === 0 || edges.length === 0) return [];
+  if (nodes.length === 0) return [];
+  if (edges.length === 0) {
+    const highest = [...nodes].sort((a, b) => (Number(b.estimatedTime) || 0) - (Number(a.estimatedTime) || 0))[0];
+    return [highest.id];
+  }
 
   // 1. Build adjacency maps
   const outgoing = new Map<number, number[]>();

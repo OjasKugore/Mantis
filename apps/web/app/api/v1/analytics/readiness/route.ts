@@ -52,12 +52,15 @@ export async function GET(request: Request) {
     let prodQuery = `SELECT id, name FROM products`;
     const prodParams: any[] = [];
     if (isDemo) {
-      prodQuery += ` WHERE id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
+      prodQuery += ` WHERE team_name = 'Mozilla' OR team_name IS NULL OR id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
     } else if (user?.team_name) {
-      prodQuery += ` WHERE (classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1) OR id NOT IN (1, 2, 3)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
-      prodParams.push(`%${user.team_name}%`);
+      prodQuery += ` WHERE (team_name = $1 OR (team_name IS NULL AND description ILIKE $2) OR classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      prodParams.push(user.team_name, `%${user.team_name}%`);
+    } else if (user?.id) {
+      prodQuery += ` WHERE (team_name = $1 OR team_name = $2) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      prodParams.push(user.email, user.username);
     } else {
-      prodQuery += ` WHERE id NOT IN (1, 2, 3) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      prodQuery += ` WHERE team_name = 'Mozilla' OR id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
     }
     prodQuery += ` ORDER BY name ASC`;
     const { rows: productRows } = await db.query(prodQuery, prodParams);
