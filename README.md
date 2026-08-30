@@ -7,6 +7,7 @@
 [![Vitest](https://img.shields.io/badge/Tests-124%2F124_Passing_100%25-brightgreen?logo=vitest)](https://vitest.dev/)
 [![Gemini](https://img.shields.io/badge/AI_Triage-Gemini_2.0_Flash-orange?logo=google)](https://deepmind.google/technologies/gemini/)
 [![Live Sandbox](https://img.shields.io/badge/Live_Sandbox-mantis--clonefest.vercel.app-purple?logo=vercel)](https://mantis-clonefest.vercel.app)
+[![SCM Demo Repo](https://img.shields.io/badge/SCM_Demo_Repo-mantis--webhook--demo-blue?logo=github)](https://github.com/OjasKugore/mantis-webhook-demo)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Mantis** is an enterprise-grade modernization of the defect tracking, vulnerability scoring, and release governance platform. Built with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14**, it replaces 25-year-old legacy infrastructure with **5 unbeatable algorithmic and security moats**: an interactive CPM critical path engine, a FIRST.org CVSS v4.0 math calculator with live embargo countdowns, strict 404 zero-leakage group secrecy, formal FSM state transitions, and 1-Click Gemini 2.0 Flash AI triage.
@@ -29,9 +30,10 @@
 
 ## ⚡ 60-Second Quick Start for Judges
 
-### 🌐 Option 1: Live Hosted Sandbox (Zero Setup)
+### 🌐 Option 1: Live Hosted Sandbox & Webhook Demo (Zero Setup)
 Evaluate the fully interactive, hosted application immediately without installing anything:  
-👉 **[https://mantis-clonefest.vercel.app](https://mantis-clonefest.vercel.app)**
+👉 **Live Web Application**: [https://mantis-clonefest.vercel.app](https://mantis-clonefest.vercel.app)  
+👉 **Pre-Configured SCM Demo Repo**: [https://github.com/OjasKugore/mantis-webhook-demo](https://github.com/OjasKugore/mantis-webhook-demo) *(push `Fixes #1` to test live auto-closing)*
 
 ---
 
@@ -246,6 +248,8 @@ flowchart TD
 ## 🐙 GitHub SCM Webhook & Live Traceability Demo
 
 Mantis includes an **HMAC-SHA256 verified GitHub webhook receiver** that automatically parses commit messages and pull requests to link commits and auto-resolve tickets.
+
+> 🔗 **Pre-Configured SCM Demo Repository**: [https://github.com/OjasKugore/mantis-webhook-demo](https://github.com/OjasKugore/mantis-webhook-demo)
 
 ### ⚡ 30-Second Live Webhook Test (For Judges)
 You can verify live Git-to-Bugzilla traceability right now by pushing to the demo repository:
