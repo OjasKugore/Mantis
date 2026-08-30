@@ -369,7 +369,13 @@ export default function DashboardPage() {
               </Link>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
               <span className="text-on-surface font-medium capitalize">
-                {activeTab === 'queue' ? 'Bug Queue' : activeTab === 'graph' ? 'Dependency Graph' : 'Sprint Burndown'}
+                {activeTab === 'queue'
+                  ? 'Bug Queue'
+                  : activeTab === 'graph'
+                  ? 'Dependency Graph'
+                  : activeTab === 'analytics'
+                  ? 'Sprint Burndown'
+                  : 'Release Readiness'}
               </span>
             </div>
           </div>
@@ -1029,6 +1035,17 @@ export default function DashboardPage() {
               ) : (
                 <AnalyticsBurndown />
               )}
+            </div>
+          )}
+
+          {activeTab === 'readiness' && (
+            <div className="max-w-6xl mx-auto w-full pb-8 animate-fade-in">
+              <ReadinessDashboard
+                onNavigateToGraph={(bugId) => {
+                  setSelectedBugId(bugId);
+                  setActiveTab('graph');
+                }}
+              />
             </div>
           )}
         </main>

@@ -4,13 +4,13 @@
 [![Fastify](https://img.shields.io/badge/Fastify-4.28-black?logo=fastify)](https://fastify.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/Tests-124%2F124_Passing_100%25-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-141%2F141_Passing_100%25-brightgreen?logo=vitest)](https://vitest.dev/)
 [![AI Triage](https://img.shields.io/badge/AI_Triage-Gemini_2.0_Flash-orange?logo=google)](https://deepmind.google/technologies/gemini/)
 [![Live Sandbox](https://img.shields.io/badge/Live_Sandbox-mantis--clonefest.vercel.app-purple?logo=vercel)](https://mantis-clonefest.vercel.app)
 [![SCM Demo](https://img.shields.io/badge/SCM_Demo-mantis--webhook--demo-blue?logo=github)](https://github.com/OjasKugore/mantis-webhook-demo)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Mantis** is a ground-up enterprise modernization of the Bugzilla defect tracking, vulnerability scoring, and release governance platform. Built with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14 App Router**, it replaces 25-year-old Perl CGI infrastructure with five unbeatable algorithmic and security moats: an interactive CPM critical path engine, a FIRST.org CVSS v4.0 math calculator with 90-day live embargo countdowns, strict 404 zero-leakage group secrecy, formal FSM defect lifecycle transitions, and 1-Click Gemini 2.0 Flash AI triage — all verified by 124 automated tests running in under 5 seconds.
+> **Mantis** is a ground-up enterprise modernization of the Bugzilla defect tracking, vulnerability scoring, and release governance platform. Built with **Fastify 4**, **PostgreSQL 16**, and **Next.js 14 App Router**, it replaces 25-year-old Perl CGI infrastructure with five unbeatable algorithmic and security moats: an interactive CPM critical path engine, a FIRST.org CVSS v4.0 math calculator with 90-day live embargo countdowns, strict 404 zero-leakage group secrecy, formal FSM defect lifecycle transitions, and 1-Click Gemini 2.0 Flash AI triage — all verified by 141 automated tests running in under 5 seconds.
 
 ---
 
@@ -411,18 +411,23 @@ Interactive Swagger / OpenAPI 3.1 available at **`http://localhost:3001/docs`** 
 | `PATCH` | `/api/v1/bugs/:id/status` | Mutate status via server-side FSM (rejects invalid transitions with 422) |
 | `GET` | `/api/v1/bugs/:id/graph` | Traverse dependency DAG, run Kahn's CPM, return critical path IDs |
 | `POST` | `/api/v1/bugs/:id/dependencies` | Add blocker edge with recursive CTE cycle detection |
+| `GET` | `/api/v1/bugs/:id/keywords` | Fetch, add, or remove Bugzilla keyword tags on defect |
+| `GET` | `/api/v1/bugs/:id/cc` | Fetch, subscribe, or unsubscribe from bug CC notification list |
+| `GET` | `/api/v1/saved-views` | Fetch and persist custom named queries and filter presets |
+| `GET` | `/api/v1/bugs/export` | Download filtered defect queue as formatted CSV file |
+| `GET` | `/api/v1/audit` | Paginated system-wide immutable event stream from `bugs_activity` |
+| `GET` | `/api/v1/analytics/readiness` | 0–100 algorithmic milestone release readiness score with risk penalties |
 | `GET` | `/api/v1/bugs/:id/github` | Fetch linked commits and pull requests for the SCM tab |
 | `PATCH` | `/api/v1/bugs/:id/security` | Update CVSS v4.0 vector, score, and 90-day embargo quarantine |
 | `POST` | `/api/v1/bugs/:id/ai-triage` | Synthesize comments with Gemini 2.0 Flash into structured root causes |
 | `POST` | `/api/v1/webhooks/github` | HMAC-verified GitHub push webhook receiver for auto-resolving defects |
 | `GET` | `/api/v1/analytics/velocity` | Compute MTTR and resolution metrics over the audit event stream |
-| `GET` | `/api/v1/search` | Full-text stemmed GIN search with `<mark>` highlight tags |
 
 ---
 
 ## 🧪 Automated Test Suite
 
-**31 test files, 124 named assertions, 100% green pass rate in ~4.1 seconds.**
+**36 test files, 141 named assertions, 100% green pass rate in ~4.2 seconds.**
 
 ```bash
 npm test
@@ -432,10 +437,11 @@ npm test
 ╔══════════════════════════════════════════════════════════════╗
 ║  PACKAGE             TEST SUITES    TESTS     EXECUTION TIME ║
 ╠══════════════════════════════════════════════════════════════╣
-║  @mantis/api             19          88           ~3.5s      ║
-║  @mantis/web             12          36           ~0.6s      ║
+║  @mantis/api (Backend)   19          88           ~3.4s      ║
+║  @mantis/cli (Terminal)   5          17           ~0.2s      ║
+║  @mantis/web (Frontend)  12          36           ~0.6s      ║
 ╠══════════════════════════════════════════════════════════════╣
-║  TOTAL                   31         124     ~4.1s (100% ✅)  ║
+║  TOTAL                   36         141     ~4.2s (100% ✅)  ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 

@@ -14,7 +14,7 @@
     "dev:api": "npm --prefix apps/api run dev",
     "dev:web": "npm --prefix apps/web run dev",
     "build": "npm --prefix packages/shared run build && npm --prefix apps/web run build",
-    "test": "npm --prefix apps/api test && npm --prefix apps/web test",
+    "test": "npm --prefix apps/api test && npm --prefix apps/cli test && npm --prefix apps/web test",
     "test:api": "npm --prefix apps/api test",
     "test:web": "npm --prefix apps/web test",
     "test:unit": "npm --prefix apps/api run test:unit",

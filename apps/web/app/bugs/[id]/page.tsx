@@ -80,6 +80,84 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // Keywords & CC State
+  const [keywords, setKeywords] = useState<{ id: number; name: string; description?: string }[]>([]);
+  const [newKeywordInput, setNewKeywordInput] = useState('');
+  const [showAddKeyword, setShowAddKeyword] = useState(false);
+  const [ccList, setCcList] = useState<{ id: string; display_name: string; email: string; avatar_url?: string }[]>([]);
+  const [isWatching, setIsWatching] = useState(false);
+  const [ccLoading, setCcLoading] = useState(false);
+
+  const fetchKeywordsAndCc = async () => {
+    try {
+      const [kwRes, ccRes] = await Promise.all([
+        fetch(`/api/v1/bugs/${bugId}/keywords`),
+        fetch(`/api/v1/bugs/${bugId}/cc`),
+      ]);
+      if (kwRes.ok) {
+        const kwData = await kwRes.json();
+        setKeywords(kwData.keywords || []);
+      }
+      if (ccRes.ok) {
+        const ccData = await ccRes.json();
+        setCcList(ccData.cc_list || []);
+        setIsWatching(ccData.is_watching || false);
+      }
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleAddKeyword = async (nameOrId: string) => {
+    if (!nameOrId.trim()) return;
+    try {
+      const res = await fetch(`/api/v1/bugs/${bugId}/keywords`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword_name: nameOrId.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setKeywords(data.keywords || []);
+        setNewKeywordInput('');
+        setShowAddKeyword(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveKeyword = async (kwId: number) => {
+    try {
+      const res = await fetch(`/api/v1/bugs/${bugId}/keywords?keyword_id=${kwId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setKeywords(data.keywords || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleWatch = async () => {
+    setCcLoading(true);
+    try {
+      const method = isWatching ? 'DELETE' : 'POST';
+      const res = await fetch(`/api/v1/bugs/${bugId}/cc`, { method });
+      if (res.ok) {
+        const data = await res.json();
+        setCcList(data.cc_list || []);
+        setIsWatching(data.is_watching || false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCcLoading(false);
+    }
+  };
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
@@ -118,6 +196,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
       .then((data) => {
         setBug(data);
         setLoading(false);
+        fetchKeywordsAndCc();
       })
       .catch((err) => {
         setError(err.message);
@@ -855,6 +934,107 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
                       No CVSS vulnerability vector scored for this defect yet.
                     </p>
                   )}
+                </section>
+
+                {/* Keywords Tagging Section */}
+                <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20 relative">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-widest opacity-80 font-bold flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-primary">label</span>
+                      Keywords
+                    </h3>
+                    <button
+                      onClick={() => setShowAddKeyword(!showAddKeyword)}
+                      className="font-label-caps text-[10px] uppercase text-primary hover:underline underline-offset-2 font-bold"
+                    >
+                      {showAddKeyword ? 'Cancel' : '+ Add Tag'}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {keywords.length === 0 ? (
+                      <p className="text-body-sm text-on-surface-variant/60 italic text-xs">No keywords tagged.</p>
+                    ) : (
+                      keywords.map((kw) => (
+                        <span
+                          key={kw.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container font-mono text-xs font-semibold text-on-surface border border-outline-variant/30 group"
+                        >
+                          <span>{kw.name}</span>
+                          <button
+                            onClick={() => handleRemoveKeyword(kw.id)}
+                            className="text-on-surface-variant/40 hover:text-error transition-colors text-xs font-bold"
+                            title={`Remove keyword ${kw.name}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  {showAddKeyword && (
+                    <div className="pt-2 border-t border-outline-variant/20 flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="e.g. crash, regression"
+                        value={newKeywordInput}
+                        onChange={(e) => setNewKeywordInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddKeyword(newKeywordInput);
+                          }
+                        }}
+                        className="flex-1 bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:outline-hidden focus:border-primary"
+                      />
+                      <button
+                        onClick={() => handleAddKeyword(newKeywordInput)}
+                        disabled={!newKeywordInput.trim()}
+                        className="px-3 py-1 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:bg-primary/90 transition-all disabled:opacity-40"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </section>
+
+                {/* CC / Watchers Section */}
+                <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20 relative">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-widest opacity-80 font-bold flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-primary">visibility</span>
+                      CC List ({ccList.length})
+                    </h3>
+                    <button
+                      onClick={handleToggleWatch}
+                      disabled={ccLoading}
+                      className={`font-label-caps text-[10px] uppercase font-bold px-2 py-0.5 rounded transition-all ${
+                        isWatching
+                          ? 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20'
+                          : 'bg-surface-container text-on-surface-variant hover:text-primary hover:bg-surface-container-highest'
+                      }`}
+                    >
+                      {ccLoading ? '...' : isWatching ? '✓ Watching' : '+ Watch Bug'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {ccList.length === 0 ? (
+                      <p className="text-body-sm text-on-surface-variant/60 italic text-xs">No CC subscribers.</p>
+                    ) : (
+                      ccList.map((cc) => (
+                        <div key={cc.id} className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-[10px] shrink-0">
+                            {cc.display_name ? cc.display_name.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <span className="text-xs font-medium text-on-surface truncate">
+                            {cc.display_name || cc.email}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </section>
               </div>
             </div>
