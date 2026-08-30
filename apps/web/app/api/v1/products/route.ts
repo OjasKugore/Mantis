@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     // Check for duplicate name in the same workspace/team
     const existing = await db.query(
-      `SELECT id FROM products WHERE LOWER(name) = LOWER($1) AND (team_name = $2 OR (team_name IS NULL AND $2 = 'Mozilla'))`,
+      `SELECT id FROM products WHERE LOWER(name) = LOWER($1) AND (team_name = $2 OR (team_name IS NULL AND $2 = 'Mozilla' AND id IN (1, 2, 3)))`,
       [name, teamName]
     );
     if (existing.rows.length > 0) {
