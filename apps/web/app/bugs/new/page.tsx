@@ -26,6 +26,7 @@ export default function NewBugPage() {
   const [componentId, setComponentId] = useState<number | null>(null);
   const [priority, setPriority] = useState<BugPriority>('P3');
   const [severity, setSeverity] = useState<BugSeverity>('normal');
+  const [targetMilestone, setTargetMilestone] = useState<string>('128.0');
   const [isEmbargoed, setIsEmbargoed] = useState(false);
   const [cvssScore, setCvssScore] = useState<number | null>(null);
   const [cvssVector, setCvssVector] = useState<string | null>(null);
@@ -141,6 +142,7 @@ export default function NewBugPage() {
           description,
           product_id: productId,
           component_id: componentId,
+          target_milestone: targetMilestone,
           priority,
           severity,
           is_embargoed: isEmbargoed,
@@ -408,8 +410,8 @@ export default function NewBugPage() {
                 </div>
               </div>
 
-              {/* Priority & Severity Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Priority, Severity & Target Milestone Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="block font-body-md text-body-md font-medium text-on-surface" htmlFor="priority">
                     Priority
@@ -451,6 +453,30 @@ export default function NewBugPage() {
                       <option value="minor">Minor</option>
                       <option value="trivial">Trivial</option>
                       <option value="enhancement">Enhancement</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                      expand_more
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block font-body-md text-body-md font-medium text-on-surface" htmlFor="milestone">
+                    Target Milestone
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={targetMilestone}
+                      onChange={(e) => setTargetMilestone(e.target.value)}
+                      className="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 pr-10 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                      id="milestone"
+                    >
+                      <option value="128.0">128.0 (Current Sprint)</option>
+                      <option value="129.0">129.0 (Next Cycle)</option>
+                      <option value="130.0">130.0 (Backlog)</option>
+                      <option value="v1.0.0">v1.0.0 (Initial Release)</option>
+                      <option value="v2.0.0">v2.0.0 (Milestone 2)</option>
+                      <option value="---">--- (Unassigned)</option>
                     </select>
                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
                       expand_more
