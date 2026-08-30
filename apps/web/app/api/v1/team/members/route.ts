@@ -1,0 +1,41 @@
+import { NextResponse } from 'next/server';
+import { db } from '@/lib/db/client';
+import { getCurrentUser } from '@/lib/services/auth';
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'UNAUTHORIZED', message: 'Authentication required' }, { status: 401 });
+    }
+    if (!user.is_admin) {
+      return NextResponse.json({ error: 'FORBIDDEN', message: 'Admin privileges required' }, { status: 403 });
+    }
+
+    // Fetch all users with their group memberships
+    const { rows: users } = await db.query(
+      `SELECT 
+         u.id, u.email, u.display_name, u.username, u.avatar_url,
+         u.is_admin, u.is_enabled, u.priority_rank, u.created_at,
+         COALESCE(
+           ARRAY_AGG(g.name) FILTER (WHERE g.name IS NOT NULL),
+           '{}'
+         ) as groups
+       FROM users u
+       LEFT JOIN user_group_map ugm ON ugm.user_id = u.id
+       LEFT JOIN groups g ON g.id = ugm.group_id
+       GROUP BY u.id
+       ORDER BY COALESCE(u.priority_rank, 100) ASC, u.created_at ASC`
+    );
+
+    return NextResponse.json({
+      members: users.map((u: any) => ({
+        ...u,
+        priority_rank: u.priority_rank ?? 100,
+        groups: u.groups || [],
+      })),
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: 'SERVER_ERROR', message: err.message }, { status: 500 });
+  }
+}

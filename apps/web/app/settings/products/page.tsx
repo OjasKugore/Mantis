@@ -486,14 +486,32 @@ export default function ProductSettingsPage() {
       {/* Top nav */}
       <header className="border-b border-outline-variant/20 bg-surface-container/70 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link href="/dashboard" className="text-on-surface-variant hover:text-primary transition-colors">
+          <Link href="/dashboard" className="text-on-surface-variant hover:text-primary transition-colors p-1">
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           </Link>
           <MantisLogo size={28} />
           <div>
-            <h1 className="font-bold text-on-surface text-base leading-tight">Product & Component Settings</h1>
-            <p className="text-xs text-on-surface-variant">Manage bug tracking taxonomy for your organization</p>
+            <h1 className="font-bold text-on-surface text-base leading-tight">Workspace Governance &amp; Settings</h1>
+            <p className="text-xs text-on-surface-variant">Products, components taxonomy, and team RBAC permissions</p>
           </div>
+        </div>
+
+        {/* Sub-Navigation Tabs */}
+        <div className="max-w-4xl mx-auto px-6 flex gap-6 border-t border-outline-variant/10 text-xs font-bold font-label-caps uppercase">
+          <Link
+            href="/settings/products"
+            className="py-3 border-b-2 border-primary text-primary flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[16px]">inventory_2</span>
+            Products &amp; Components
+          </Link>
+          <Link
+            href="/settings/team"
+            className="py-3 border-b-2 border-transparent text-on-surface-variant hover:text-primary transition flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[16px]">group</span>
+            Team &amp; Roles
+          </Link>
         </div>
       </header>
 

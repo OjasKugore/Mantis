@@ -116,14 +116,48 @@ export async function GET(request: Request) {
       };
     } else {
       const username = await generateUniqueUsername(githubUser.login, githubUser.email);
+      
+      // Genesis admin detection
+      const { rows: nonDemoUsers } = await db.query(
+        `SELECT COUNT(*) as count FROM users WHERE email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local'`
+      );
+      const isFirstUser = parseInt(nonDemoUsers[0].count, 10) === 0;
+
+      // Check pending invite by email
+      const { rows: pendingInvites } = await db.query(
+        `SELECT id, is_admin, groups FROM team_invites WHERE LOWER(email) = $1 AND is_accepted = FALSE AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`,
+        [githubUser.email.toLowerCase()]
+      );
+      const inviteRecord = pendingInvites[0] || null;
+      const makeAdmin = isFirstUser || Boolean(inviteRecord?.is_admin);
+
       const { rows } = await db.query(
-        `INSERT INTO users (email, display_name, username, avatar_url, github_id)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO users (email, display_name, username, avatar_url, github_id, is_admin)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id, email, display_name, username, is_admin, avatar_url`,
-        [githubUser.email, githubUser.name || username, username, githubUser.avatar_url || null, githubUser.id]
+        [githubUser.email, githubUser.name || username, username, githubUser.avatar_url || null, githubUser.id, makeAdmin]
       );
       userId = rows[0].id;
       userRecord = rows[0];
+
+      // Assign groups
+      const assignedGroups = inviteRecord?.groups || (isFirstUser ? ['security-team', 'dev-team', 'qa-team'] : ['dev-team']);
+      for (const gName of assignedGroups) {
+        const gRes = await db.query(`SELECT id FROM groups WHERE name = $1`, [gName]);
+        if (gRes.rows.length > 0) {
+          await db.query(
+            `INSERT INTO user_group_map (user_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [userId, gRes.rows[0].id]
+          );
+        }
+      }
+
+      if (inviteRecord) {
+        await db.query(
+          `UPDATE team_invites SET is_accepted = TRUE, accepted_by = $1 WHERE id = $2`,
+          [userId, inviteRecord.id]
+        );
+      }
     }
 
     const response = NextResponse.redirect(`${origin}/dashboard`);

@@ -8,6 +8,9 @@ export interface User {
   display_name: string;
   username: string;
   is_admin: boolean;
+  avatar_url?: string;
+  groups?: string[];
+  priority_rank?: number;
 }
 
 export interface Persona {

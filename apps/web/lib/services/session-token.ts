@@ -8,6 +8,8 @@ export interface SessionPayload {
   username: string;
   is_admin: boolean;
   avatar_url?: string;
+  groups?: string[];
+  priority_rank?: number;
   exp: number; // Unix timestamp seconds
 }
 

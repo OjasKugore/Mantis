@@ -40,6 +40,7 @@ export async function initInMemoryFallbackDb() {
       google_id VARCHAR(255) UNIQUE,
       is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      priority_rank INTEGER DEFAULT 100,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
@@ -65,6 +66,20 @@ export async function initInMemoryFallbackDb() {
       group_id UUID NOT NULL,
       can_bless BOOLEAN NOT NULL DEFAULT FALSE,
       PRIMARY KEY (user_id, group_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS team_invites (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      email VARCHAR(255),
+      token VARCHAR(64) NOT NULL UNIQUE,
+      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      groups TEXT[] NOT NULL DEFAULT '{}',
+      invited_by UUID,
+      priority_rank INTEGER DEFAULT 100,
+      is_accepted BOOLEAN NOT NULL DEFAULT FALSE,
+      accepted_by UUID,
+      expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS classifications (

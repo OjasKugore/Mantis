@@ -10,6 +10,8 @@ export interface UserSession {
   username: string;
   is_admin: boolean;
   avatar_url?: string;
+  groups?: string[];
+  priority_rank?: number;
 }
 
 export async function getCurrentUser(): Promise<UserSession | null> {
@@ -26,7 +28,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
         const tokenHash = crypto.createHash('sha256').update(sessionId).digest('hex');
 
         const { rows } = await db.query(
-          `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url
+          `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank
            FROM sessions s
            JOIN users u ON u.id = s.user_id
            WHERE s.token_hash = $1 AND s.expires_at > NOW() AND u.is_enabled = TRUE`,
@@ -34,7 +36,18 @@ export async function getCurrentUser(): Promise<UserSession | null> {
         );
 
         if (rows.length > 0) {
-          return rows[0];
+          const user = rows[0];
+          // Fetch groups
+          try {
+            const groupRes = await db.query(
+              `SELECT g.name FROM groups g JOIN user_group_map ugm ON ugm.group_id = g.id WHERE ugm.user_id = $1`,
+              [user.id]
+            );
+            user.groups = groupRes.rows.map((r: any) => r.name);
+          } catch {
+            user.groups = [];
+          }
+          return user;
         }
       } catch {
         // DB unavailable or session not found — fall through to signed cookie

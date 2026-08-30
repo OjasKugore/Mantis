@@ -6,7 +6,12 @@ import { createPortal } from 'react-dom';
 import { SEED_PERSONAS } from '@/lib/auth-context';
 
 interface ProfileDropdownProps {
-  user: { display_name: string; email: string } | null;
+  user: {
+    display_name: string;
+    email: string;
+    is_admin?: boolean;
+    groups?: string[];
+  } | null;
   triggerRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   onPersonaSwitch: (key: string) => void;
@@ -48,10 +53,10 @@ export function ProfileDropdown({ user, triggerRef, onClose, onPersonaSwitch, on
     <div
       ref={dropdownRef}
       style={style}
-      className="w-80 bg-white border border-slate-200 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.22)] p-5 animate-fade-in-up space-y-4 ring-1 ring-black/10"
+      className="w-80 bg-white border border-slate-200 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.22)] p-5 animate-fade-in-up space-y-4 ring-1 ring-black/10 text-slate-900"
     >
       {/* User info */}
-      <div className="border-b border-slate-100 pb-3">
+      <div className="border-b border-slate-100 pb-3 space-y-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary-container font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
             {user ? user.display_name.charAt(0).toUpperCase() : 'U'}
@@ -65,6 +70,30 @@ export function ProfileDropdown({ user, triggerRef, onClose, onPersonaSwitch, on
             </div>
           </div>
         </div>
+
+        {/* User Role Badges */}
+        {user && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {user.is_admin && (
+              <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 text-[10px] font-bold border border-amber-500/30 font-mono">
+                ADMIN
+              </span>
+            )}
+            {user.groups && user.groups.map((g) => (
+              <span
+                key={g}
+                className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200 font-mono capitalize"
+              >
+                {g.replace('-team', '').toUpperCase()}
+              </span>
+            ))}
+            {!user.is_admin && (!user.groups || user.groups.length === 0) && (
+              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium font-mono">
+                MEMBER
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Persona switcher */}

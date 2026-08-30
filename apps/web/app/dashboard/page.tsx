@@ -320,12 +320,29 @@ export default function DashboardPage() {
 
           {/* Right: Actions & Profile */}
           <div className="flex items-center gap-4 relative">
-            {/* Mode Badge */}
+            {/* Mode & Role Badges */}
             {user && !isDemoUser(user) ? (
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface text-xs font-bold font-label-caps border border-outline-variant/30 shadow-xs">
-                <span className="material-symbols-outlined text-[14px] text-primary">verified</span>
-                Clean Workspace
-              </span>
+              <div className="hidden sm:flex items-center gap-1.5">
+                {user.is_admin && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-bold font-mono border border-amber-500/30 shadow-xs flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">shield_person</span>
+                    ADMIN
+                  </span>
+                )}
+                {user.groups && user.groups.map((g) => (
+                  <span
+                    key={g}
+                    className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-xs font-bold font-mono border border-indigo-500/20 shadow-xs capitalize"
+                  >
+                    {g.replace('-team', '')}
+                  </span>
+                ))}
+                {!user.is_admin && (!user.groups || user.groups.length === 0) && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium font-mono border border-outline-variant/30">
+                    MEMBER
+                  </span>
+                )}
+              </div>
             ) : (
               <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/30 text-primary text-xs font-bold font-label-caps border border-primary/20 shadow-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />

@@ -50,15 +50,65 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
+    // Check if there is an active invite token or pending invite by email
+    const inviteToken = rawBody.invite_token;
+    let inviteRecord: any = null;
+
+    if (inviteToken) {
+      const invRes = await db.query(
+        `SELECT id, is_admin, groups FROM team_invites WHERE token = $1 AND is_accepted = FALSE AND expires_at > NOW()`,
+        [inviteToken]
+      );
+      if (invRes.rows.length > 0) {
+        inviteRecord = invRes.rows[0];
+      }
+    } else {
+      const invEmailRes = await db.query(
+        `SELECT id, is_admin, groups FROM team_invites WHERE LOWER(email) = $1 AND is_accepted = FALSE AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`,
+        [normalizedEmail]
+      );
+      if (invEmailRes.rows.length > 0) {
+        inviteRecord = invEmailRes.rows[0];
+      }
+    }
+
+    // Genesis admin detection: If no active non-demo users exist, this user is the root instance admin
+    const { rows: nonDemoUsers } = await db.query(
+      `SELECT COUNT(*) as count FROM users WHERE email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local'`
+    );
+    const isFirstUser = parseInt(nonDemoUsers[0].count, 10) === 0;
+
+    const makeAdmin = isFirstUser || Boolean(inviteRecord?.is_admin);
+
     const passwordHash = await hashPassword(password);
     const { rows } = await db.query(
-      `INSERT INTO users (email, display_name, username, password_hash)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, display_name, username, is_admin, is_enabled, avatar_url, created_at`,
-      [normalizedEmail, display_name.trim(), username, passwordHash]
+      `INSERT INTO users (email, display_name, username, password_hash, is_admin)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, display_name, username, is_admin, is_enabled, avatar_url, priority_rank, created_at`,
+      [normalizedEmail, display_name.trim(), username, passwordHash, makeAdmin]
     );
 
     const newUser = rows[0];
+
+    // Assign groups
+    const assignedGroups: string[] = inviteRecord?.groups || (isFirstUser ? ['security-team', 'dev-team', 'qa-team'] : ['dev-team']);
+    for (const gName of assignedGroups) {
+      const gRes = await db.query(`SELECT id FROM groups WHERE name = $1`, [gName]);
+      if (gRes.rows.length > 0) {
+        await db.query(
+          `INSERT INTO user_group_map (user_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [newUser.id, gRes.rows[0].id]
+        );
+      }
+    }
+
+    // Mark invite as accepted if one was used
+    if (inviteRecord) {
+      await db.query(
+        `UPDATE team_invites SET is_accepted = TRUE, accepted_by = $1 WHERE id = $2`,
+        [newUser.id, inviteRecord.id]
+      );
+    }
 
     // Create session
     const sessionId = crypto.randomBytes(32).toString('hex');
@@ -78,6 +128,8 @@ export async function POST(request: Request) {
       username: newUser.username,
       is_admin: newUser.is_admin,
       avatar_url: newUser.avatar_url,
+      groups: assignedGroups,
+      priority_rank: newUser.priority_rank ?? 100,
     };
 
     const response = NextResponse.json({
