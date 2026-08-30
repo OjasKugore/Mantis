@@ -85,7 +85,7 @@ export function AiTriageCard({
 
   const handleInsert = () => {
     if (!triage || !onInsertComment) return;
-    const commentMarkdown = `### 🤖 Gemini AI Triage Synthesis\n\n**Summary:** ${triage.summary}\n\n**Recommended Priority:** \`${triage.suggested_priority}\` | **Component:** \`${triage.suggested_component}\`\n\n**Confidence Rationale:**\n> ${triage.confidence_reason}\n\n**Actionable Next Steps:**\n${triage.next_steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+    const commentMarkdown = `### Gemini AI Triage Synthesis\n\n**Summary:** ${triage.summary}\n\n**Recommended Priority:** \`${triage.suggested_priority}\` | **Component:** \`${triage.suggested_component}\`\n\n**Confidence Rationale:**\n> ${triage.confidence_reason}\n\n**Actionable Next Steps:**\n${triage.next_steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
     onInsertComment(commentMarkdown);
     setInserted(true);
   };

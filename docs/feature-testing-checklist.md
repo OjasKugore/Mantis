@@ -108,10 +108,10 @@ Test each workflow with the appropriate persona to verify Role-Based Access Cont
 
 ---
 
-## 11. 💾 Saved Views (Named Queries)
+## 11. Saved Views (Named Queries)
 
-- [ ] **Preset Filter Chips**: On dashboard $\rightarrow$ Click preset chips (e.g. `🔥 P1 Blockers`, `🔒 Embargoed Security`, `⚡ Needs Triage`) $\rightarrow$ Instantly applies filter criteria.
-- [ ] **Save Custom Query**: Configure custom filter combination $\rightarrow$ Click `💾 Save Current View` $\rightarrow$ Enter view name $\rightarrow$ Persisted to `named_queries` table and available across sessions.
+- [ ] **Preset Filter Chips**: On dashboard $\rightarrow$ Click preset chips (e.g. `P1 Blockers`, `Security Embargoed`, `Needs Triage`) $\rightarrow$ Instantly applies filter criteria.
+- [ ] **Save Custom Query**: Configure custom filter combination $\rightarrow$ Click `Save View` $\rightarrow$ Enter view name $\rightarrow$ Persisted to `named_queries` table and available across sessions.
 - [ ] **Delete Saved View**: Click `✕` on custom saved chip $\rightarrow$ Removes query from database.
 
 ---

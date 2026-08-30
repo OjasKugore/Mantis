@@ -30,6 +30,30 @@ interface SavedViewsBarProps {
   activeViewName?: string | null;
 }
 
+function sanitizeViewName(name: string): string {
+  return name.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '').trim();
+}
+
+function getViewIcon(name: string, query?: SavedView['query_json']): { icon: string; color: string } {
+  const lower = name.toLowerCase();
+  if (lower.includes('p1') || lower.includes('blocker') || query?.priority === 'P1') {
+    return { icon: 'priority_high', color: 'text-rose-500 dark:text-rose-400' };
+  }
+  if (lower.includes('embargo') || lower.includes('security') || query?.embargo === 'embargoed') {
+    return { icon: 'lock', color: 'text-amber-500 dark:text-amber-400' };
+  }
+  if (lower.includes('triage') || lower.includes('unconfirmed') || query?.status === 'UNCONFIRMED') {
+    return { icon: 'pending_actions', color: 'text-sky-500 dark:text-sky-400' };
+  }
+  if (lower.includes('progress') || query?.status === 'IN_PROGRESS') {
+    return { icon: 'timelapse', color: 'text-indigo-500 dark:text-indigo-400' };
+  }
+  if (lower.includes('resolved') || lower.includes('fixed') || query?.status === 'RESOLVED') {
+    return { icon: 'task_alt', color: 'text-emerald-500 dark:text-emerald-400' };
+  }
+  return { icon: 'tune', color: 'text-primary/80' };
+}
+
 export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: SavedViewsBarProps) {
   const [views, setViews] = useState<SavedView[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,7 +81,8 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
 
   const handleSaveCurrentView = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newViewName.trim()) return;
+    const clean = sanitizeViewName(newViewName);
+    if (!clean) return;
 
     setSaving(true);
     try {
@@ -65,7 +90,7 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newViewName.trim(),
+          name: clean,
           query_json: currentFilters,
         }),
       });
@@ -99,33 +124,45 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
   if (loading && views.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto py-2.5 px-3 bg-surface-container-lowest/60 border border-outline-variant/30 rounded-xl text-xs backdrop-blur-sm">
-      <span className="text-on-surface-variant/70 font-semibold flex items-center gap-1 shrink-0 uppercase tracking-wider text-[10px]">
-        <span className="material-symbols-outlined text-[14px] text-primary">bookmark</span>
+    <div className="flex items-center gap-2.5 overflow-x-auto py-2 px-3 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl text-xs backdrop-blur-sm shadow-xs">
+      <span className="text-on-surface-variant/80 font-semibold flex items-center gap-1.5 shrink-0 uppercase tracking-wider text-[10px] select-none">
+        <span className="material-symbols-outlined text-[15px] text-primary">bookmarks</span>
         Saved Views:
       </span>
 
       <div className="flex items-center gap-1.5 flex-1 overflow-x-auto no-scrollbar">
         {views.map((v) => {
-          const isActive = activeViewName === v.name;
+          const cleanName = sanitizeViewName(v.name);
+          const isActive = activeViewName === v.name || activeViewName === cleanName;
+          const { icon, color } = getViewIcon(cleanName, v.query_json);
+
           return (
             <button
               key={v.id}
-              onClick={() => onApplyView(v.query_json as any, v.name)}
-              className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition-all text-xs shrink-0 ${
+              onClick={() => onApplyView(v.query_json as any, cleanName)}
+              className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all shrink-0 cursor-pointer ${
                 isActive
-                  ? 'bg-primary text-on-primary shadow-sm'
-                  : 'bg-surface-container-high/60 text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface border border-outline-variant/20'
+                  ? 'bg-primary text-on-primary font-semibold shadow-xs'
+                  : 'bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant/30 font-medium'
               }`}
             >
-              <span>{v.name}</span>
+              <span
+                className={`material-symbols-outlined text-[14px] leading-none transition-colors ${
+                  isActive ? 'text-on-primary' : color
+                }`}
+              >
+                {icon}
+              </span>
+              <span>{cleanName}</span>
               {!v.is_preset && (
                 <span
                   onClick={(e) => handleDeleteView(e, v.id)}
-                  className="opacity-60 hover:opacity-100 hover:text-error ml-0.5"
+                  className={`opacity-50 hover:opacity-100 hover:text-error rounded-sm p-0.5 ml-0.5 inline-flex items-center justify-center transition-all ${
+                    isActive ? 'hover:bg-white/20 hover:text-white' : 'hover:bg-surface-container-highest'
+                  }`}
                   title="Delete saved view"
                 >
-                  ×
+                  <span className="material-symbols-outlined text-[12px] leading-none">close</span>
                 </span>
               )}
             </button>
@@ -135,10 +172,10 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
 
       <button
         onClick={() => setSaveModalOpen(true)}
-        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container-high/80 text-on-surface hover:bg-primary/20 hover:text-primary transition-all font-medium text-xs shrink-0 border border-outline-variant/30"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high/80 text-on-surface hover:bg-primary/15 hover:text-primary hover:border-primary/40 transition-all font-semibold text-xs shrink-0 border border-outline-variant/30 shadow-xs cursor-pointer"
         title="Save current filter combination"
       >
-        <span className="material-symbols-outlined text-[14px]">save</span>
+        <span className="material-symbols-outlined text-[15px]">bookmark_add</span>
         <span>Save View</span>
       </button>
 

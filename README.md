@@ -502,6 +502,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 |---|---|
 | [`docs/defect-lifecycle.md`](docs/defect-lifecycle.md) | Complete FSM transition matrix, resolution codes, immutable audit trail schema, and 404 secrecy specification |
 | [`docs/features-and-moats.md`](docs/features-and-moats.md) | In-depth algorithmic and mathematical specifications for all 11 platform features |
+| [`docs/advanced-features.md`](docs/advanced-features.md) | Architectural specifications for Release Readiness score, Saved Views JSONB, Keywords, CC list, and Audit Explorer |
 | [`docs/webhook-integration.md`](docs/webhook-integration.md) | GitHub SCM webhook setup guide, HMAC verification details, and 30-second judge test |
 | [`docs/cli.md`](docs/cli.md) | Complete Mantis Terminal CLI (`mantis` / `bz`) command reference |
 | [`docs/feature-testing-checklist.md`](docs/feature-testing-checklist.md) | Step-by-step evaluator testing checklist for verifying all 15 platform workflows |

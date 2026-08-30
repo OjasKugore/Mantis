@@ -377,7 +377,7 @@ export function AppleProductShowcase() {
             </div>
 
             <div className="text-center text-[11px] text-slate-400 font-mono">
-              ⚡ Topological scheduling automatically orders tasks to maximize parallel developer throughput.
+              Topological scheduling automatically orders tasks to maximize parallel developer throughput.
             </div>
           </div>
         )}

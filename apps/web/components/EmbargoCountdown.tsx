@@ -97,8 +97,9 @@ export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUnt
                 </div>
               </div>
             ) : (
-              <div className="py-2 text-center text-xs font-semibold text-amber-500">
-                ⚠️ Embargo Expired — Disclosure overdue
+              <div className="py-2 text-center text-xs font-semibold text-amber-500 flex items-center justify-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px]">warning</span>
+                <span>Embargo Expired — Disclosure overdue</span>
               </div>
             )}
           </div>
@@ -114,7 +115,7 @@ export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUnt
         className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 text-sm font-semibold animate-pulse"
       >
         <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-base">🔒</span>
+          <span className="material-symbols-outlined text-slate-400 text-base">lock</span>
           <span className="uppercase tracking-wide">Calculating Security Embargo...</span>
         </div>
       </div>
@@ -127,7 +128,7 @@ export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUnt
         id="embargo-expired-banner"
         className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-700/60 bg-amber-950/70 text-amber-300 text-sm font-semibold"
       >
-        <span className="text-base">⚠️</span>
+        <span className="material-symbols-outlined text-amber-400 text-lg">warning</span>
         <span>EMBARGO EXPIRED — Security disclosure overdue. Coordinate with security-team immediately.</span>
       </div>
     );
@@ -139,7 +140,7 @@ export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUnt
       className="flex items-center justify-between px-4 py-3 rounded-xl border border-red-800/60 bg-red-950/60 text-red-200 text-sm font-semibold"
     >
       <div className="flex items-center gap-2">
-        <span className="text-red-400 text-base">🔒</span>
+        <span className="material-symbols-outlined text-red-400 text-lg">lock</span>
         <span className="uppercase tracking-wide text-red-300">Security Embargo Active</span>
       </div>
       <div

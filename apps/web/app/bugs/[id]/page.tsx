@@ -259,7 +259,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
         return;
       }
 
-      setActionMessage(`✅ Successfully transitioned to ${newStatus}`);
+      setActionMessage(`Successfully transitioned to ${newStatus}`);
       setTimeout(() => setActionMessage(null), 3000);
       fetchBug(true);
     } catch {
@@ -282,7 +282,7 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
       if (res.ok) {
         setNewComment('');
         fetchBug(true);
-        setActionMessage('✅ Comment posted.');
+        setActionMessage('Comment posted.');
         setTimeout(() => setActionMessage(null), 2500);
       } else {
         setActionMessage('Failed to post comment');

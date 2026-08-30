@@ -44,7 +44,8 @@ export function AuthBar() {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/60 text-xs font-semibold text-indigo-300 transition-all shadow-sm"
           >
-            <span>⚡ Quick Persona</span>
+            <span className="material-symbols-outlined text-[15px] text-indigo-400">bolt</span>
+            <span>Quick Persona</span>
             <svg className={`w-3.5 h-3.5 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>

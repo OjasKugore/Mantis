@@ -587,8 +587,8 @@ export default function DashboardPage() {
                             className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
                           >
                             <option value="all">All Issues</option>
-                            <option value="embargoed">🔒 Embargoed 0-Days Only</option>
-                            <option value="public">🌐 Public Issues Only</option>
+                            <option value="embargoed">Embargoed 0-Days Only</option>
+                            <option value="public">Public Issues Only</option>
                           </select>
                         </div>
 

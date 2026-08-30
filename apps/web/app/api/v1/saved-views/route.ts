@@ -3,11 +3,11 @@ import { db } from '@/lib/db/client';
 import { getCurrentUser } from '@/lib/services/auth';
 
 const SYSTEM_PRESETS = [
-  { id: -1, name: '🔥 P1 Blockers', query_json: { status: 'all', priority: 'P1', severity: 'all', embargo: 'all' }, is_preset: true },
-  { id: -2, name: '🔒 Security Embargoed', query_json: { status: 'all', priority: 'all', severity: 'all', embargo: 'embargoed' }, is_preset: true },
-  { id: -3, name: '⚡ Needs Triage (Unconfirmed)', query_json: { status: 'UNCONFIRMED', priority: 'all', severity: 'all', embargo: 'all' }, is_preset: true },
-  { id: -4, name: '🚀 In Progress', query_json: { status: 'IN_PROGRESS', priority: 'all', severity: 'all', embargo: 'all' }, is_preset: true },
-  { id: -5, name: '✅ Resolved Fixed', query_json: { status: 'RESOLVED', priority: 'all', severity: 'all', embargo: 'all' }, is_preset: true },
+  { id: -1, name: 'P1 Blockers', query_json: { status: 'all', priority: 'P1', severity: 'all', embargo: 'all' }, is_preset: true },
+  { id: -2, name: 'Security Embargoed', query_json: { status: 'all', priority: 'all', severity: 'all', embargo: 'embargoed' }, is_preset: true },
+  { id: -3, name: 'Needs Triage (Unconfirmed)', query_json: { status: 'UNCONFIRMED', priority: 'all', severity: 'all', embargo: 'all' }, is_preset: true },
+  { id: -4, name: 'In Progress', query_json: { status: 'IN_PROGRESS', priority: 'all', severity: 'all', embargo: 'all' }, is_preset: true },
+  { id: -5, name: 'Resolved Fixed', query_json: { status: 'RESOLVED', priority: 'all', severity: 'all', embargo: 'all' }, is_preset: true },
 ];
 
 export async function GET() {
