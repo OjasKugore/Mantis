@@ -647,25 +647,6 @@ function DashboardContent() {
                 </div>
               </div>
 
-              {/* Saved Views / Named Queries Bar */}
-              <SavedViewsBar
-                currentFilters={{
-                  status: filterStatus,
-                  priority: filterPriority,
-                  severity: filterSeverity,
-                  embargo: filterEmbargo,
-                }}
-                onApplyView={(filters, viewName) => {
-                  setFilterStatus(filters.status || 'all');
-                  setFilterPriority(filters.priority || 'all');
-                  setFilterSeverity(filters.severity || 'all');
-                  setFilterEmbargo(filters.embargo || 'all');
-                  setActiveSavedViewName(viewName || null);
-                  setCurrentPage(1);
-                }}
-                activeViewName={activeSavedViewName}
-              />
-
               {queueViewMode === 'kanban' ? (
                 <div className="flex-1 w-full min-w-0 min-h-[500px]">
                   <KanbanBoard
@@ -682,8 +663,28 @@ function DashboardContent() {
                   />
                 </div>
               ) : (
-                /* Bento-style Data Container */
-                <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(135,169,107,0.03)] border border-outline-variant/20 overflow-hidden flex flex-col flex-1 max-h-[800px]">
+                <>
+                  {/* Saved Views / Named Queries Bar — Queue List Only */}
+                  <SavedViewsBar
+                    currentFilters={{
+                      status: filterStatus,
+                      priority: filterPriority,
+                      severity: filterSeverity,
+                      embargo: filterEmbargo,
+                    }}
+                    onApplyView={(filters, viewName) => {
+                      setFilterStatus(filters.status || 'all');
+                      setFilterPriority(filters.priority || 'all');
+                      setFilterSeverity(filters.severity || 'all');
+                      setFilterEmbargo(filters.embargo || 'all');
+                      setActiveSavedViewName(viewName || null);
+                      setCurrentPage(1);
+                    }}
+                    activeViewName={activeSavedViewName}
+                  />
+
+                  {/* Bento-style Data Container */}
+                  <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_24px_rgba(135,169,107,0.03)] border border-outline-variant/20 overflow-hidden flex flex-col flex-1 max-h-[800px]">
                   {/* Table Header */}
                   <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container-low/50 border-b border-outline-variant/20 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest sticky top-0 z-10 backdrop-blur-sm">
                     <div className="col-span-1">ID</div>
@@ -833,9 +834,10 @@ function DashboardContent() {
                     </div>
                   </div>
                 </div>
-              )}
-            </>
-          )}
+              </>
+            )}
+          </>
+        )}
 
           {activeTab === 'graph' && (
             <div className="space-y-6">
