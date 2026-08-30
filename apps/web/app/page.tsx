@@ -293,75 +293,151 @@ export default function LandingPage() {
               <span className="material-symbols-outlined text-[18px] text-[#87a96b]">login</span>
               Sign In via OAuth / Email
             </Link>
-            <button
-              onClick={() => setIsPlayingDemo(!isPlayingDemo)}
-              className="bg-white border border-slate-200 hover:border-[#87a96b] text-slate-600 hover:text-slate-900 hover:shadow-md px-5 py-3 rounded-xl font-label-caps text-label-caps uppercase font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
-            >
-              {isPlayingDemo ? 'Pause Preview' : 'Interactive Preview'}
-              <span className="material-symbols-outlined text-[18px] text-[#87a96b]">
-                {isPlayingDemo ? 'pause_circle' : 'play_circle'}
-              </span>
-            </button>
+          </div>
+        </section>
+
+        {/* Live Interactive Product Tour Preview (Apple-Style Showcase) */}
+        <section id="demo" className="py-20 md:py-28 px-margin-sm md:px-margin-lg max-w-[1280px] mx-auto w-full">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div className="reveal-on-scroll is-visible max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold font-label-caps uppercase tracking-wider mb-4">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                High-Definition Product Tour
+              </div>
+              <h2 className="font-display-md text-3xl md:text-5xl font-extrabold text-on-surface tracking-tight">
+                Designed for speed. Engineered for governance.
+              </h2>
+              <p className="text-on-surface-variant font-body-lg text-body-lg mt-3">
+                Experience sub-50ms Critical Path analytics, Kanban drag-and-drop state transitions, and 90-day zero-leakage security embargoes in action.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPlayingDemo(!isPlayingDemo)}
+                className="px-4 py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 text-on-surface font-label-caps text-xs font-bold uppercase transition flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <span className="material-symbols-outlined text-[18px] text-primary">
+                  {isPlayingDemo ? 'pause_circle' : 'play_circle'}
+                </span>
+                {isPlayingDemo ? 'Pause Tour' : 'Play Tour'}
+              </button>
+            </div>
           </div>
 
-          {/* Dashboard Preview */}
+          {/* Floating Apple MacBook Pro Frame & Ambient Glow */}
           <div className="w-full relative group reveal-on-scroll is-visible">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary-container/20 to-secondary/20 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-            <div
-              onClick={() => setIsPlayingDemo(!isPlayingDemo)}
-              className="relative glass-panel rounded-xl overflow-hidden shadow-2xl aspect-video bg-surface-container flex items-center justify-center group/video cursor-pointer"
-            >
-              {/* Abstract UI Shimmer Background */}
-              <div className="absolute inset-0 opacity-50">
-                <div className="w-full h-full bg-gradient-to-br from-primary-container/10 via-transparent to-secondary/10 animate-pulse" />
-              </div>
+            {/* Multi-layered Ambient Backlight Glow Canvas */}
+            <div className="absolute -inset-4 md:-inset-8 bg-gradient-to-tr from-primary/25 via-emerald-600/15 to-primary-container/30 rounded-3xl blur-3xl opacity-60 group-hover:opacity-90 transition duration-1000 -z-10" />
 
-              {/* Decorative Mock Dashboard Blueprint */}
-              <div className="absolute inset-4 rounded-lg border border-outline-variant/20 bg-surface-container-lowest/40 backdrop-blur-sm p-6 flex flex-col gap-4 text-left pointer-events-none opacity-40 group-hover/video:opacity-60 transition-opacity">
-                <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-error/60 inline-block" />
-                    <span className="w-3 h-3 rounded-full bg-tertiary-container/60 inline-block" />
-                    <span className="w-3 h-3 rounded-full bg-primary-container/60 inline-block" />
-                    <span className="font-label-code text-label-code text-on-surface-variant ml-2 font-mono">mantis://workspace/cluster-01</span>
-                  </div>
-                  <span className="font-label-caps text-label-caps px-2 py-0.5 rounded bg-primary-container/20 text-on-primary-container uppercase font-bold">Live Stream</span>
+            {/* Hardware-Accelerated Floating macOS Window Frame */}
+            <div className="relative rounded-2xl md:rounded-3xl border border-outline-variant/40 bg-surface-container-lowest shadow-2xl overflow-hidden backdrop-blur-xl transition-transform duration-500 hover:scale-[1.005]">
+              {/* macOS Title Bar */}
+              <div className="h-11 px-4 bg-surface-container-high/70 border-b border-outline-variant/30 flex items-center justify-between select-none">
+                {/* Traffic Light Buttons */}
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] inline-block shadow-xs" />
+                  <span className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] inline-block shadow-xs" />
+                  <span className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] inline-block shadow-xs" />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 rounded bg-surface-container-low/60 border border-outline-variant/10">
-                    <div className="text-xs text-on-surface-variant font-medium">Active Anomalies</div>
-                    <div className="text-2xl font-bold text-on-surface mt-1">22</div>
-                  </div>
-                  <div className="p-3 rounded bg-surface-container-low/60 border border-outline-variant/10">
-                    <div className="text-xs text-on-surface-variant font-medium">Critical Path EFT</div>
-                    <div className="text-2xl font-bold text-primary mt-1">98.4%</div>
-                  </div>
-                  <div className="p-3 rounded bg-surface-container-low/60 border border-outline-variant/10">
-                    <div className="text-xs text-on-surface-variant font-medium">Verified &amp; Resolved</div>
-                    <div className="text-2xl font-bold text-tertiary mt-1">16</div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Play Button Overlay */}
-              <div className="relative z-10 flex flex-col items-center gap-4 transition-all duration-300 group-hover/video:scale-110">
-                <div className="w-20 h-20 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl glow-active">
-                  <span className="material-symbols-outlined text-[48px]">
-                    {isPlayingDemo ? 'pause' : 'play_arrow'}
+                {/* macOS Frosted Address Pill */}
+                <div className="hidden sm:flex items-center gap-2 px-4 py-1 rounded-full bg-surface-container border border-outline-variant/30 text-xs text-on-surface-variant font-mono shadow-inner max-w-sm w-full justify-center">
+                  <span className="material-symbols-outlined text-[14px] text-primary">lock</span>
+                  <span className="text-[11px] truncate">mantis://workspace/live-product-tour</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse ml-1" />
+                </div>
+
+                {/* Window Actions */}
+                <div className="flex items-center gap-2 text-on-surface-variant">
+                  <span className="font-label-caps text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary-container/20 text-on-primary-container hidden md:inline-block">
+                    60 FPS Retina
                   </span>
                 </div>
-                <span className="font-label-caps text-label-caps uppercase font-bold tracking-widest text-on-surface-variant">
-                  {isPlayingDemo ? 'Interactive Preview Active' : 'Explore Live Preview'}
-                </span>
               </div>
 
-              {/* Subtle Progress Bar */}
-              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-outline-variant/20">
-                <div className={`h-full bg-primary-container transition-all duration-1000 ${isPlayingDemo ? 'w-full' : 'w-1/3'}`} />
+              {/* High-Definition Live Product Tour Canvas */}
+              <div
+                onClick={() => setIsPlayingDemo(!isPlayingDemo)}
+                className="relative aspect-video w-full bg-surface-container flex items-center justify-center overflow-hidden cursor-pointer group/screen"
+              >
+                {/* Live Animated Tour Recording */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/videos/mantis-demo-tour.webp"
+                  alt="Mantis Live Flagship Product Tour"
+                  className={`w-full h-full object-cover select-none transition-opacity duration-300 ${
+                    isPlayingDemo ? 'opacity-100' : 'opacity-85'
+                  }`}
+                />
+
+                {/* Smooth Hover Controls Overlay */}
+                <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] opacity-0 group-hover/screen:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-2xl transform scale-90 group-hover/screen:scale-100 transition-transform">
+                      <span className="material-symbols-outlined text-[36px]">
+                        {isPlayingDemo ? 'pause' : 'play_arrow'}
+                      </span>
+                    </div>
+                    <span className="font-label-caps text-xs font-bold uppercase tracking-widest text-white drop-shadow-md">
+                      {isPlayingDemo ? 'Click to Pause' : 'Click to Resume'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Sleek Bottom Scrubbing Indicator */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
+                  <div
+                    className={`h-full bg-primary transition-all duration-700 ${
+                      isPlayingDemo ? 'w-full animate-pulse' : 'w-1/2'
+                    }`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature Highlights Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase font-label-caps">
+                  <span className="material-symbols-outlined text-[18px]">account_tree</span>
+                  Topological DAG
+                </div>
+                <p className="text-xs text-on-surface-variant">
+                  Kahn&apos;s algorithm calculates Critical Paths and dependency cycles in &lt;50ms.
+                </p>
               </div>
 
-              {/* Hover State Overlay */}
-              <div className="absolute inset-0 bg-on-surface/5 opacity-0 group-hover/video:opacity-100 transition-opacity duration-300" />
+              <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase font-label-caps">
+                  <span className="material-symbols-outlined text-[18px]">security</span>
+                  90-Day Embargo
+                </div>
+                <p className="text-xs text-on-surface-variant">
+                  Zero-leakage timing-safe quarantine for confidential CVE vulnerability disclosures.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase font-label-caps">
+                  <span className="material-symbols-outlined text-[18px]">view_kanban</span>
+                  Kanban State Sync
+                </div>
+                <p className="text-xs text-on-surface-variant">
+                  Strict state machine transitions with drag-and-drop velocity tracking.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase font-label-caps">
+                  <span className="material-symbols-outlined text-[18px]">terminal</span>
+                  GitHub Webhooks
+                </div>
+                <p className="text-xs text-on-surface-variant">
+                  Bi-directional commit hash linking and automated Pull Request resolution.
+                </p>
+              </div>
             </div>
           </div>
         </section>
