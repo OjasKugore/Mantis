@@ -39,10 +39,17 @@ export async function ensureDbReady(): Promise<void> {
   globalThis.__mantis_db_init_promise = (async () => {
     if (process.env.DATABASE_URL && process.env.NODE_ENV !== 'test') {
       try {
+        const isRemote =
+          process.env.DATABASE_URL.includes('neon.tech') ||
+          process.env.DATABASE_URL.includes('sslmode=require') ||
+          process.env.NODE_ENV === 'production';
+
         const testPool = new Pool({
           connectionString: process.env.DATABASE_URL,
-          max: 10,
-          connectionTimeoutMillis: 1500,
+          ssl: isRemote ? { rejectUnauthorized: false } : undefined,
+          max: 20,
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 10000,
         });
         await testPool.query('SELECT 1');
         globalThis.__mantis_db_pool = testPool;
