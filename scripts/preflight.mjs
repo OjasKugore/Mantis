@@ -167,7 +167,7 @@ if (!ourDockerDbUp) {
   try {
     const require = createRequire(import.meta.url);
     const pg      = require(join(ROOT, 'apps', 'api', 'node_modules', 'pg'));
-    const connStr = process.env.DATABASE_URL || 'postgresql://bz:bz@localhost:5432/bugzilla';
+    const connStr = process.env.DATABASE_URL || 'postgresql://bz:bz@localhost:5432/mantis';
     const pool    = new pg.Pool({ connectionString: connStr, connectionTimeoutMillis: 3000 });
     await pool.query('SELECT 1');
     await pool.end();
@@ -176,7 +176,7 @@ if (!ourDockerDbUp) {
     const code = e.code || '';
     if (code === '28P01')   fail('Wrong password — stale Docker volume has old credentials', ['docker compose down -v', 'docker compose up -d db', 'npm run migrate']);
     else if (code === 'ECONNREFUSED') fail('Connection refused on :5432', 'docker compose up -d db');
-    else if (code === '3D000') fail('Database "bugzilla" does not exist yet', 'npm run migrate');
+    else if (code === '3D000') fail('Database "mantis" does not exist yet', 'npm run migrate');
     else if (code === '42P01') warn('Tables not yet created', 'npm run migrate');
     else fail(`DB error (${code}): ${e.message}`, 'Check: docker compose ps');
   }
