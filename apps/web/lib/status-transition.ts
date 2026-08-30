@@ -62,28 +62,7 @@ export async function applyBugStatusChange(
     });
 
     if (res.status === 401) {
-      // Auto-authenticate as default persona if session is missing
-      try {
-        await fetch(`${API_BASE}/api/v1/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ email: 'alice@mozilla.com', password: 'password123' }),
-        });
-      } catch {
-        // ignore
-      }
-
-      // Retry status change
-      res = await fetch(`${API_BASE}/api/v1/bugs/${bugId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          status: step,
-          resolution,
-        }),
-      });
+      throw new Error('Authentication required to transition bug status');
     }
 
     if (!res.ok) {
