@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DependencyGraph } from '@/components/DependencyGraph';
-import { EmbargoCountdown } from '@/components/EmbargoCountdown';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AnalyticsBurndown } from '@/components/AnalyticsBurndown';
 import { KanbanBoard, KanbanBug } from '@/components/KanbanBoard';
@@ -392,12 +391,6 @@ export default function DashboardPage() {
 
           {/* Right: Actions & Profile */}
           <div className="flex items-center gap-3 relative">
-            {/* 90-Day Embargo Live Header Badge */}
-            <EmbargoCountdown
-              embargoUntil={new Date(Date.now() + 87 * 24 * 60 * 60 * 1000).toISOString()}
-              compact={true}
-            />
-
             {/* Mode & Role Badges */}
             {user && !isDemoUser(user) ? (
               <div className="hidden sm:flex items-center gap-1.5">
