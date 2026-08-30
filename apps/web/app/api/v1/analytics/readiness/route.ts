@@ -3,37 +3,54 @@ import { db } from '@/lib/db/client';
 import { computeCPM } from '@/lib/services/cpm';
 import { getCurrentUser } from '@/lib/services/auth';
 
+export const dynamic = 'force-dynamic';
+
+function getSandboxFilter(user: any, scope: string | null, startIndex: number = 1): { clause: string; params: any[]; nextIndex: number } {
+  const userId = user?.id ?? null;
+  const isDemo = scope === 'demo' || (!scope && !user) || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
+
+  if (scope === 'user' || (user && !isDemo)) {
+    if (user?.team_name) {
+      return {
+        clause: ` AND reporter_id IN (SELECT id FROM users WHERE team_name = $${startIndex} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local')`,
+        params: [user.team_name],
+        nextIndex: startIndex + 1,
+      };
+    } else if (userId) {
+      return {
+        clause: ` AND reporter_id = $${startIndex}`,
+        params: [userId],
+        nextIndex: startIndex + 1,
+      };
+    } else {
+      return {
+        clause: ` AND 1=0`,
+        params: [],
+        nextIndex: startIndex,
+      };
+    }
+  } else {
+    return {
+      clause: ` AND reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`,
+      params: [],
+      nextIndex: startIndex,
+    };
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const milestoneId = searchParams.get('milestone') || '128.0';
+    const milestoneId = searchParams.get('milestone') || 'all';
     const scope = searchParams.get('scope');
 
     const user = await getCurrentUser();
-    const userId = user?.id ?? null;
-    const isDemo = scope === 'demo' || (!scope && !user) || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
-    let sandboxClause = '';
-    const sandboxParams: any[] = [];
-    let pIdx = 2;
-
-    if (scope === 'user' || (user && !isDemo)) {
-      if (user?.team_name) {
-        sandboxClause = ` AND reporter_id IN (SELECT id FROM users WHERE team_name = $${pIdx++} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local')`;
-        sandboxParams.push(user.team_name);
-      } else if (userId) {
-        sandboxClause = ` AND reporter_id = $${pIdx++}`;
-        sandboxParams.push(userId);
-      } else {
-        sandboxClause = ` AND 1=0`;
-      }
-    } else {
-      sandboxClause = ` AND reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
-    }
-
+    // 1. Generate sandbox clause for milestone-specific queries (milestoneId is $1, so sandbox starts at $2)
+    const { clause: sandboxClause, params: sandboxParams } = getSandboxFilter(user, scope, 2);
     const baseParams = [milestoneId, ...sandboxParams];
 
-    // 1. Fetch total bugs and unresolved bugs for this milestone in this sandbox
+    // 2. Fetch total bugs and unresolved bugs for this milestone in this sandbox
     const totalRes = await db.query(
       `SELECT id, status FROM bugs WHERE ($1 = 'all' OR target_milestone = $1 OR ($1 = '128.0' AND target_milestone IN ('128.0', '---')))${sandboxClause}`,
       baseParams
@@ -48,7 +65,7 @@ export async function GET(request: Request) {
       baseParams
     );
 
-    // 2. Fetch all dependencies relating to bugs in this milestone and sandbox
+    // 3. Fetch all dependencies relating to bugs in this milestone and sandbox
     const { rows: deps } = await db.query(
       `SELECT blocking_bug_id, blocked_bug_id
        FROM bug_dependencies
@@ -57,7 +74,7 @@ export async function GET(request: Request) {
       baseParams
     );
 
-    // 3. Fetch pending blocking flags ('?') on milestone bugs in this sandbox
+    // 4. Fetch pending blocking flags ('?') on milestone bugs in this sandbox
     const { rows: pendingFlags } = await db.query(
       `SELECT f.id, f.bug_id, ft.name as flag_name
        FROM flags f
@@ -68,7 +85,7 @@ export async function GET(request: Request) {
       baseParams
     );
 
-    // 4. Compute critical path across milestone bugs
+    // 5. Compute critical path across milestone bugs
     const cpmNodes = unresolvedBugs.map((b: any) => ({
       id: Number(b.id),
       estimatedTime: Number(b.estimated_time) || 1,
@@ -128,10 +145,11 @@ export async function GET(request: Request) {
     const resolvedCount = totalRes.rows.filter((b: any) => ['RESOLVED', 'VERIFIED', 'CLOSED'].includes(b.status)).length;
     const unresolvedCount = unresolvedBugs.length;
 
-    // Fetch all available milestones in this sandbox
+    // 6. Fetch all available milestones in this sandbox (starting at $1)
+    const { clause: msClause, params: msParams } = getSandboxFilter(user, scope, 1);
     const { rows: milestoneRows } = await db.query(
-      `SELECT DISTINCT target_milestone FROM bugs WHERE 1=1${sandboxClause}`,
-      sandboxParams
+      `SELECT DISTINCT target_milestone FROM bugs WHERE 1=1${msClause}`,
+      msParams
     );
     const availableMilestones = Array.from(
       new Set(milestoneRows.map((r: any) => r.target_milestone).filter(Boolean))
@@ -179,6 +197,7 @@ export async function GET(request: Request) {
       availableMilestones,
     });
   } catch (err: any) {
+    console.error('Readiness computation error:', err);
     return NextResponse.json({ error: 'READINESS_FAILED', message: err.message }, { status: 500 });
   }
 }
