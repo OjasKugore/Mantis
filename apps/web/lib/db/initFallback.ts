@@ -236,6 +236,31 @@ export async function initInMemoryFallbackDb() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (bug_id, repo_full_name, pr_number)
     );
+
+    CREATE TABLE IF NOT EXISTS bug_cc (
+      bug_id INTEGER NOT NULL,
+      user_id VARCHAR(64) NOT NULL,
+      PRIMARY KEY (bug_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS keyword_defs (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(64) NOT NULL UNIQUE,
+      description TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS bug_keywords (
+      bug_id INTEGER NOT NULL,
+      keyword_id INTEGER NOT NULL,
+      PRIMARY KEY (bug_id, keyword_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS named_queries (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      name VARCHAR(64) NOT NULL,
+      query_json JSONB NOT NULL
+    );
   `);
 
   const pgAdapter = memDb.adapters.createPg();
@@ -458,6 +483,48 @@ async function seedFallbackData(executor: any) {
     INSERT INTO bug_pull_requests (bug_id, repo_full_name, pr_number, pr_title, pr_state, pr_url, merged_at) VALUES
     (1, 'mozilla/gecko-dev', 4821, 'Fix Necko HTTP/3 packet loss timeout degradation', 'open', 'https://github.com/mozilla/gecko-dev/pull/4821', NULL),
     (2, 'mozilla/gecko-dev', 4790, 'Wayland compositor frame callback sync', 'merged', 'https://github.com/mozilla/gecko-dev/pull/4790', NOW() - INTERVAL '3 hours')
+    ON CONFLICT DO NOTHING
+  `);
+
+  // 9. Seed Keywords, CC & Named Queries
+  await executor.query(`
+    INSERT INTO keyword_defs (name, description) VALUES
+    ('crash', 'Causes application or subsystem crash'),
+    ('regression', 'Broken functionality that used to work in previous release'),
+    ('sec-audit', 'Security vulnerability under review by security group'),
+    ('perf', 'Performance degradation or memory leak'),
+    ('blocked', 'Blocked by external dependency or upstream vendor'),
+    ('topcrash', 'High frequency crash reported in telemetry'),
+    ('good-first-bug', 'Accessible for onboarding new contributors'),
+    ('ui-review', 'Pending user experience and design approval')
+    ON CONFLICT DO NOTHING
+  `);
+
+  await executor.query(`
+    INSERT INTO bug_keywords (bug_id, keyword_id) VALUES
+    (1, 1), (1, 4),
+    (2, 2),
+    (3, 3), (3, 1),
+    (4, 4),
+    (5, 5)
+    ON CONFLICT DO NOTHING
+  `);
+
+  await executor.query(`
+    INSERT INTO bug_cc (bug_id, user_id) VALUES
+    (1, '${userIds['alice_dev']}'),
+    (1, '${userIds['bob_qa']}'),
+    (2, '${userIds['dave_perf']}'),
+    (3, '${userIds['carol_sec']}')
+    ON CONFLICT DO NOTHING
+  `);
+
+  await executor.query(`
+    INSERT INTO named_queries (user_id, name, query_json) VALUES
+    ('${userIds['admin']}', 'All Open Defects', '{"status":"all","priority":"all","severity":"all","embargo":"all"}'),
+    ('${userIds['admin']}', 'P1 Blockers', '{"status":"all","priority":"P1","severity":"all","embargo":"all"}'),
+    ('${userIds['admin']}', 'Security Embargoed', '{"status":"all","priority":"all","severity":"all","embargo":"embargoed"}'),
+    ('${userIds['admin']}', 'Needs Triage (Unconfirmed)', '{"status":"UNCONFIRMED","priority":"all","severity":"all","embargo":"all"}')
     ON CONFLICT DO NOTHING
   `);
 }

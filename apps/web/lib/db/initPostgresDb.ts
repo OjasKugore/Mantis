@@ -235,6 +235,31 @@ export async function initPostgresDb(pool: any) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (bug_id, repo_full_name, pr_number)
     );
+
+    CREATE TABLE IF NOT EXISTS bug_cc (
+      bug_id INTEGER NOT NULL,
+      user_id VARCHAR(64) NOT NULL,
+      PRIMARY KEY (bug_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS keyword_defs (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(64) NOT NULL UNIQUE,
+      description TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS bug_keywords (
+      bug_id INTEGER NOT NULL,
+      keyword_id INTEGER NOT NULL,
+      PRIMARY KEY (bug_id, keyword_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS named_queries (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      name VARCHAR(64) NOT NULL,
+      query_json JSONB NOT NULL
+    );
   `);
 
   // Step 2: Wipe ALL non-demo user data (sessions, flags, bugs, group memberships, team invites, then users)
@@ -451,6 +476,42 @@ async function seedDemoDataIfMissing(pool: any) {
     (2, 'review', 'Code review approval request for patch', 'b'),
     (3, 'approval', 'Release management sign-off for uplift', 'b')
     ON CONFLICT DO NOTHING
+  `);
+
+  // Seed Keywords, CC & Named Queries
+  await pool.query(`
+    INSERT INTO keyword_defs (name, description) VALUES
+    ('crash', 'Causes application or subsystem crash'),
+    ('regression', 'Broken functionality that used to work in previous release'),
+    ('sec-audit', 'Security vulnerability under review by security group'),
+    ('perf', 'Performance degradation or memory leak'),
+    ('blocked', 'Blocked by external dependency or upstream vendor'),
+    ('topcrash', 'High frequency crash reported in telemetry'),
+    ('good-first-bug', 'Accessible for onboarding new contributors'),
+    ('ui-review', 'Pending user experience and design approval')
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO bug_keywords (bug_id, keyword_id) VALUES
+    (1, 1), (1, 4),
+    (2, 2),
+    (3, 3), (3, 1),
+    (4, 4),
+    (5, 5)
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO bug_cc (bug_id, user_id) VALUES
+    (1, '${userIds['alice']}'),
+    (1, '${userIds['bob']}'),
+    (2, '${userIds['dave']}'),
+    (3, '${userIds['carol']}')
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO named_queries (user_id, name, query_json) VALUES
+    ('${userIds['admin']}', 'All Open Defects', '{"status":"all","priority":"all","severity":"all","embargo":"all"}'),
+    ('${userIds['admin']}', 'P1 Blockers', '{"status":"all","priority":"P1","severity":"all","embargo":"all"}'),
+    ('${userIds['admin']}', 'Security Embargoed', '{"status":"all","priority":"all","severity":"all","embargo":"embargoed"}'),
+    ('${userIds['admin']}', 'Needs Triage (Unconfirmed)', '{"status":"UNCONFIRMED","priority":"all","severity":"all","embargo":"all"}')
+    ON CONFLICT DO NOTHING;
   `);
 
   console.log('✅ Judge demo data seeded successfully.');
