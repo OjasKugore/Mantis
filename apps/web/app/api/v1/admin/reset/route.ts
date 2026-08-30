@@ -60,49 +60,45 @@ export async function POST(request: Request) {
       });
     }
 
-    const userIds = nonDemoUsers.map((u: any) => u.id);
-    const userEmails = nonDemoUsers.map((u: any) => u.email);
-    const idPlaceholders = userIds.map((_: any, i: number) => `$${i + 1}`).join(', ');
+    const userIds: string[] = nonDemoUsers.map((u: any) => u.id);
+    const userEmails: string[] = nonDemoUsers.map((u: any) => u.email);
 
-    // Delete sessions
-    await db.query(`DELETE FROM sessions WHERE user_id IN (${idPlaceholders})`, userIds);
-
-    // Delete notifications
-    await db.query(`DELETE FROM notifications WHERE user_id IN (${idPlaceholders})`, userIds);
-
-    // Delete group memberships
-    await db.query(`DELETE FROM user_group_map WHERE user_id IN (${idPlaceholders})`, userIds);
-
-    // Delete team invites they created
-    await db.query(`DELETE FROM team_invites WHERE invited_by IN (${idPlaceholders})`, userIds);
+    // Delete sessions, notifications, group map, team invites
+    await db.query(`DELETE FROM sessions WHERE user_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM notifications WHERE user_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM comment_mentions WHERE mentioned_user_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM bug_comments WHERE author_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM flags WHERE setter_id = ANY($1::uuid[]) OR requestee_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM bugs_activity WHERE who_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM user_group_map WHERE user_id = ANY($1::uuid[])`, [userIds]);
+    await db.query(`DELETE FROM team_invites WHERE invited_by = ANY($1::uuid[]) OR accepted_by = ANY($1::uuid[])`, [userIds]);
 
     // Find bugs filed by non-demo users
     const { rows: nonDemoBugs } = await db.query(
-      `SELECT id FROM bugs WHERE reporter_id IN (${idPlaceholders})`,
-      userIds
+      `SELECT id FROM bugs WHERE reporter_id = ANY($1::uuid[])`,
+      [userIds]
     );
 
     let deletedBugs = nonDemoBugs.length;
 
     if (nonDemoBugs.length > 0) {
-      const bugIds = nonDemoBugs.map((b: any) => b.id);
-      const bugPlaceholders = bugIds.map((_: any, i: number) => `$${i + 1}`).join(', ');
+      const bugIds: number[] = nonDemoBugs.map((b: any) => Number(b.id));
 
-      await db.query(`DELETE FROM flags WHERE bug_id IN (${bugPlaceholders})`, bugIds);
-      await db.query(`DELETE FROM bug_comments WHERE bug_id IN (${bugPlaceholders})`, bugIds);
-      await db.query(`DELETE FROM bugs_activity WHERE bug_id IN (${bugPlaceholders})`, bugIds);
-      await db.query(`DELETE FROM bug_group_map WHERE bug_id IN (${bugPlaceholders})`, bugIds);
-      await db.query(`DELETE FROM bug_commits WHERE bug_id IN (${bugPlaceholders})`, bugIds);
-      await db.query(`DELETE FROM bug_pull_requests WHERE bug_id IN (${bugPlaceholders})`, bugIds);
+      await db.query(`DELETE FROM flags WHERE bug_id = ANY($1::int[])`, [bugIds]);
+      await db.query(`DELETE FROM bug_comments WHERE bug_id = ANY($1::int[])`, [bugIds]);
+      await db.query(`DELETE FROM bugs_activity WHERE bug_id = ANY($1::int[])`, [bugIds]);
+      await db.query(`DELETE FROM bug_group_map WHERE bug_id = ANY($1::int[])`, [bugIds]);
+      await db.query(`DELETE FROM bug_commits WHERE bug_id = ANY($1::int[])`, [bugIds]);
+      await db.query(`DELETE FROM bug_pull_requests WHERE bug_id = ANY($1::int[])`, [bugIds]);
       await db.query(
-        `DELETE FROM bug_dependencies WHERE blocking_bug_id IN (${bugPlaceholders}) OR blocked_bug_id IN (${bugPlaceholders})`,
-        [...bugIds, ...bugIds]
+        `DELETE FROM bug_dependencies WHERE blocking_bug_id = ANY($1::int[]) OR blocked_bug_id = ANY($1::int[])`,
+        [bugIds]
       );
-      await db.query(`DELETE FROM bugs WHERE id IN (${bugPlaceholders})`, bugIds);
+      await db.query(`DELETE FROM bugs WHERE id = ANY($1::int[])`, [bugIds]);
     }
 
     // Finally delete the users themselves
-    await db.query(`DELETE FROM users WHERE id IN (${idPlaceholders})`, userIds);
+    await db.query(`DELETE FROM users WHERE id = ANY($1::uuid[])`, [userIds]);
 
     console.log(`✅ Admin reset: removed ${nonDemoUsers.length} non-demo users and ${deletedBugs} bugs.`);
 
