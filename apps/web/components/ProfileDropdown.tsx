@@ -109,8 +109,13 @@ export function ProfileDropdown({ user, triggerRef, onClose, onPersonaSwitch, on
               return (
                 <button
                   key={p.key}
-                  onClick={() => { onPersonaSwitch(p.key); onClose(); }}
-                  className={`text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border ${
+                  type="button"
+                  onClick={async () => {
+                    onClose();
+                    await onPersonaSwitch(p.key);
+                    window.location.reload();
+                  }}
+                  className={`text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border cursor-pointer ${
                     isCurrent
                       ? 'bg-primary-container/20 border-primary text-primary font-bold shadow-xs'
                       : 'bg-slate-50 border-slate-200/70 hover:border-primary/50 hover:bg-slate-100 text-slate-800'

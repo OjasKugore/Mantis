@@ -27,7 +27,16 @@ export async function POST(request: Request) {
     const email = personaMap[persona] || 'alice@mozilla.com';
 
     const { rows } = await db.query(
-      `SELECT id, email, display_name, username, is_admin, avatar_url FROM users WHERE email = $1 AND is_enabled = TRUE`,
+      `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank, u.onboarded, u.team_name,
+              COALESCE(
+                ARRAY_AGG(g.name) FILTER (WHERE g.name IS NOT NULL),
+                '{}'
+              ) as groups
+       FROM users u
+       LEFT JOIN user_group_map ugm ON ugm.user_id = u.id
+       LEFT JOIN groups g ON g.id = ugm.group_id
+       WHERE LOWER(u.email) = LOWER($1) AND u.is_enabled = TRUE
+       GROUP BY u.id`,
       [email]
     );
 
@@ -54,6 +63,10 @@ export async function POST(request: Request) {
       username: user.username,
       is_admin: user.is_admin,
       avatar_url: user.avatar_url,
+      priority_rank: user.priority_rank ?? 100,
+      onboarded: true,
+      team_name: user.team_name || 'Mozilla Bugzilla',
+      groups: user.groups || [],
     };
 
     const response = NextResponse.json({

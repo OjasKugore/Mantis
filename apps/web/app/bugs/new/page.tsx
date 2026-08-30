@@ -325,7 +325,10 @@ export default function NewBugPage() {
                   <button
                     key={p.key}
                     type="button"
-                    onClick={() => quickLogin(p.key)}
+                    onClick={async () => {
+                      await quickLogin(p.key);
+                      window.location.reload();
+                    }}
                     className="px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/30 hover:border-primary hover:bg-primary-container/10 text-xs font-semibold text-on-surface transition flex items-center gap-2 shadow-sm"
                   >
                     <span className={`w-2.5 h-2.5 rounded-full bg-gradient-to-tr ${p.avatarColor}`} />
