@@ -28,16 +28,11 @@ function SignupContent() {
     }
   }, [initialEmail, email]);
 
-  // Redirect already-logged-in users
   useEffect(() => {
-    if (!loading && user) {
-      if (user.onboarded || isDemoUser(user)) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/onboarding');
-      }
+    if (initialEmail && !email) {
+      setEmail(initialEmail);
     }
-  }, [user, loading, router]);
+  }, [initialEmail, email]);
 
   const handleOAuthSignup = (provider: 'github' | 'google') => {
     window.location.href = `${apiBase}/api/v1/oauth/${provider}`;
@@ -80,18 +75,6 @@ function SignupContent() {
     }
   };
 
-  // Show nothing while checking auth state (avoids flash)
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  // Already logged in — redirect handled by useEffect
-  if (user) return null;
-
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col justify-center py-12 px-6 lg:px-8 relative selection:bg-primary-container selection:text-on-primary-container font-body-sm">
       {/* Background ambient lighting */}
@@ -113,6 +96,15 @@ function SignupContent() {
             Sign in to existing account
           </Link>
         </p>
+
+        {user && (
+          <div className="mt-4 p-3 rounded-xl bg-surface-container-high border border-outline-variant/30 text-xs text-on-surface-variant flex items-center justify-between gap-3">
+            <span>Signed in as <strong className="text-on-surface font-mono">{user.email}</strong></span>
+            <Link href="/dashboard" className="text-primary font-bold hover:underline">
+              Go to Dashboard →
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl relative z-10 animate-fade-in-up delay-100">

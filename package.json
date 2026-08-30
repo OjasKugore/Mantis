@@ -16,6 +16,9 @@
     "test": "npm --prefix apps/api test",
     "test:unit": "npm --prefix apps/api run test:unit",
     "test:integration": "npm --prefix apps/api run test:integration",
+    "test:cli": "npm --prefix apps/cli test",
+    "bz": "node apps/cli/dist/index.js",
+    "mantis": "node apps/cli/dist/index.js",
     "seed": "npm --prefix apps/api run seed",
     "migrate": "npm --prefix apps/api run migrate"
   },
