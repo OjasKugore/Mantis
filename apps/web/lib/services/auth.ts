@@ -12,6 +12,8 @@ export interface UserSession {
   avatar_url?: string;
   groups?: string[];
   priority_rank?: number;
+  onboarded?: boolean;
+  team_name?: string;
 }
 
 export async function getCurrentUser(): Promise<UserSession | null> {
@@ -28,7 +30,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
         const tokenHash = crypto.createHash('sha256').update(sessionId).digest('hex');
 
         const { rows } = await db.query(
-          `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank
+          `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank, u.onboarded, u.team_name
            FROM sessions s
            JOIN users u ON u.id = s.user_id
            WHERE s.token_hash = $1 AND s.expires_at > NOW() AND u.is_enabled = TRUE`,
@@ -37,6 +39,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
 
         if (rows.length > 0) {
           const user = rows[0];
+          user.onboarded = Boolean(user.onboarded);
           // Fetch groups
           try {
             const groupRes = await db.query(

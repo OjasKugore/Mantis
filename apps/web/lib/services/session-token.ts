@@ -10,6 +10,8 @@ export interface SessionPayload {
   avatar_url?: string;
   groups?: string[];
   priority_rank?: number;
+  onboarded?: boolean;
+  team_name?: string;
   exp: number; // Unix timestamp seconds
 }
 

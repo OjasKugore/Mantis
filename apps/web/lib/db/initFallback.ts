@@ -41,6 +41,8 @@ export async function initInMemoryFallbackDb() {
       is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
       priority_rank INTEGER DEFAULT 100,
+      onboarded BOOLEAN NOT NULL DEFAULT FALSE,
+      team_name VARCHAR(255),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 

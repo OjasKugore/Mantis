@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, isDemoUser } from '@/lib/auth-context';
 import { MantisLogo } from '@/components/MantisLogo';
 import { OAuthButtons } from '@/components/OAuthButtons';
 
@@ -20,10 +20,14 @@ export default function SignupPage() {
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
-  // Redirect already-logged-in users away from the signup page
+  // Redirect already-logged-in users
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/dashboard');
+      if (user.onboarded || isDemoUser(user)) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/onboarding');
+      }
     }
   }, [user, loading, router]);
 
@@ -54,7 +58,7 @@ export default function SignupPage() {
     setSubmitting(false);
 
     if (res.success) {
-      router.push('/dashboard');
+      router.push('/onboarding');
     } else {
       // Parse the specific error code from the API message to give a better UX hint
       const code = (res as any).code || '';

@@ -53,6 +53,12 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    if (user && !isDemoUser(user) && !user.onboarded) {
+      router.replace('/onboarding');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     // Health check
     fetch('/health')
       .then((res) => (res.ok ? setApiOnline(true) : setApiOnline(false)))

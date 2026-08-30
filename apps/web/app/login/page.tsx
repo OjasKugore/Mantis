@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, isDemoUser } from '@/lib/auth-context';
 import { MantisLogo } from '@/components/MantisLogo';
 import { OAuthButtons } from '@/components/OAuthButtons';
 
@@ -73,7 +73,11 @@ export default function LoginPage() {
   // Redirect already-logged-in users away from the login page
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/dashboard');
+      if (user.onboarded || isDemoUser(user)) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/onboarding');
+      }
     }
   }, [user, loading, router]);
 

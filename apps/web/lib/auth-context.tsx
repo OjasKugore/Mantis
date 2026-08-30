@@ -11,6 +11,8 @@ export interface User {
   avatar_url?: string;
   groups?: string[];
   priority_rank?: number;
+  onboarded?: boolean;
+  team_name?: string;
 }
 
 export interface Persona {

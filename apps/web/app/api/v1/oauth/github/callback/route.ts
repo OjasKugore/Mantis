@@ -90,11 +90,11 @@ export async function GET(request: Request) {
 
   try {
     const existing = await db.query(
-      `SELECT id, email, display_name, username, is_admin, avatar_url FROM users WHERE github_id = $1 OR email = $2`,
+      `SELECT id, email, display_name, username, is_admin, avatar_url, onboarded FROM users WHERE github_id = $1 OR email = $2`,
       [githubUser.id, githubUser.email]
     );
     let userId: string;
-    let userRecord: { id: string; email: string; display_name: string; username: string; is_admin: boolean; avatar_url?: string };
+    let userRecord: { id: string; email: string; display_name: string; username: string; is_admin: boolean; avatar_url?: string; onboarded?: boolean };
 
     if (existing.rows.length > 0) {
       userId = existing.rows[0].id;
@@ -113,6 +113,7 @@ export async function GET(request: Request) {
         username: existing.rows[0].username,
         is_admin: existing.rows[0].is_admin,
         avatar_url: githubUser.avatar_url || existing.rows[0].avatar_url,
+        onboarded: Boolean(existing.rows[0].onboarded),
       };
     } else {
       const username = await generateUniqueUsername(githubUser.login, githubUser.email);
@@ -131,11 +132,12 @@ export async function GET(request: Request) {
       const inviteRecord = pendingInvites[0] || null;
       const makeAdmin = isFirstUser || Boolean(inviteRecord?.is_admin);
 
+      const isOnboarded = Boolean(inviteRecord);
       const { rows } = await db.query(
-        `INSERT INTO users (email, display_name, username, avatar_url, github_id, is_admin)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, email, display_name, username, is_admin, avatar_url`,
-        [githubUser.email, githubUser.name || username, username, githubUser.avatar_url || null, githubUser.id, makeAdmin]
+        `INSERT INTO users (email, display_name, username, avatar_url, github_id, is_admin, onboarded)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, email, display_name, username, is_admin, avatar_url, onboarded`,
+        [githubUser.email, githubUser.name || username, username, githubUser.avatar_url || null, githubUser.id, makeAdmin, isOnboarded]
       );
       userId = rows[0].id;
       userRecord = rows[0];
@@ -160,7 +162,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const response = NextResponse.redirect(`${origin}/dashboard`);
+    const targetPath = userRecord.onboarded ? '/dashboard' : '/onboarding';
+    const response = NextResponse.redirect(`${origin}${targetPath}`);
     await createOAuthSession(userId, response, userRecord);
     return response;
   } catch (err: any) {
