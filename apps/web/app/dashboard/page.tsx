@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, quickLogin, logout } = useAuth();
   const profileRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const filterRef = useRef<HTMLDivElement>(null);
   const [bugs, setBugs] = useState<BugItem[]>([]);
   const [selectedBugId, setSelectedBugId] = useState<number>(1);
   const [apiOnline, setApiOnline] = useState<boolean>(false);
@@ -41,16 +42,49 @@ export default function DashboardPage() {
   const [queueViewMode, setQueueViewMode] = useState<'list' | 'kanban'>('list');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState<boolean>(false);
+
+  // Filter criteria states
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [filterEmbargo, setFilterEmbargo] = useState<'all' | 'embargoed' | 'public'>('all');
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 8;
 
+  const activeFilterCount =
+    (filterStatus !== 'all' ? 1 : 0) +
+    (filterPriority !== 'all' ? 1 : 0) +
+    (filterSeverity !== 'all' ? 1 : 0) +
+    (filterEmbargo !== 'all' ? 1 : 0);
 
+  const resetFilters = () => {
+    setFilterStatus('all');
+    setFilterPriority('all');
+    setFilterSeverity('all');
+    setFilterEmbargo('all');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
 
   const handleLogout = async () => {
     await logout();
     setProfileDropdownOpen(false);
     router.push('/');
   };
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterDropdownOpen(false);
+      }
+    }
+    if (filterDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [filterDropdownOpen]);
 
   useEffect(() => {
     if (user && !isDemoUser(user) && !user.onboarded) {
@@ -82,13 +116,25 @@ export default function DashboardPage() {
       .catch(() => setLoading(false));
   }, [user]);
 
-  const filteredBugs = bugs.filter(
-    (b) =>
+  const filteredBugs = bugs.filter((b) => {
+    const matchesSearch =
+      !searchQuery.trim() ||
       b.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.id.toString().includes(searchQuery) ||
       b.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.priority.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      b.priority.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b.product_name && b.product_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (b.component_name && b.component_name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (!matchesSearch) return false;
+    if (filterStatus !== 'all' && b.status !== filterStatus) return false;
+    if (filterPriority !== 'all' && b.priority !== filterPriority) return false;
+    if (filterSeverity !== 'all' && b.severity !== filterSeverity) return false;
+    if (filterEmbargo === 'embargoed' && !b.is_embargoed) return false;
+    if (filterEmbargo === 'public' && b.is_embargoed) return false;
+
+    return true;
+  });
 
   const totalPages = Math.ceil(filteredBugs.length / pageSize) || 1;
   const paginatedBugs = filteredBugs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -424,13 +470,125 @@ export default function DashboardPage() {
                       type="text"
                     />
                   </div>
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    title="Clear filter"
-                    className="p-2 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-on-surface-variant hover:text-primary hover:border-primary/50 transition-colors shadow-sm flex items-center justify-center"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">filter_list</span>
-                  </button>
+                  {/* Filter Button & Popover */}
+                  <div className="relative" ref={filterRef}>
+                    <button
+                      type="button"
+                      onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                      title="Filter issues"
+                      className={`p-2 rounded-lg border transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer ${
+                        activeFilterCount > 0 || filterDropdownOpen
+                          ? 'bg-primary-container text-on-primary-container border-primary font-bold'
+                          : 'bg-surface-container-lowest border-outline-variant/50 text-on-surface-variant hover:text-primary hover:border-primary/50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">filter_list</span>
+                      {activeFilterCount > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-primary text-on-primary text-[11px] font-mono flex items-center justify-center font-bold">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Filter Popover */}
+                    {filterDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-2xl p-4 z-50 space-y-4 animate-fade-in-up text-xs">
+                        <div className="flex items-center justify-between border-b border-outline-variant/20 pb-2.5">
+                          <span className="font-bold text-on-surface flex items-center gap-1.5 font-label-caps uppercase text-[11px]">
+                            <span className="material-symbols-outlined text-primary text-[16px]">tune</span>
+                            Filter Issues
+                          </span>
+                          {activeFilterCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={resetFilters}
+                              className="text-[11px] text-primary hover:underline font-bold"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Status</label>
+                          <select
+                            value={filterStatus}
+                            onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                            className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
+                          >
+                            <option value="all">All Statuses</option>
+                            <option value="UNCONFIRMED">UNCONFIRMED</option>
+                            <option value="CONFIRMED">CONFIRMED</option>
+                            <option value="IN_PROGRESS">IN_PROGRESS</option>
+                            <option value="RESOLVED">RESOLVED</option>
+                            <option value="VERIFIED">VERIFIED</option>
+                            <option value="CLOSED">CLOSED</option>
+                          </select>
+                        </div>
+
+                        {/* Priority Filter */}
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Priority</label>
+                          <select
+                            value={filterPriority}
+                            onChange={(e) => { setFilterPriority(e.target.value); setCurrentPage(1); }}
+                            className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
+                          >
+                            <option value="all">All Priorities</option>
+                            <option value="P1">P1 — Critical / Blocker</option>
+                            <option value="P2">P2 — Major</option>
+                            <option value="P3">P3 — Normal</option>
+                            <option value="P4">P4 — Minor</option>
+                            <option value="P5">P5 — Trivial</option>
+                          </select>
+                        </div>
+
+                        {/* Severity Filter */}
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Severity</label>
+                          <select
+                            value={filterSeverity}
+                            onChange={(e) => { setFilterSeverity(e.target.value); setCurrentPage(1); }}
+                            className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary capitalize"
+                          >
+                            <option value="all">All Severities</option>
+                            <option value="blocker">Blocker</option>
+                            <option value="critical">Critical</option>
+                            <option value="major">Major</option>
+                            <option value="normal">Normal</option>
+                            <option value="minor">Minor</option>
+                            <option value="trivial">Trivial</option>
+                            <option value="enhancement">Enhancement</option>
+                          </select>
+                        </div>
+
+                        {/* Embargo Filter */}
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Security / Embargo</label>
+                          <select
+                            value={filterEmbargo}
+                            onChange={(e) => { setFilterEmbargo(e.target.value as any); setCurrentPage(1); }}
+                            className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
+                          >
+                            <option value="all">All Issues</option>
+                            <option value="embargoed">🔒 Embargoed 0-Days Only</option>
+                            <option value="public">🌐 Public Issues Only</option>
+                          </select>
+                        </div>
+
+                        {activeFilterCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={resetFilters}
+                            className="w-full py-2 bg-surface-container border border-outline-variant/30 hover:bg-surface-container-high rounded-xl text-xs font-semibold text-on-surface transition"
+                          >
+                            Clear All ({activeFilterCount}) Filters
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex bg-surface-container-lowest rounded-lg p-0.5 border border-outline-variant/30 shadow-xs">
                     <button
