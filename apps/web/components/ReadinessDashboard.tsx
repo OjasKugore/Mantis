@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth, isDemoUser } from '@/lib/auth-context';
 
 interface RiskBreakdown {
   label: string;
@@ -34,6 +35,7 @@ interface ReadinessData {
 }
 
 export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: (bugId: number) => void }) {
+  const { user } = useAuth();
   const [milestone, setMilestone] = useState<string>('128.0');
   const [data, setData] = useState<ReadinessData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -43,7 +45,8 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/v1/analytics/readiness?milestone=${encodeURIComponent(ms)}`);
+      const scopeParam = user && !isDemoUser(user) ? '&scope=user' : '&scope=demo';
+      const res = await fetch(`/api/v1/analytics/readiness?milestone=${encodeURIComponent(ms)}${scopeParam}`);
       if (!res.ok) throw new Error('Failed to compute readiness score');
       const result = await res.json();
       setData(result);
@@ -56,7 +59,7 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
 
   useEffect(() => {
     fetchReadiness(milestone);
-  }, [milestone]);
+  }, [milestone, user]);
 
   const score = data?.score ?? 0;
   const scoreColor =

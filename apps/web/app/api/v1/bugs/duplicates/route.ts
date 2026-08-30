@@ -12,9 +12,28 @@ export async function GET(request: Request) {
     }
 
     const user = await getCurrentUser();
-    const groupFilter = applyGroupFilter(user?.id ?? null, 2);
+    const userId = user?.id ?? null;
+    const isDemo = !user || user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local';
 
+    let sandboxClause = '';
     const params: any[] = [`%${q.trim()}%`];
+    let pIdx = 2;
+
+    if (user && !isDemo) {
+      if (user?.team_name) {
+        sandboxClause = ` AND b.reporter_id IN (SELECT id FROM users WHERE team_name = $${pIdx++} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local')`;
+        params.push(user.team_name);
+      } else if (userId) {
+        sandboxClause = ` AND b.reporter_id = $${pIdx++}`;
+        params.push(userId);
+      } else {
+        sandboxClause = ` AND 1=0`;
+      }
+    } else {
+      sandboxClause = ` AND b.reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
+    }
+
+    const groupFilter = applyGroupFilter(user?.id ?? null, pIdx);
     if (groupFilter.param) {
       params.push(groupFilter.param);
     }
@@ -26,6 +45,7 @@ export async function GET(request: Request) {
        LEFT JOIN products p ON p.id = b.product_id
        LEFT JOIN components c ON c.id = b.component_id
        WHERE (b.summary ILIKE $1 OR b.description ILIKE $1)
+       ${sandboxClause}
        ${groupFilter.fragment}
        ORDER BY b.id DESC
        LIMIT 5`,

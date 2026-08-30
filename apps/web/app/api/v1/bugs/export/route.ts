@@ -10,10 +10,12 @@ export async function GET(request: Request) {
     const severity = searchParams.get('severity') || 'all';
     const embargo = searchParams.get('embargo') || 'all';
     const search = searchParams.get('search') || '';
+    const scope = searchParams.get('scope');
 
     const user = await getCurrentUser();
     const userId = user?.id ?? null;
     const isSecurityMember = user?.groups?.includes('security') || user?.is_admin || false;
+    const isDemo = scope === 'demo' || (!scope && !user) || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
     let query = `
       SELECT b.id, b.summary, b.status, b.resolution, b.priority, b.severity,
@@ -30,6 +32,21 @@ export async function GET(request: Request) {
     `;
     const params: any[] = [];
     let pIdx = 1;
+
+    // Sandbox isolation filter
+    if (scope === 'user' || (user && !isDemo)) {
+      if (user?.team_name) {
+        query += ` AND b.reporter_id IN (SELECT id FROM users WHERE team_name = $${pIdx++} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local')`;
+        params.push(user.team_name);
+      } else if (userId) {
+        query += ` AND b.reporter_id = $${pIdx++}`;
+        params.push(userId);
+      } else {
+        query += ` AND 1=0`;
+      }
+    } else {
+      query += ` AND b.reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
+    }
 
     // Secrecy filter
     if (!isSecurityMember) {

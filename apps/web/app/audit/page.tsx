@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MantisLogo } from '@/components/MantisLogo';
 import { NotificationBell } from '@/components/NotificationBell';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, isDemoUser } from '@/lib/auth-context';
 
 interface AuditItem {
   id: number;
@@ -36,7 +36,8 @@ export default function AuditPage() {
     setLoading(true);
     try {
       const offset = (currentPage - 1) * limit;
-      const res = await fetch(`/api/v1/audit?limit=${limit}&offset=${offset}&field=${field}`);
+      const scopeParam = user && !isDemoUser(user) ? '&scope=user' : '&scope=demo';
+      const res = await fetch(`/api/v1/audit?limit=${limit}&offset=${offset}&field=${field}${scopeParam}`);
       if (res.ok) {
         const data = await res.json();
         setActivities(data.activities || []);
@@ -51,7 +52,7 @@ export default function AuditPage() {
 
   useEffect(() => {
     fetchActivities(page, fieldFilter);
-  }, [page, fieldFilter]);
+  }, [page, fieldFilter, user]);
 
   const totalPages = Math.ceil(total / limit) || 1;
 

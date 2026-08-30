@@ -606,7 +606,7 @@ export default function DashboardPage() {
                   </div>
 
                   <a
-                    href={`/api/v1/bugs/export?status=${encodeURIComponent(filterStatus)}&priority=${encodeURIComponent(filterPriority)}&severity=${encodeURIComponent(filterSeverity)}&embargo=${encodeURIComponent(filterEmbargo)}&search=${encodeURIComponent(searchQuery)}`}
+                    href={`/api/v1/bugs/export?status=${encodeURIComponent(filterStatus)}&priority=${encodeURIComponent(filterPriority)}&severity=${encodeURIComponent(filterSeverity)}&embargo=${encodeURIComponent(filterEmbargo)}&search=${encodeURIComponent(searchQuery)}&scope=${user && !isDemoUser(user) ? 'user' : 'demo'}`}
                     download
                     className="p-2 rounded-lg border border-outline-variant/50 bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all shadow-xs flex items-center gap-1.5 text-xs font-semibold shrink-0 cursor-pointer"
                     title="Export filtered bug queue to CSV"
