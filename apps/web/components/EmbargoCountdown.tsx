@@ -26,6 +26,8 @@ function pad(n: number) {
 export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUntil: string; compact?: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [remaining, setRemaining] = useState<TimeLeft | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -34,29 +36,73 @@ export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUnt
     return () => clearInterval(interval);
   }, [embargoUntil]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   if (compact) {
     if (!mounted) return null;
-    if (!remaining) {
-      return (
-        <div
-          id="embargo-header-badge"
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold"
-        >
-          <span>⚠️</span>
-          <span className="font-mono text-[11px] font-bold">Embargo Expired</span>
-        </div>
-      );
-    }
     return (
-      <div
-        id="embargo-header-badge"
-        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400 text-xs font-semibold shadow-xs"
-        title={`Security Embargo active until ${new Date(embargoUntil).toLocaleDateString()}`}
-      >
-        <span className="material-symbols-outlined text-[13px] text-red-500 animate-pulse">lock</span>
-        <span className="font-mono text-[11px] font-bold tracking-tight">
-          90d Embargo: {remaining.days}d {pad(remaining.hours)}h {pad(remaining.minutes)}m {pad(remaining.seconds)}s
-        </span>
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          id="embargo-lock-button"
+          title="Active Security Embargo (Click to view timer)"
+          className={`p-1.5 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+            isOpen
+              ? 'text-red-600 dark:text-red-400 bg-red-500/10 scale-110'
+              : 'text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 hover:scale-110'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[22px]">lock</span>
+        </button>
+
+        {isOpen && (
+          <div
+            id="embargo-popup-card"
+            className="absolute right-0 mt-2 w-72 p-4 rounded-xl bg-surface-container-lowest dark:bg-slate-900 border border-red-500/30 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-outline-variant/20">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 uppercase font-label-caps">
+                <span className="material-symbols-outlined text-[15px]">lock</span>
+                Security Embargo
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-700 dark:text-red-300 font-mono font-bold">
+                90-DAY
+              </span>
+            </div>
+
+            {remaining ? (
+              <div className="text-center py-2">
+                <div className="text-[11px] text-on-surface-variant mb-1 font-medium">Time Remaining:</div>
+                <div
+                  id="embargo-popup-timer"
+                  className="font-mono text-base font-bold text-red-600 dark:text-red-400 tracking-wider bg-red-500/10 py-1.5 px-2 rounded-lg border border-red-500/20 tabular-nums"
+                >
+                  {remaining.days}d {pad(remaining.hours)}h {pad(remaining.minutes)}m {pad(remaining.seconds)}s
+                </div>
+                <div className="text-[10px] text-on-surface-variant/70 mt-2">
+                  Disclosure Date: <span className="font-semibold text-on-surface">{new Date(embargoUntil).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-2 text-center text-xs font-semibold text-amber-500">
+                ⚠️ Embargo Expired — Disclosure overdue
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
