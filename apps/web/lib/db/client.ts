@@ -52,6 +52,22 @@ export async function ensureDbReady(): Promise<void> {
           connectionTimeoutMillis: 10000,
         });
         await testPool.query('SELECT 1');
+        try {
+          await testPool.query(`
+            ALTER TABLE products ADD COLUMN IF NOT EXISTS team_name VARCHAR(255);
+            CREATE TABLE IF NOT EXISTS named_queries (
+              id SERIAL PRIMARY KEY,
+              user_id VARCHAR(64) NOT NULL,
+              name VARCHAR(64) NOT NULL,
+              query_json JSONB NOT NULL
+            );
+            UPDATE products 
+            SET team_name = 'Mozilla'
+            WHERE (team_name IS NULL OR team_name = '') AND (id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core'));
+          `);
+        } catch {
+          // non-fatal if table already updated or permissions limited
+        }
         globalThis.__mantis_db_pool = testPool;
         console.log('✓ Connected to PostgreSQL database at DATABASE_URL');
         return;
