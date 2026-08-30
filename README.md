@@ -433,6 +433,7 @@ Interactive Swagger / OpenAPI 3.1 available at **`http://localhost:3001/docs`** 
 | `PATCH` | `/api/v1/bugs/:id/security` | Update CVSS v4.0 vector, score, and 90-day embargo quarantine |
 | `POST` | `/api/v1/bugs/:id/ai-triage` | Synthesize comments with Gemini 2.0 Flash into structured root causes |
 | `POST` | `/api/v1/webhooks/github` | HMAC-verified GitHub push webhook receiver for auto-resolving defects |
+| `GET` | `/api/v1/users/search` | Fast autocomplete search for @mentions and team collaborators |
 | `GET` | `/api/v1/analytics/velocity` | Compute MTTR and resolution metrics over the audit event stream |
 
 ---
