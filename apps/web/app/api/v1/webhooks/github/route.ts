@@ -24,12 +24,18 @@ export async function POST(request: Request) {
 
     if (event === 'push' && Array.isArray(payload.commits)) {
       const repoFullName = payload.repository?.full_name || 'unknown/repo';
+      const isDemoRepo = repoFullName.toLowerCase().includes('mantis-webhook-demo') || repoFullName.toLowerCase().includes('gecko-dev');
 
       for (const commit of payload.commits) {
         const bugIds = parseBugRefs(commit.message || '');
 
         for (const bugId of bugIds) {
-          const { rows: bugRows } = await db.query(`SELECT id, status, reporter_id FROM bugs WHERE id = $1`, [bugId]);
+          let bugQuery = `SELECT id, status, reporter_id FROM bugs WHERE id = $1`;
+          if (isDemoRepo) {
+            bugQuery += ` AND (reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local'))`;
+          }
+
+          const { rows: bugRows } = await db.query(bugQuery, [bugId]);
           if (bugRows.length === 0) continue;
 
           const bug = bugRows[0];
