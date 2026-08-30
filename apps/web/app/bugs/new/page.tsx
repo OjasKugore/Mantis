@@ -12,14 +12,17 @@ import { ProfileDropdown } from '@/components/ProfileDropdown';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
+interface ProductOption { id: number; name: string; }
+interface ComponentOption { id: number; name: string; product_id: number; }
+
 export default function NewBugPage() {
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
   const { user, quickLogin, logout } = useAuth();
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
-  const [productId, setProductId] = useState<number>(1);
-  const [componentId, setComponentId] = useState<number>(1);
+  const [productId, setProductId] = useState<number | null>(null);
+  const [componentId, setComponentId] = useState<number | null>(null);
   const [priority, setPriority] = useState<BugPriority>('P3');
   const [severity, setSeverity] = useState<BugSeverity>('normal');
   const [isEmbargoed, setIsEmbargoed] = useState(false);
@@ -30,6 +33,44 @@ export default function NewBugPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // Dynamic product/component state
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [components, setComponents] = useState<ComponentOption[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingComponents, setLoadingComponents] = useState(false);
+
+  // Fetch products on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/api/v1/products`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data: ProductOption[]) => {
+        const active = Array.isArray(data) ? data.filter((p: any) => p.is_active !== false) : [];
+        setProducts(active);
+        if (active.length > 0) {
+          setProductId(active[0].id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProducts(false));
+  }, []);
+
+  // Fetch components whenever product changes
+  useEffect(() => {
+    if (!productId) { setComponents([]); setComponentId(null); return; }
+    setLoadingComponents(true);
+    setComponentId(null);
+    fetch(`${API_BASE}/api/v1/components?product_id=${productId}`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data: ComponentOption[]) => {
+        const active = Array.isArray(data) ? data : [];
+        setComponents(active);
+        if (active.length > 0) setComponentId(active[0].id);
+      })
+      .catch(() => setComponents([]))
+      .finally(() => setLoadingComponents(false));
+  }, [productId]);
+
+  // Profile dropdown outside-click handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
@@ -374,17 +415,24 @@ export default function NewBugPage() {
                   </label>
                   <div className="relative">
                     <select
-                      value={productId}
+                      value={productId ?? ''}
                       onChange={(e) => setProductId(Number(e.target.value))}
-                      className="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 pr-10 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                      disabled={loadingProducts}
+                      className="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 pr-10 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none disabled:opacity-60"
                       id="product"
                     >
-                      <option value={1}>Firefox</option>
-                      <option value={2}>Thunderbird</option>
-                      <option value={3}>Core</option>
+                      {loadingProducts ? (
+                        <option>Loading products...</option>
+                      ) : products.length === 0 ? (
+                        <option value="">No products configured</option>
+                      ) : (
+                        products.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))
+                      )}
                     </select>
                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                      expand_more
+                      {loadingProducts ? 'hourglass_empty' : 'expand_more'}
                     </span>
                   </div>
                 </div>
@@ -395,22 +443,24 @@ export default function NewBugPage() {
                   </label>
                   <div className="relative">
                     <select
-                      value={componentId}
+                      value={componentId ?? ''}
                       onChange={(e) => setComponentId(Number(e.target.value))}
-                      className="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 pr-10 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                      disabled={loadingComponents || components.length === 0}
+                      className="w-full appearance-none bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 pr-10 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none disabled:opacity-60"
                       id="component"
                     >
-                      <option value={1}>Networking</option>
-                      <option value={2}>DOM &amp; Core</option>
-                      <option value={3}>JavaScript Engine</option>
-                      <option value={4}>Storage &amp; IndexedDB</option>
-                      <option value={5}>Mail &amp; Compose</option>
-                      <option value={6}>Calendar</option>
-                      <option value={7}>General UI</option>
-                      <option value={8}>Security</option>
+                      {loadingComponents ? (
+                        <option>Loading components...</option>
+                      ) : components.length === 0 ? (
+                        <option value="">No components — add some in Settings</option>
+                      ) : (
+                        components.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))
+                      )}
                     </select>
                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                      expand_more
+                      {loadingComponents ? 'hourglass_empty' : 'expand_more'}
                     </span>
                   </div>
                 </div>

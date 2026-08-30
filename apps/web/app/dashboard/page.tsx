@@ -258,6 +258,15 @@ export default function DashboardPage() {
 
         {/* Footer Navigation */}
         <div className="mt-auto pt-4 border-t border-outline-variant/20 flex flex-col gap-1">
+          {user?.is_admin && (
+            <Link
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
+              href="/settings/products"
+            >
+              <span className="material-symbols-outlined text-[20px]">settings</span>
+              {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Settings</span>}
+            </Link>
+          )}
           <Link
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
             href="/docs"
