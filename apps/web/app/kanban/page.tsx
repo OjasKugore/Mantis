@@ -141,13 +141,6 @@ export default function KanbanPage() {
             <span className="material-symbols-outlined text-[20px]">hub</span>
             {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Dependency Graph</span>}
           </Link>
-          <Link
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors"
-            href="/dashboard"
-          >
-            <span className="material-symbols-outlined text-[20px]">security</span>
-            {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Governance</span>}
-          </Link>
         </nav>
 
         <div className="mt-auto pt-4 border-t border-outline-variant/30 flex flex-col gap-1">

@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const [apiOnline, setApiOnline] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics' | 'governance'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics'>('queue');
   const [queueViewMode, setQueueViewMode] = useState<'list' | 'kanban'>('list');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
@@ -287,24 +287,6 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
-
-            <button
-              onClick={() => setActiveTab('governance')}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${
-                activeTab === 'governance'
-                  ? 'text-primary font-bold border-r-4 border-primary bg-surface-bright shadow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/20'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">
-                security
-              </span>
-              {sidebarOpen && (
-                <span className="font-label-caps text-label-caps tracking-wide uppercase">
-                  Governance
-                </span>
-              )}
-            </button>
           </div>
         </div>
 
@@ -359,7 +341,7 @@ export default function DashboardPage() {
               </Link>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
               <span className="text-on-surface font-medium capitalize">
-                {activeTab === 'queue' ? 'Bug Queue' : activeTab === 'graph' ? 'Dependency Graph' : 'Governance'}
+                {activeTab === 'queue' ? 'Bug Queue' : activeTab === 'graph' ? 'Dependency Graph' : 'Sprint Burndown'}
               </span>
             </div>
           </div>
@@ -375,7 +357,13 @@ export default function DashboardPage() {
           </nav>
 
           {/* Right: Actions & Profile */}
-          <div className="flex items-center gap-4 relative">
+          <div className="flex items-center gap-3 relative">
+            {/* 90-Day Embargo Live Header Badge */}
+            <EmbargoCountdown
+              embargoUntil={new Date(Date.now() + 87 * 24 * 60 * 60 * 1000).toISOString()}
+              compact={true}
+            />
+
             {/* Mode & Role Badges */}
             {user && !isDemoUser(user) ? (
               <div className="hidden sm:flex items-center gap-1.5">
@@ -984,29 +972,6 @@ export default function DashboardPage() {
               ) : (
                 <AnalyticsBurndown />
               )}
-            </div>
-          )}
-
-          {activeTab === 'governance' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="font-headline-md text-headline-md font-bold text-on-surface tracking-tight flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-[32px]">security</span>
-                  Vulnerability Governance &amp; Embargo Quarantines
-                </h2>
-                <p className="font-body-md text-body-md text-on-surface-variant mt-1 opacity-80">
-                  FIRST.org CVSS v4.0 scoring engine, zero-leakage 404 security group isolation, and 90-day embargo enforcement.
-                </p>
-              </div>
-
-              <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-6 shadow-xl space-y-6">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label-caps mb-2">
-                    Active 90-Day Security Embargo Countdown Demo
-                  </h3>
-                  <EmbargoCountdown embargoUntil={new Date(Date.now() + 87 * 24 * 60 * 60 * 1000).toISOString()} />
-                </div>
-              </div>
             </div>
           )}
         </main>

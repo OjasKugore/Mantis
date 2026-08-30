@@ -23,7 +23,7 @@ function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
-export function EmbargoCountdown({ embargoUntil }: { embargoUntil: string }) {
+export function EmbargoCountdown({ embargoUntil, compact = false }: { embargoUntil: string; compact?: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [remaining, setRemaining] = useState<TimeLeft | null>(null);
 
@@ -33,6 +33,33 @@ export function EmbargoCountdown({ embargoUntil }: { embargoUntil: string }) {
     const interval = setInterval(() => setRemaining(calcRemaining(embargoUntil)), 1000);
     return () => clearInterval(interval);
   }, [embargoUntil]);
+
+  if (compact) {
+    if (!mounted) return null;
+    if (!remaining) {
+      return (
+        <div
+          id="embargo-header-badge"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold"
+        >
+          <span>⚠️</span>
+          <span className="font-mono text-[11px] font-bold">Embargo Expired</span>
+        </div>
+      );
+    }
+    return (
+      <div
+        id="embargo-header-badge"
+        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400 text-xs font-semibold shadow-xs"
+        title={`Security Embargo active until ${new Date(embargoUntil).toLocaleDateString()}`}
+      >
+        <span className="material-symbols-outlined text-[13px] text-red-500 animate-pulse">lock</span>
+        <span className="font-mono text-[11px] font-bold tracking-tight">
+          90d Embargo: {remaining.days}d {pad(remaining.hours)}h {pad(remaining.minutes)}m {pad(remaining.seconds)}s
+        </span>
+      </div>
+    );
+  }
 
   if (!mounted) {
     return (
