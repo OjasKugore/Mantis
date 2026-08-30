@@ -72,9 +72,6 @@ export function AppSidebar({
               <h1 className="font-headline-md text-headline-md font-bold text-primary leading-none text-xl tracking-tight">
                 Mantis
               </h1>
-              <p className="font-label-caps text-label-caps text-on-surface-variant mt-1 opacity-80">
-                V3.0 Platform
-              </p>
             </div>
           )}
         </Link>
