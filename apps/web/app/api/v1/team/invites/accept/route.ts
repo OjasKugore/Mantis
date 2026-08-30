@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const { rows } = await db.query(
-      `SELECT id, email, token, is_admin, groups, is_accepted, expires_at
+      `SELECT id, email, token, is_admin, groups, is_accepted, expires_at, invited_by
        FROM team_invites
        WHERE token = $1`,
       [token]
@@ -45,9 +45,21 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    // Mark user as onboarded and update admin status if promoted
+    // Look up inviter's team_name
+    let targetTeamName = user.team_name || null;
+    if (invite.invited_by) {
+      const inviterRes = await db.query(`SELECT team_name FROM users WHERE id = $1`, [invite.invited_by]);
+      if (inviterRes.rows.length > 0 && inviterRes.rows[0].team_name) {
+        targetTeamName = inviterRes.rows[0].team_name;
+      }
+    }
+
+    // Mark user as onboarded and update admin status & team_name
     const promoteAdmin = Boolean(invite.is_admin) || Boolean(user.is_admin);
-    await db.query(`UPDATE users SET onboarded = TRUE, is_admin = $1 WHERE id = $2`, [promoteAdmin, user.id]);
+    await db.query(
+      `UPDATE users SET onboarded = TRUE, is_admin = $1, team_name = COALESCE($2, team_name) WHERE id = $3`,
+      [promoteAdmin, targetTeamName, user.id]
+    );
 
     // Apply groups
     const assignedGroups = invite.groups || ['dev-team'];

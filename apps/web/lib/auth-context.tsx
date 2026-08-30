@@ -88,7 +88,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (payload: { email: string; password: string; display_name: string; username?: string }) => Promise<{ success: boolean; error?: string }>;
+  signup: (payload: { email: string; password: string; display_name: string; username?: string; invite_token?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   quickLogin: (personaKey: string) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (payload: { email: string; password: string; display_name: string; username?: string }) => {
+  const signup = async (payload: { email: string; password: string; display_name: string; username?: string; invite_token?: string }) => {
     try {
       const res = await fetch(`${API_BASE}/api/v1/auth/signup`, {
         method: 'POST',

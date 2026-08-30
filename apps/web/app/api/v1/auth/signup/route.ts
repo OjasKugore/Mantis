@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     if (inviteToken) {
       const invRes = await db.query(
-        `SELECT id, is_admin, groups FROM team_invites WHERE token = $1 AND is_accepted = FALSE AND expires_at > NOW()`,
+        `SELECT id, is_admin, groups, invited_by FROM team_invites WHERE token = $1 AND is_accepted = FALSE AND expires_at > NOW()`,
         [inviteToken]
       );
       if (invRes.rows.length > 0) {
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       }
     } else {
       const invEmailRes = await db.query(
-        `SELECT id, is_admin, groups FROM team_invites WHERE LOWER(email) = $1 AND is_accepted = FALSE AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`,
+        `SELECT id, is_admin, groups, invited_by FROM team_invites WHERE LOWER(email) = $1 AND is_accepted = FALSE AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`,
         [normalizedEmail]
       );
       if (invEmailRes.rows.length > 0) {
@@ -80,12 +80,23 @@ export async function POST(request: Request) {
 
     const makeAdmin = isFirstUser || Boolean(inviteRecord?.is_admin);
 
+    // Look up inviter's team_name if this user came via an invite
+    let userTeamName: string | null = null;
+    let isOnboarded = false;
+    if (inviteRecord?.invited_by) {
+      const inviterRes = await db.query(`SELECT team_name FROM users WHERE id = $1`, [inviteRecord.invited_by]);
+      if (inviterRes.rows.length > 0 && inviterRes.rows[0].team_name) {
+        userTeamName = inviterRes.rows[0].team_name;
+        isOnboarded = true;
+      }
+    }
+
     const passwordHash = await hashPassword(password);
     const { rows } = await db.query(
-      `INSERT INTO users (email, display_name, username, password_hash, is_admin)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, display_name, username, is_admin, is_enabled, avatar_url, priority_rank, created_at`,
-      [normalizedEmail, display_name.trim(), username, passwordHash, makeAdmin]
+      `INSERT INTO users (email, display_name, username, password_hash, is_admin, onboarded, team_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, email, display_name, username, is_admin, is_enabled, avatar_url, priority_rank, onboarded, team_name, created_at`,
+      [normalizedEmail, display_name.trim(), username, passwordHash, makeAdmin, isOnboarded, userTeamName]
     );
 
     const newUser = rows[0];
@@ -128,6 +139,8 @@ export async function POST(request: Request) {
       username: newUser.username,
       is_admin: newUser.is_admin,
       avatar_url: newUser.avatar_url,
+      onboarded: Boolean(newUser.onboarded),
+      team_name: newUser.team_name || null,
       groups: assignedGroups,
       priority_rank: newUser.priority_rank ?? 100,
     };

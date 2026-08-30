@@ -1,24 +1,32 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, isDemoUser } from '@/lib/auth-context';
 import { MantisLogo } from '@/components/MantisLogo';
 import { OAuthButtons } from '@/components/OAuthButtons';
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite_token') || searchParams.get('invite') || '';
+  const initialEmail = searchParams.get('email') || '';
+
   const { user, loading, signup } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+
+  useEffect(() => {
+    if (initialEmail && !email) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail, email]);
 
   // Redirect already-logged-in users
   useEffect(() => {
@@ -54,11 +62,16 @@ export default function SignupPage() {
       password,
       display_name: displayName.trim(),
       username: username.trim() || undefined,
+      invite_token: inviteToken || undefined,
     });
     setSubmitting(false);
 
     if (res.success) {
-      router.push('/onboarding');
+      if (inviteToken) {
+        router.push('/dashboard');
+      } else {
+        router.push('/onboarding');
+      }
     } else {
       // Parse the specific error code from the API message to give a better UX hint
       const code = (res as any).code || '';
@@ -214,5 +227,17 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   );
 }
