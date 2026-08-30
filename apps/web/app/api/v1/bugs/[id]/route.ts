@@ -48,9 +48,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
               rep.display_name AS reporter_name, rep.username AS reporter_username, rep.avatar_url AS reporter_avatar,
               asg.display_name AS assignee_name, asg.username AS assignee_username, asg.avatar_url AS assignee_avatar
        FROM bugs b
-       JOIN products p ON p.id = b.product_id
-       JOIN components c ON c.id = b.component_id
-       JOIN users rep ON rep.id = b.reporter_id
+       LEFT JOIN products p ON p.id = b.product_id
+       LEFT JOIN components c ON c.id = b.component_id
+       LEFT JOIN users rep ON rep.id = b.reporter_id
        LEFT JOIN users asg ON asg.id = b.assignee_id
        WHERE b.id = $1`,
       [bugId]

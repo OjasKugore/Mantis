@@ -4,11 +4,9 @@ import { getCurrentUser } from '@/lib/services/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request?: Request) {
+export async function GET(request: Request) {
   try {
-    const searchParams = request?.url
-      ? new URL(request.url).searchParams
-      : new URL('http://localhost:3000/api/v1/analytics/velocity').searchParams;
+    const { searchParams } = new URL(request.url);
     const scope = searchParams.get('scope');
 
     const user = await getCurrentUser();

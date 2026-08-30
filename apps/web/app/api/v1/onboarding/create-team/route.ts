@@ -69,12 +69,17 @@ export async function POST(request: Request) {
     // 4. Create default components for this product
     const defaultComponents = ['General UI', 'Core Engine / API', 'Networking & Storage'];
     for (const compName of defaultComponents) {
-      await db.query(
-        `INSERT INTO components (name, product_id, description)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (product_id, name) DO NOTHING`,
-        [compName, productId, `Default ${compName} component for ${productName}`]
+      const compExisting = await db.query(
+        `SELECT id FROM components WHERE product_id = $1 AND LOWER(name) = LOWER($2)`,
+        [productId, compName]
       );
+      if (compExisting.rows.length === 0) {
+        await db.query(
+          `INSERT INTO components (name, product_id, description)
+           VALUES ($1, $2, $3)`,
+          [compName, productId, `Default ${compName} component for ${productName}`]
+        );
+      }
     }
 
     // 5. Assign user to all core teams (dev-team, security-team, qa-team)
@@ -92,10 +97,16 @@ export async function POST(request: Request) {
         gid = insRes.rows[0].id;
       }
 
-      await db.query(
-        `INSERT INTO user_group_map (user_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      const ugmExisting = await db.query(
+        `SELECT 1 FROM user_group_map WHERE user_id = $1 AND group_id = $2`,
         [user.id, gid]
       );
+      if (ugmExisting.rows.length === 0) {
+        await db.query(
+          `INSERT INTO user_group_map (user_id, group_id) VALUES ($1, $2)`,
+          [user.id, gid]
+        );
+      }
     }
 
     const safeUser = {

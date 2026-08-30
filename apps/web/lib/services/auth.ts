@@ -101,11 +101,23 @@ export function applyGroupFilter(
 
 export async function canUserAccessBug(bugId: number | bigint, userId: string | null): Promise<boolean> {
   const { rows: bugRows } = await db.query(
-    `SELECT id FROM bugs WHERE id = $1`,
+    `SELECT id, reporter_id, assignee_id FROM bugs WHERE id = $1`,
     [bugId]
   );
   if (bugRows.length === 0) {
     return false;
+  }
+
+  const bug = bugRows[0];
+  if (userId && (String(bug.reporter_id) === String(userId) || (bug.assignee_id && String(bug.assignee_id) === String(userId)))) {
+    return true;
+  }
+
+  if (userId) {
+    const { rows: userRows } = await db.query(`SELECT is_admin FROM users WHERE id = $1`, [userId]);
+    if (userRows.length > 0 && userRows[0].is_admin) {
+      return true;
+    }
   }
 
   const { rows: groupRows } = await db.query(
