@@ -123,7 +123,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         `INSERT INTO notifications (user_id, type, payload) VALUES ($1, $2, $3)`,
         [
           requesteeId,
-          'flag_requested',
+          'flag_request',
           JSON.stringify({
             bug_id: bugId,
             flag_name: typeName,
