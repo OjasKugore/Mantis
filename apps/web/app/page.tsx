@@ -356,9 +356,42 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* High-Definition Live Product Tour Canvas */}
-              <div className="relative aspect-[16/10] md:aspect-[16/9.5] w-full bg-slate-950 overflow-hidden shadow-inner">
-                <AppleProductShowcase />
+              {/* High-Definition Live Product Tour Canvas (Actual Website Walkthrough) */}
+              <div
+                onClick={() => setIsPlayingDemo(!isPlayingDemo)}
+                className="relative aspect-[1440/759] w-full bg-surface-container overflow-hidden shadow-inner cursor-pointer group/screen"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/videos/mantis-demo-tour.webp"
+                  alt="Mantis Actual Live Website Walkthrough"
+                  className={`w-full h-full object-contain select-none transition-opacity duration-300 ${
+                    isPlayingDemo ? 'opacity-100' : 'opacity-85'
+                  }`}
+                />
+
+                {/* Hover Play/Pause Overlay */}
+                <div className="absolute inset-0 bg-black/15 backdrop-blur-[2px] opacity-0 group-hover/screen:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
+                  <div className="flex flex-col items-center gap-2.5">
+                    <div className="w-14 h-14 rounded-full bg-primary/95 text-on-primary flex items-center justify-center shadow-2xl transform scale-90 group-hover/screen:scale-100 transition-transform">
+                      <span className="material-symbols-outlined text-[32px]">
+                        {isPlayingDemo ? 'pause' : 'play_arrow'}
+                      </span>
+                    </div>
+                    <span className="font-label-caps text-[11px] font-bold uppercase tracking-widest text-white drop-shadow-md bg-black/50 px-3 py-1 rounded-full">
+                      {isPlayingDemo ? 'Click to Pause' : 'Click to Resume'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom Scrubbing Progress Bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
+                  <div
+                    className={`h-full bg-primary transition-all duration-700 ${
+                      isPlayingDemo ? 'w-full animate-pulse' : 'w-1/2'
+                    }`}
+                  />
+                </div>
               </div>
             </div>
 
