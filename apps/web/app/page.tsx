@@ -10,9 +10,21 @@ import { AppleProductShowcase } from '@/components/AppleProductShowcase';
 export default function LandingPage() {
   const router = useRouter();
   const { quickLogin } = useAuth();
-  const [isPlayingDemo, setIsPlayingDemo] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isPlayingDemo, setIsPlayingDemo] = useState(true);
   const [selectedPersona, setSelectedPersona] = useState<string>('alice');
   const [launchingPersona, setLaunchingPersona] = useState<string | null>(null);
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPlayingDemo(true);
+    } else {
+      videoRef.current.pause();
+      setIsPlayingDemo(false);
+    }
+  };
 
   useEffect(() => {
     const observerOptions = {
@@ -356,29 +368,35 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* High-Definition Live Product Tour Canvas (Actual Website Walkthrough) */}
+              {/* High-Definition Live Product Tour Canvas (Actual Hardware-Accelerated Video) */}
               <div
-                onClick={() => setIsPlayingDemo(!isPlayingDemo)}
-                className="relative aspect-[1440/759] w-full bg-surface-container overflow-hidden shadow-inner cursor-pointer group/screen"
+                onClick={togglePlay}
+                className="relative aspect-[1440/760] w-full bg-slate-950 overflow-hidden shadow-inner cursor-pointer group/screen"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/videos/mantis-demo-tour.webp"
-                  alt="Mantis Actual Live Website Walkthrough"
-                  className={`w-full h-full object-contain select-none transition-opacity duration-300 ${
-                    isPlayingDemo ? 'opacity-100' : 'opacity-85'
-                  }`}
-                />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  onPlay={() => setIsPlayingDemo(true)}
+                  onPause={() => setIsPlayingDemo(false)}
+                  className="w-full h-full object-contain select-none"
+                >
+                  <source src="/videos/mantis-demo-tour.mp4" type="video/mp4" />
+                  <source src="/videos/mantis-demo-tour.webm" type="video/webm" />
+                </video>
 
                 {/* Hover Play/Pause Overlay */}
-                <div className="absolute inset-0 bg-black/15 backdrop-blur-[2px] opacity-0 group-hover/screen:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] opacity-0 group-hover/screen:opacity-100 transition-opacity duration-200 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center gap-2.5">
-                    <div className="w-14 h-14 rounded-full bg-primary/95 text-on-primary flex items-center justify-center shadow-2xl transform scale-90 group-hover/screen:scale-100 transition-transform">
-                      <span className="material-symbols-outlined text-[32px]">
+                    <div className="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-2xl transform scale-90 group-hover/screen:scale-100 transition-transform">
+                      <span className="material-symbols-outlined text-[36px]">
                         {isPlayingDemo ? 'pause' : 'play_arrow'}
                       </span>
                     </div>
-                    <span className="font-label-caps text-[11px] font-bold uppercase tracking-widest text-white drop-shadow-md bg-black/50 px-3 py-1 rounded-full">
+                    <span className="font-label-caps text-[11px] font-bold uppercase tracking-widest text-white drop-shadow-md bg-black/60 px-3.5 py-1.5 rounded-full border border-white/20">
                       {isPlayingDemo ? 'Click to Pause' : 'Click to Resume'}
                     </span>
                   </div>
