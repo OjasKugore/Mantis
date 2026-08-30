@@ -75,6 +75,7 @@ function DashboardContent() {
     setFilterSeverity('all');
     setFilterEmbargo('all');
     setSearchQuery('');
+    setActiveSavedViewName(null);
     setCurrentPage(1);
   };
 
@@ -379,7 +380,7 @@ function DashboardContent() {
                           <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Status</label>
                           <select
                             value={filterStatus}
-                            onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                            onChange={(e) => { setFilterStatus(e.target.value); setActiveSavedViewName(null); setCurrentPage(1); }}
                             className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
                           >
                             <option value="all">All Statuses</option>
@@ -397,7 +398,7 @@ function DashboardContent() {
                           <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Priority</label>
                           <select
                             value={filterPriority}
-                            onChange={(e) => { setFilterPriority(e.target.value); setCurrentPage(1); }}
+                            onChange={(e) => { setFilterPriority(e.target.value); setActiveSavedViewName(null); setCurrentPage(1); }}
                             className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
                           >
                             <option value="all">All Priorities</option>
@@ -414,7 +415,7 @@ function DashboardContent() {
                           <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Severity</label>
                           <select
                             value={filterSeverity}
-                            onChange={(e) => { setFilterSeverity(e.target.value); setCurrentPage(1); }}
+                            onChange={(e) => { setFilterSeverity(e.target.value); setActiveSavedViewName(null); setCurrentPage(1); }}
                             className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary capitalize"
                           >
                             <option value="all">All Severities</option>
@@ -433,7 +434,7 @@ function DashboardContent() {
                           <label className="font-bold text-on-surface-variant text-[10px] font-label-caps uppercase">Security / Embargo</label>
                           <select
                             value={filterEmbargo}
-                            onChange={(e) => { setFilterEmbargo(e.target.value as any); setCurrentPage(1); }}
+                            onChange={(e) => { setFilterEmbargo(e.target.value as any); setActiveSavedViewName(null); setCurrentPage(1); }}
                             className="w-full bg-surface-container border border-outline-variant/40 rounded-lg px-2.5 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary"
                           >
                             <option value="all">All Issues</option>

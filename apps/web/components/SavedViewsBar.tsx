@@ -152,13 +152,30 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
             const isActive = activeViewName === v.name || activeViewName === cleanName;
             const { icon, color } = getViewIcon(cleanName, v.query_json);
 
+            const handleToggle = () => {
+              if (isActive) {
+                // Toggle off: reset filters back to 'all' and clear active view
+                onApplyView({
+                  status: 'all',
+                  priority: 'all',
+                  severity: 'all',
+                  embargo: 'all',
+                }, undefined);
+              } else {
+                // Toggle on: apply selected view's filters
+                onApplyView(v.query_json as any, cleanName);
+              }
+            };
+
             return (
               <button
                 key={v.id}
-                onClick={() => onApplyView(v.query_json as any, cleanName)}
+                type="button"
+                onClick={handleToggle}
+                title={isActive ? `Active: ${cleanName} (Click to toggle off)` : `Click to apply ${cleanName}`}
                 className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-primary text-on-primary font-semibold shadow-xs'
+                    ? 'bg-primary text-on-primary font-semibold shadow-xs ring-1 ring-primary/40'
                     : 'bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant/30 font-medium'
                 }`}
               >
