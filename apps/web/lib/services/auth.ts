@@ -35,19 +35,6 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       }
     }
 
-    // Default fallback to active engineering lead (Alice Developer) so guest workflows succeed
-    const { rows: defaultUsers } = await db.query(
-      `SELECT id, email, display_name, username, is_admin, avatar_url
-       FROM users
-       WHERE username = 'alice_dev' OR is_enabled = TRUE
-       ORDER BY (CASE WHEN username = 'alice_dev' THEN 0 ELSE 1 END)
-       LIMIT 1`
-    );
-
-    if (defaultUsers.length > 0) {
-      return defaultUsers[0];
-    }
-
     return null;
   } catch {
     return null;
