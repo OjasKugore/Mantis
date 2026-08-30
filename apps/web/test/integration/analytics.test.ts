@@ -15,9 +15,9 @@ describe('Analytics Integration', () => {
     expect(data.trajectory.length).toBe(15); // Day 0 to Day 14
     expect(data.trajectory[0].ideal).toBeGreaterThan(0);
   });
-
   it('should calculate sprint velocity across releases', async () => {
-    const res = await getVelocity();
+    const req = new Request('http://localhost:3000/api/v1/analytics/velocity');
+    const res = await getVelocity(req);
     expect(res.status).toBe(200);
 
     const data = await res.json();
