@@ -44,8 +44,14 @@ export async function GET(request: Request) {
 
     if (isDemo) {
       conditions.push(`(b.reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local'))`);
+    } else if (user?.team_name) {
+      conditions.push(`(b.reporter_id IN (SELECT id FROM users WHERE team_name = $${pIdx++} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local'))`);
+      params.push(user.team_name);
+    } else if (userId) {
+      conditions.push(`(b.reporter_id = $${pIdx++})`);
+      params.push(userId);
     } else {
-      conditions.push(`(b.reporter_id NOT IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local'))`);
+      conditions.push(`1=0`);
     }
 
     if (searchParams.get('status')) {

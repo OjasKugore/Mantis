@@ -13,16 +13,28 @@ export async function GET() {
       return NextResponse.json({ error: 'FORBIDDEN', message: 'Admin privileges required' }, { status: 403 });
     }
 
-    const { rows } = await db.query(
-      `SELECT 
+    let query = `
+      SELECT 
          ti.id, ti.email, ti.token, ti.is_admin, ti.groups,
          ti.is_accepted, ti.expires_at, ti.created_at,
          u.display_name as invited_by_name
        FROM team_invites ti
        LEFT JOIN users u ON u.id = ti.invited_by
        WHERE ti.is_accepted = FALSE AND ti.expires_at > NOW()
-       ORDER BY ti.created_at DESC`
-    );
+    `;
+    const params: any[] = [];
+
+    if (user.team_name) {
+      query += ` AND (ti.invited_by IN (SELECT id FROM users WHERE team_name = $1) OR ti.invited_by = $2)`;
+      params.push(user.team_name, user.id);
+    } else {
+      query += ` AND ti.invited_by = $1`;
+      params.push(user.id);
+    }
+
+    query += ` ORDER BY ti.created_at DESC`;
+
+    const { rows } = await db.query(query, params);
 
     return NextResponse.json({ invites: rows });
   } catch (err: any) {
