@@ -19,7 +19,7 @@ program
   .description('Mantis CLI — Stealthy monitoring, precise triage')
   .version('3.0.0')
   .option('--api-url <url>', 'Override backend API base URL')
-  .hook('preAction', (thisCommand) => {
+  .hook('preAction', (thisCommand: Command) => {
     const opts = thisCommand.opts();
     if (opts.apiUrl) {
       config.save({ apiUrl: opts.apiUrl });

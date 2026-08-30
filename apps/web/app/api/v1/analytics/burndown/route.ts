@@ -24,9 +24,18 @@ export async function GET(request: Request) {
       pIdx++;
     }
 
-    const isDemo = scope === 'demo' || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
-
-    if (isDemo) {
+    const isDemo = scope === 'demo' || !scope || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
+    if (scope === 'user') {
+      if (user?.team_name) {
+        query += ` AND reporter_id IN (SELECT id FROM users WHERE team_name = $${pIdx++} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local')`;
+        params.push(user.team_name);
+      } else if (userId) {
+        query += ` AND reporter_id = $${pIdx++}`;
+        params.push(userId);
+      } else {
+        query += ` AND 1=0`;
+      }
+    } else if (isDemo) {
       query += ` AND reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
     } else if (user?.team_name) {
       query += ` AND reporter_id IN (SELECT id FROM users WHERE team_name = $${pIdx++} AND email NOT LIKE '%@mozilla.com' AND email != 'admin@mantis.local')`;
@@ -35,7 +44,7 @@ export async function GET(request: Request) {
       query += ` AND reporter_id = $${pIdx++}`;
       params.push(userId);
     } else {
-      query += ` AND 1=0`;
+      query += ` AND reporter_id IN (SELECT id FROM users WHERE email LIKE '%@mozilla.com' OR email = 'admin@mantis.local')`;
     }
 
     const { rows } = await db.query(query, params);

@@ -27,16 +27,9 @@ export async function POST(request: Request) {
     const email = personaMap[persona] || 'alice@mozilla.com';
 
     const { rows } = await db.query(
-      `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank, u.onboarded, u.team_name,
-              COALESCE(
-                ARRAY_AGG(g.name) FILTER (WHERE g.name IS NOT NULL),
-                '{}'
-              ) as groups
+      `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank, u.onboarded, u.team_name
        FROM users u
-       LEFT JOIN user_group_map ugm ON ugm.user_id = u.id
-       LEFT JOIN groups g ON g.id = ugm.group_id
-       WHERE LOWER(u.email) = LOWER($1) AND u.is_enabled = TRUE
-       GROUP BY u.id`,
+       WHERE LOWER(u.email) = LOWER($1) AND u.is_enabled = TRUE`,
       [email]
     );
 
@@ -45,6 +38,16 @@ export async function POST(request: Request) {
     }
 
     const user = rows[0];
+    let groups: string[] = [];
+    try {
+      const groupRes = await db.query(
+        `SELECT g.name FROM groups g JOIN user_group_map ugm ON ugm.group_id = g.id WHERE ugm.user_id = $1`,
+        [user.id]
+      );
+      groups = groupRes.rows.map((r: any) => r.name);
+    } catch {
+      groups = [];
+    }
 
     // Create session
     const sessionId = crypto.randomBytes(32).toString('hex');

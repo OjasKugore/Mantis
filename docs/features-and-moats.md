@@ -1,11 +1,8 @@
-# Additional Features Specification — Beyond Mantis's Scope
-## Architecture & Implementation Blueprint: Active Build Targets vs. Extended Enterprise Roadmap
+# Mantis — Algorithmic Moats & Advanced Features Specification
 
-> **Purpose**: This document defines the *net-new* capabilities that transform Mantis from a legacy Perl tracker into a state-of-the-art developer platform.
+> **Platform Architecture**: Fastify 4 + PostgreSQL 16 + Next.js 14 + TypeScript 5
 >
-> In strict accordance with [`docs/implementation-rules.md`](./implementation-rules.md), this document is partitioned into two distinct architectural sections:
-> 1. **PART I: ACTIVE 72-HOUR BUILD TARGETS (Phases 2 & 3 — Live Demo Scope)**: The concrete, self-contained features being implemented and verified before **August 30 at 11:59 PM**. Each includes complete PostgreSQL DDL schemas, REST API contracts, algorithms, UI components, and unit/integration test specifications.
-> 2. **PART II: EXTENDED ENTERPRISE ROADMAP (Phase 4 — Documented Architecture)**: The long-term enterprise vision (CRDT multiplayer, Monaco code navigation, AI vector triage, PWA, plugin sandboxes) preserved in complete architectural detail to demonstrate technical rigor and future extensibility to evaluators.
+> This document provides the complete technical specification for Mantis's core algorithmic differentiators, data integrity models, security isolation patterns, and intelligent developer ergonomics.
 
 ---
 
