@@ -12,9 +12,11 @@ export async function GET() {
       return NextResponse.json({ error: 'FORBIDDEN', message: 'Admin privileges required' }, { status: 403 });
     }
 
-    // Fetch all users with their group memberships
-    const { rows: users } = await db.query(
-      `SELECT 
+    // If the requesting user is a real user, only show real workspace members (exclude fake seed accounts)
+    const isDemo = user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local';
+    
+    let query = `
+      SELECT 
          u.id, u.email, u.display_name, u.username, u.avatar_url,
          u.is_admin, u.is_enabled, u.priority_rank, u.created_at,
          COALESCE(
@@ -24,9 +26,18 @@ export async function GET() {
        FROM users u
        LEFT JOIN user_group_map ugm ON ugm.user_id = u.id
        LEFT JOIN groups g ON g.id = ugm.group_id
+    `;
+
+    if (!isDemo) {
+      query += ` WHERE u.email NOT LIKE '%@mozilla.com' AND u.email != 'admin@mantis.local'`;
+    }
+
+    query += `
        GROUP BY u.id
-       ORDER BY COALESCE(u.priority_rank, 100) ASC, u.created_at ASC`
-    );
+       ORDER BY COALESCE(u.priority_rank, 100) ASC, u.created_at ASC
+    `;
+
+    const { rows: users } = await db.query(query);
 
     return NextResponse.json({
       members: users.map((u: any) => ({

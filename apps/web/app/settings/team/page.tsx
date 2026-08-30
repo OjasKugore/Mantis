@@ -404,6 +404,14 @@ export default function TeamSettingsPage() {
               <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               Loading team directory...
             </div>
+          ) : members.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-outline-variant/40 rounded-2xl space-y-3">
+              <span className="material-symbols-outlined text-4xl text-on-surface-variant">group</span>
+              <p className="text-sm font-semibold text-on-surface">No other team members yet</p>
+              <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
+                Click &quot;Invite Member&quot; above to generate invite links or pre-provision roles for your teammates.
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
