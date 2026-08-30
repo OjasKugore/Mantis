@@ -58,6 +58,7 @@ export default function AuditPage() {
 
   const formatFieldName = (f: string) => {
     switch (f) {
+      case 'status':
       case 'bug_status': return 'Status';
       case 'resolution': return 'Resolution';
       case 'priority': return 'Priority';

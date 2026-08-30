@@ -17,12 +17,12 @@ export async function GET(request: Request) {
     const isDemo = scope === 'demo' || (!scope && !user) || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
     let query = `
-      SELECT ba.id, ba.bug_id, ba.who as user_id, ba.bug_when as timestamp,
-             ba.field_name, ba.removed, ba.added,
+      SELECT ba.id, ba.bug_id, ba.who_id as user_id, ba.changed_at as timestamp,
+             ba.field as field_name, ba.old_value as removed, ba.new_value as added,
              u.display_name as who_name, u.email as who_email, u.avatar_url as who_avatar,
              b.summary as bug_summary, b.is_embargoed
       FROM bugs_activity ba
-      LEFT JOIN users u ON u.id = ba.who
+      LEFT JOIN users u ON u.id = ba.who_id
       LEFT JOIN bugs b ON b.id = ba.bug_id
       WHERE 1=1
     `;
@@ -52,9 +52,9 @@ export async function GET(request: Request) {
     }
 
     if (field && field !== 'all') {
-      query += ` AND ba.field_name = $${pIdx}`;
-      params.push(field);
-      pIdx++;
+      query += ` AND (ba.field = $${pIdx} OR ba.field = $${pIdx + 1})`;
+      params.push(field, field === 'status' ? 'bug_status' : field === 'bug_status' ? 'status' : field);
+      pIdx += 2;
     }
 
     if (bugId) {
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     const countRes = await db.query(countQuery, params);
     const total = parseInt(countRes.rows[0]?.total || '0', 10);
 
-    query += ` ORDER BY ba.bug_when DESC, ba.id DESC LIMIT $${pIdx} OFFSET $${pIdx + 1}`;
+    query += ` ORDER BY ba.changed_at DESC, ba.id DESC LIMIT $${pIdx} OFFSET $${pIdx + 1}`;
     params.push(limit, offset);
 
     const res = await db.query(query, params);
