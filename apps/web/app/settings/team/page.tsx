@@ -397,6 +397,22 @@ export default function TeamSettingsPage() {
                 Use the <span className="font-bold">▲ / ▼</span> arrows to arrange triage escalation ranking. Click any role badge to toggle permissions in real-time.
               </p>
             </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={loadData}
+                disabled={loadingData}
+                id="refresh-team-members-btn"
+                className="px-3 py-1.5 rounded-lg border border-outline-variant/40 hover:border-primary bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+                title="Refresh team directory"
+              >
+                <span className={`material-symbols-outlined text-[16px] text-primary ${loadingData ? 'animate-spin' : ''}`}>
+                  refresh
+                </span>
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           {loadingData ? (
