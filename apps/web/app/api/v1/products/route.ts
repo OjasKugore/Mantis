@@ -68,23 +68,18 @@ export async function POST(request: Request) {
     if (classRes.rows.length > 0) {
       classId = Number(classRes.rows[0].id);
     } else {
-      const nextClassRes = await db.query(`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM classifications`);
-      const nextClassId = Number(nextClassRes.rows[0]?.next_id || 1);
       const newClass = await db.query(
-        `INSERT INTO classifications (id, name, sortkey) VALUES ($1, $2, 0) RETURNING id`,
-        [nextClassId, `${teamName} Products`]
+        `INSERT INTO classifications (name, sortkey) VALUES ($1, 0) RETURNING id`,
+        [`${teamName} Products`]
       );
       classId = Number(newClass.rows[0].id);
     }
 
-    const nextIdRes = await db.query(`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM products`);
-    const nextId = Number(nextIdRes.rows[0]?.next_id || 1);
-
     const { rows } = await db.query(
-      `INSERT INTO products (id, name, classification_id, description, default_milestone, team_name)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO products (name, classification_id, description, default_milestone, team_name)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, name, description, is_active, default_milestone, team_name`,
-      [nextId, name, classId, description, defaultMilestone, teamName]
+      [name, classId, description, defaultMilestone, teamName]
     );
 
     return NextResponse.json({ ...rows[0], id: Number(rows[0].id) }, { status: 201 });

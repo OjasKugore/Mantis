@@ -72,14 +72,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'CONFLICT', message: `A component named "${name}" already exists in this product` }, { status: 409 });
     }
 
-    const nextCompIdRes = await db.query(`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM components`);
-    const nextCompId = Number(nextCompIdRes.rows[0]?.next_id || 1);
-
     const { rows } = await db.query(
-      `INSERT INTO components (id, name, product_id, description)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO components (name, product_id, description)
+       VALUES ($1, $2, $3)
        RETURNING id, name, product_id, description, is_active`,
-      [nextCompId, name, productId, description]
+      [name, productId, description]
     );
 
     return NextResponse.json(
