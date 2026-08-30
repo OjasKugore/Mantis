@@ -91,7 +91,7 @@ export async function initPostgresDb(pool: any) {
 
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY,
-      name VARCHAR(64) NOT NULL UNIQUE,
+      name VARCHAR(64) NOT NULL,
       classification_id INTEGER,
       description TEXT NOT NULL DEFAULT '',
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -263,6 +263,8 @@ export async function initPostgresDb(pool: any) {
     );
 
     ALTER TABLE products ADD COLUMN IF NOT EXISTS team_name VARCHAR(255);
+    ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key;
+    CREATE UNIQUE INDEX IF NOT EXISTS products_team_name_lower_name_idx ON products (COALESCE(team_name, 'Mozilla'), LOWER(name));
     UPDATE products 
     SET team_name = TRIM(SUBSTRING(description FROM 'Main product for (.*)'))
     WHERE (team_name IS NULL OR team_name = '') AND description LIKE 'Main product for %';

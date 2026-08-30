@@ -55,6 +55,8 @@ export async function ensureDbReady(): Promise<void> {
         try {
           await testPool.query(`
             ALTER TABLE products ADD COLUMN IF NOT EXISTS team_name VARCHAR(255);
+            ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key;
+            CREATE UNIQUE INDEX IF NOT EXISTS products_team_name_lower_name_idx ON products (COALESCE(team_name, 'Mozilla'), LOWER(name));
             CREATE TABLE IF NOT EXISTS named_queries (
               id SERIAL PRIMARY KEY,
               user_id VARCHAR(64) NOT NULL,
