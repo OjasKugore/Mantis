@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { db } from '../db/client';
+import { verifyUserToken, COOKIE_NAME } from './session-token';
 
 export interface UserSession {
   id: string;
@@ -19,19 +20,34 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       cookieStore.get('session')?.value ||
       cookieStore.get('mantis_session')?.value;
 
+    // 1. Try DB session lookup (works when DB is persistent / warm in-memory)
     if (sessionId) {
-      const tokenHash = crypto.createHash('sha256').update(sessionId).digest('hex');
+      try {
+        const tokenHash = crypto.createHash('sha256').update(sessionId).digest('hex');
 
-      const { rows } = await db.query(
-        `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url
-         FROM sessions s
-         JOIN users u ON u.id = s.user_id
-         WHERE s.token_hash = $1 AND s.expires_at > NOW() AND u.is_enabled = TRUE`,
-        [tokenHash]
-      );
+        const { rows } = await db.query(
+          `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url
+           FROM sessions s
+           JOIN users u ON u.id = s.user_id
+           WHERE s.token_hash = $1 AND s.expires_at > NOW() AND u.is_enabled = TRUE`,
+          [tokenHash]
+        );
 
-      if (rows.length > 0) {
-        return rows[0];
+        if (rows.length > 0) {
+          return rows[0];
+        }
+      } catch {
+        // DB unavailable or session not found — fall through to signed cookie
+      }
+    }
+
+    // 2. Fallback: verify the signed user token cookie (survives Vercel cold starts)
+    const userTokenRaw = cookieStore.get(COOKIE_NAME)?.value;
+    if (userTokenRaw) {
+      const payload = verifyUserToken(userTokenRaw);
+      if (payload) {
+        const { exp: _exp, ...user } = payload;
+        return user;
       }
     }
 

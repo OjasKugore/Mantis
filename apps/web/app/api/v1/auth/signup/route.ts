@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import { db } from '@/lib/db/client';
 import { hashPassword } from '@/lib/argon';
+import { setUserTokenCookie } from '@/lib/services/session-token';
 
 const SignupSchema = z.object({
   email: z.string().email(),
@@ -66,8 +67,17 @@ export async function POST(request: Request) {
       [newUser.id, tokenHash, expiresAt]
     );
 
+    const safeUser = {
+      id: newUser.id,
+      email: newUser.email,
+      display_name: newUser.display_name,
+      username: newUser.username,
+      is_admin: newUser.is_admin,
+      avatar_url: newUser.avatar_url,
+    };
+
     const response = NextResponse.json({
-      user: newUser,
+      user: safeUser,
       token: sessionId,
       message: 'Account created successfully',
     }, { status: 201 });
@@ -79,14 +89,7 @@ export async function POST(request: Request) {
       path: '/',
       maxAge: 30 * 24 * 60 * 60,
     });
-
-    response.cookies.set('session', sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 30 * 24 * 60 * 60,
-    });
+    setUserTokenCookie(response, safeUser);
 
     return response;
   } catch (err: any) {

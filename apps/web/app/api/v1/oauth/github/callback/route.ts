@@ -90,10 +90,11 @@ export async function GET(request: Request) {
 
   try {
     const existing = await db.query(
-      `SELECT id FROM users WHERE github_id = $1 OR email = $2`,
+      `SELECT id, email, display_name, username, is_admin, avatar_url FROM users WHERE github_id = $1 OR email = $2`,
       [githubUser.id, githubUser.email]
     );
     let userId: string;
+    let userRecord: { id: string; email: string; display_name: string; username: string; is_admin: boolean; avatar_url?: string };
 
     if (existing.rows.length > 0) {
       userId = existing.rows[0].id;
@@ -105,19 +106,28 @@ export async function GET(request: Request) {
          WHERE id = $4`,
         [githubUser.id, githubUser.avatar_url || null, githubUser.name, userId]
       );
+      userRecord = {
+        id: userId,
+        email: existing.rows[0].email,
+        display_name: githubUser.name || existing.rows[0].display_name,
+        username: existing.rows[0].username,
+        is_admin: existing.rows[0].is_admin,
+        avatar_url: githubUser.avatar_url || existing.rows[0].avatar_url,
+      };
     } else {
       const username = await generateUniqueUsername(githubUser.login, githubUser.email);
       const { rows } = await db.query(
         `INSERT INTO users (email, display_name, username, avatar_url, github_id)
          VALUES ($1, $2, $3, $4, $5)
-         RETURNING id`,
+         RETURNING id, email, display_name, username, is_admin, avatar_url`,
         [githubUser.email, githubUser.name || username, username, githubUser.avatar_url || null, githubUser.id]
       );
       userId = rows[0].id;
+      userRecord = rows[0];
     }
 
     const response = NextResponse.redirect(`${origin}/dashboard`);
-    await createOAuthSession(userId, response);
+    await createOAuthSession(userId, response, userRecord);
     return response;
   } catch (err: any) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(err.message || 'Failed to complete OAuth')}`);

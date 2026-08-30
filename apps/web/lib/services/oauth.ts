@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '../db/client';
+import { setUserTokenCookie, type SessionPayload } from './session-token';
 
-export async function createOAuthSession(userId: string, response: NextResponse): Promise<string> {
+export async function createOAuthSession(
+  userId: string,
+  response: NextResponse,
+  user?: Omit<SessionPayload, 'exp'>
+): Promise<string> {
   const sessionId = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(sessionId).digest('hex');
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -23,6 +28,11 @@ export async function createOAuthSession(userId: string, response: NextResponse)
 
   response.cookies.set('sessionId', sessionId, cookieOptions);
   response.cookies.set('session', sessionId, cookieOptions);
+
+  // Also set signed user token for serverless/Vercel cold-start resilience
+  if (user) {
+    setUserTokenCookie(response, user);
+  }
 
   return sessionId;
 }

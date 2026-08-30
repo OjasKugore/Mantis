@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/db/client';
 import { verifyPassword } from '@/lib/argon';
+import { setUserTokenCookie } from '@/lib/services/session-token';
 
 export async function POST(request: Request) {
   try {
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
       path: '/',
       maxAge: 30 * 24 * 60 * 60,
     });
+    setUserTokenCookie(response, safeUser);
 
     return response;
   } catch (err: any) {

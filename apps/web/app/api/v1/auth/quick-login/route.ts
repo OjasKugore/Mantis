@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/db/client';
+import { setUserTokenCookie } from '@/lib/services/session-token';
 
 export async function POST(request: Request) {
   try {
@@ -46,8 +47,17 @@ export async function POST(request: Request) {
       [user.id, tokenHash, expiresAt]
     );
 
+    const safeUser = {
+      id: user.id,
+      email: user.email,
+      display_name: user.display_name,
+      username: user.username,
+      is_admin: user.is_admin,
+      avatar_url: user.avatar_url,
+    };
+
     const response = NextResponse.json({
-      user,
+      user: safeUser,
       token: sessionId,
       message: `Quick-login active as ${user.display_name}`,
     });
@@ -59,6 +69,7 @@ export async function POST(request: Request) {
       path: '/',
       maxAge: 30 * 24 * 60 * 60,
     });
+    setUserTokenCookie(response, safeUser);
 
     return response;
   } catch (err: any) {
