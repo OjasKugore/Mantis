@@ -180,19 +180,55 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
       </button>
 
       {saveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface-container-high border border-outline-variant/40 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-scale-in">
-            <h3 className="text-sm font-bold text-on-surface mb-1 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-base">bookmark_add</span>
-              Save Current Filter Preset
-            </h3>
-            <p className="text-xs text-on-surface-variant mb-4">
-              Save your current status, priority, severity, and embargo filters for quick access across sessions.
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setSaveModalOpen(false)}
+        >
+          <div
+            className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-scale-in text-on-surface"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px]">bookmark_add</span>
+                <h3 className="text-sm font-bold text-on-surface">Save Current Filter View</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSaveModalOpen(false)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg transition-colors cursor-pointer"
+                title="Close"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Save your current status, priority, severity, and security filters into a quick-access preset across sessions.
             </p>
 
-            <form onSubmit={handleSaveCurrentView} className="space-y-3">
+            {/* Active Filter Criteria Preview */}
+            <div className="p-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/30 flex flex-wrap gap-1.5 text-[11px]">
+              <span className="text-on-surface-variant/70 font-semibold uppercase text-[10px] self-center mr-1">
+                Saving Filters:
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-surface-container-highest font-mono text-[10px] text-on-surface border border-outline-variant/20">
+                Status: {currentFilters.status || 'all'}
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-surface-container-highest font-mono text-[10px] text-on-surface border border-outline-variant/20">
+                Priority: {currentFilters.priority || 'all'}
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-surface-container-highest font-mono text-[10px] text-on-surface border border-outline-variant/20">
+                Severity: {currentFilters.severity || 'all'}
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-surface-container-highest font-mono text-[10px] text-on-surface border border-outline-variant/20">
+                Embargo: {currentFilters.embargo || 'all'}
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveCurrentView} className="space-y-4 pt-1">
               <div>
-                <label className="block text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-on-surface uppercase tracking-wider mb-1.5">
                   Preset View Name
                 </label>
                 <input
@@ -202,24 +238,34 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
                   placeholder="e.g. My Active P1 Blockers"
                   value={newViewName}
                   onChange={(e) => setNewViewName(e.target.value)}
-                  className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-xl px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:outline-hidden focus:border-primary"
+                  className="w-full bg-surface-container border border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl px-3.5 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 outline-none transition-all font-medium"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/20">
                 <button
                   type="button"
                   onClick={() => setSaveModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !newViewName.trim()}
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50 shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  {saving ? 'Saving...' : 'Save View'}
+                  {saving ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[15px]">check</span>
+                      <span>Save View</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
