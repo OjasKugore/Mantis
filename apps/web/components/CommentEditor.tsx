@@ -17,8 +17,8 @@ export function CommentEditor({ value, onChange, onSubmit, isSubmitting = false 
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
 
   return (
-    <div className="w-full border border-outline-variant/30 rounded-lg overflow-hidden bg-surface-container-lowest focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 transition-all shadow-xs">
-      <div className="flex border-b border-outline-variant/20 bg-surface-container-low/40">
+    <div className="w-full border border-outline-variant/30 rounded-lg bg-surface-container-lowest focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 transition-all shadow-xs relative">
+      <div className="flex border-b border-outline-variant/20 bg-surface-container-low/40 rounded-t-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setActiveTab('write')}

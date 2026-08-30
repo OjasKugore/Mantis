@@ -80,6 +80,10 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<'activity' | 'ai' | 'scm' | 'flags'>('activity');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [showResolutionModal, setShowResolutionModal] = useState(false);
+  const [selectedResolution, setSelectedResolution] = useState<'FIXED' | 'WONTFIX' | 'DUPLICATE' | 'WORKSFORME' | 'INVALID' | 'INCOMPLETE'>('FIXED');
+  const [resolutionComment, setResolutionComment] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Keywords & CC State
   const [keywords, setKeywords] = useState<{ id: number; name: string; description?: string }[]>([]);
@@ -241,30 +245,44 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
     };
   }, [bugId]);
 
-  const handleStatusTransition = async (newStatus: string, resolution?: string) => {
+  const handleStatusTransition = async (newStatus: string, resolution?: string, comment?: string) => {
+    setIsTransitioning(true);
     try {
+      let resolvedResolution = resolution;
+      if (['RESOLVED', 'VERIFIED', 'CLOSED'].includes(newStatus)) {
+        if (!resolvedResolution) {
+          resolvedResolution = bug?.resolution || 'FIXED';
+        }
+      } else {
+        resolvedResolution = '';
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/bugs/${bugId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           status: newStatus,
-          resolution: resolution || (newStatus === 'RESOLVED' ? 'FIXED' : undefined),
-          comment: `Status transitioned to ${newStatus} via Web UI`,
+          resolution: resolvedResolution,
+          comment: comment || `Status transitioned to ${newStatus}${resolvedResolution ? ` (${resolvedResolution})` : ''} via Web UI`,
         }),
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         setActionMessage(`Error: ${err.message || 'Status transition forbidden'}`);
         return;
       }
 
-      setActionMessage(`Successfully transitioned to ${newStatus}`);
+      setActionMessage(`Successfully transitioned to ${newStatus}${resolvedResolution ? ` (${resolvedResolution})` : ''}`);
       setTimeout(() => setActionMessage(null), 3000);
+      setShowResolutionModal(false);
+      setResolutionComment('');
       fetchBug(true);
     } catch {
       setActionMessage('Failed to update status.');
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -577,43 +595,207 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Governance & State Machine Actions */}
                 <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/20">
-                  <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant mb-4 tracking-widest opacity-80 font-bold">
-                    Governance &amp; State Machine Actions
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() => handleStatusTransition('CONFIRMED')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary-container/20 text-secondary border border-secondary-container hover:bg-secondary-container/40 transition-colors font-body-sm font-medium"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">check</span>
-                      Confirm Bug
-                    </button>
-                    <button
-                      onClick={() => handleStatusTransition('IN_PROGRESS')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-tertiary-container/20 text-tertiary border border-tertiary-container hover:bg-tertiary-container/40 transition-colors font-body-sm font-medium"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">settings</span>
-                      Mark IN_PROGRESS
-                    </button>
-                    <button
-                      onClick={() => handleStatusTransition('RESOLVED', 'FIXED')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary border border-primary hover:bg-primary/90 transition-colors font-body-sm font-medium shadow-sm"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">star</span>
-                      Resolve (FIXED)
-                    </button>
-                    <button
-                      onClick={() => handleStatusTransition('RESOLVED', 'WONTFIX')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high transition-colors font-body-sm font-medium"
-                    >
-                      Resolve (WONTFIX)
-                    </button>
-                    <button
-                      onClick={() => handleStatusTransition('CLOSED')}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high transition-colors font-body-sm font-medium"
-                    >
-                      Close Archive
-                    </button>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <h3 className="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-widest opacity-80 font-bold">
+                      Governance &amp; State Machine Actions
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-on-surface-variant/70">Current:</span>
+                      <span className={`px-2 py-0.5 rounded font-mono font-bold uppercase text-[11px] border ${getStatusBadge(bug.status)}`}>
+                        {bug.status}
+                      </span>
+                      {bug.resolution && (
+                        <span className="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono font-bold text-[11px]">
+                          ({bug.resolution})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Actions for UNCONFIRMED */}
+                    {bug.status === 'UNCONFIRMED' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusTransition('CONFIRMED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                          Confirm Bug
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('IN_PROGRESS')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                          Start Progress
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedResolution('FIXED');
+                            setShowResolutionModal(true);
+                          }}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">task_alt</span>
+                          Resolve Bug...
+                        </button>
+                      </>
+                    )}
+
+                    {/* Actions for CONFIRMED */}
+                    {bug.status === 'CONFIRMED' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusTransition('IN_PROGRESS')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                          Start Progress
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('RESOLVED', 'FIXED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">star</span>
+                          Resolve (FIXED)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedResolution('WONTFIX');
+                            setShowResolutionModal(true);
+                          }}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">tune</span>
+                          Resolve (Other...)
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('UNCONFIRMED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low text-xs transition-colors ml-auto"
+                        >
+                          <span className="material-symbols-outlined text-[15px]">undo</span>
+                          Move to Unconfirmed
+                        </button>
+                      </>
+                    )}
+
+                    {/* Actions for IN_PROGRESS */}
+                    {bug.status === 'IN_PROGRESS' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusTransition('RESOLVED', 'FIXED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">star</span>
+                          Resolve (FIXED)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedResolution('WONTFIX');
+                            setShowResolutionModal(true);
+                          }}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">tune</span>
+                          Resolve (Other...)
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('CONFIRMED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border border-outline-variant/20 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">pause</span>
+                          Pause (Move to Confirmed)
+                        </button>
+                      </>
+                    )}
+
+                    {/* Actions for RESOLVED */}
+                    {bug.status === 'RESOLVED' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusTransition('VERIFIED', bug.resolution || 'FIXED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">verified</span>
+                          Verify Bug
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('CLOSED', bug.resolution || 'FIXED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">archive</span>
+                          Close Bug
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('CONFIRMED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-600/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-600/20 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                          Reopen Bug
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedResolution((bug.resolution as any) || 'FIXED');
+                            setShowResolutionModal(true);
+                          }}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low text-xs transition-colors ml-auto"
+                        >
+                          <span className="material-symbols-outlined text-[15px]">edit</span>
+                          Change Resolution
+                        </button>
+                      </>
+                    )}
+
+                    {/* Actions for VERIFIED */}
+                    {bug.status === 'VERIFIED' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusTransition('CLOSED', bug.resolution || 'FIXED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">archive</span>
+                          Close Bug
+                        </button>
+                        <button
+                          onClick={() => handleStatusTransition('CONFIRMED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-600/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-600/20 font-medium text-xs transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                          Reopen Bug
+                        </button>
+                      </>
+                    )}
+
+                    {/* Actions for CLOSED */}
+                    {bug.status === 'CLOSED' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusTransition('CONFIRMED')}
+                          disabled={isTransitioning}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-600/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-600/20 font-medium text-xs transition-colors shadow-xs disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                          Reopen Bug
+                        </button>
+                      </>
+                    )}
                   </div>
                 </section>
 
@@ -976,6 +1158,95 @@ export default function BugDetailPage({ params }: { params: { id: string } }) {
               fetchBug(true);
             }}
           />
+        </div>
+      )}
+
+      {/* Resolution Selector Modal */}
+      {showResolutionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[22px]">task_alt</span>
+                Resolve Bug #{bug.id}
+              </h3>
+              <button
+                onClick={() => setShowResolutionModal(false)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-md"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-label-caps uppercase text-on-surface-variant font-bold mb-2">
+                  Select Resolution Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'FIXED', label: 'FIXED', desc: 'Resolved with fix' },
+                    { id: 'WONTFIX', label: 'WONTFIX', desc: 'Will not fix' },
+                    { id: 'DUPLICATE', label: 'DUPLICATE', desc: 'Duplicate issue' },
+                    { id: 'WORKSFORME', label: 'WORKSFORME', desc: 'Cannot reproduce' },
+                    { id: 'INVALID', label: 'INVALID', desc: 'Not a defect' },
+                    { id: 'INCOMPLETE', label: 'INCOMPLETE', desc: 'Insufficient details' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSelectedResolution(item.id as any)}
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        selectedResolution === item.id
+                          ? 'border-primary bg-primary/10 text-primary font-semibold'
+                          : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
+                      }`}
+                    >
+                      <div className="text-xs font-mono font-bold">{item.label}</div>
+                      <div className="text-[10px] text-on-surface-variant opacity-80">{item.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-label-caps uppercase text-on-surface-variant font-bold mb-1.5">
+                  Resolution Note / Comment (Optional)
+                </label>
+                <textarea
+                  value={resolutionComment}
+                  onChange={(e) => setResolutionComment(e.target.value)}
+                  placeholder="Provide details on the resolution or patch..."
+                  rows={2}
+                  className="w-full p-2.5 text-xs rounded-lg border border-outline-variant/30 bg-surface-container-low text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setShowResolutionModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isTransitioning}
+                onClick={() =>
+                  handleStatusTransition(
+                    'RESOLVED',
+                    selectedResolution,
+                    resolutionComment ? `Resolved as ${selectedResolution}: ${resolutionComment}` : undefined
+                  )
+                }
+                className="px-4 py-2 rounded-lg text-xs font-bold bg-primary text-on-primary hover:bg-primary/90 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {isTransitioning ? 'Updating...' : `Confirm Resolution (${selectedResolution})`}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
