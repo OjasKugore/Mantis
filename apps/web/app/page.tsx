@@ -324,17 +324,6 @@ export default function LandingPage() {
                 Experience sub-50ms Critical Path analytics, Kanban drag-and-drop state transitions, and 90-day zero-leakage security embargoes in action.
               </p>
             </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => handleLaunchDemo(selectedPersona)}
-                className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-label-caps text-xs font-bold uppercase transition flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                Launch Live Sandbox
-              </button>
-            </div>
           </div>
 
           {/* Floating Apple MacBook Pro Frame & Ambient Glow */}

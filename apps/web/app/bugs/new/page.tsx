@@ -220,14 +220,6 @@ export default function NewBugPage() {
             <span className="material-symbols-outlined">hub</span>
             {sidebarOpen && <span className="font-body-md text-body-md">Dependency Graph</span>}
           </Link>
-
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-xl group"
-          >
-            <span className="material-symbols-outlined">gavel</span>
-            {sidebarOpen && <span className="font-body-md text-body-md">Governance</span>}
-          </Link>
         </nav>
       </aside>
 
