@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { getCurrentUser, canUserAccessBug } from '@/lib/services/auth';
+import { recordActivity } from '@/lib/services/audit';
 
 interface RouteParams {
   params: { id: string };
@@ -81,10 +82,13 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Record in activity log
     const kdRes = await db.query(`SELECT name FROM keyword_defs WHERE id = $1`, [keywordId]);
     const kwName = kdRes.rows[0]?.name || String(keywordId);
-    await db.query(
-      `INSERT INTO bugs_activity (bug_id, who, field_name, removed, added) VALUES ($1, $2, 'keywords', '', $3)`,
-      [bugId, user.id, kwName]
-    );
+    await recordActivity(db, {
+      bugId,
+      whoId: user.id,
+      field: 'keywords',
+      oldValue: '',
+      newValue: kwName,
+    });
 
     const updatedRes = await db.query(
       `SELECT kd.id, kd.name, kd.description
@@ -130,10 +134,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     await db.query(`DELETE FROM bug_keywords WHERE bug_id = $1 AND keyword_id = $2`, [bugId, keywordId]);
 
     // Record in activity log
-    await db.query(
-      `INSERT INTO bugs_activity (bug_id, who, field_name, removed, added) VALUES ($1, $2, 'keywords', $3, '')`,
-      [bugId, user.id, kwName]
-    );
+    await recordActivity(db, {
+      bugId,
+      whoId: user.id,
+      field: 'keywords',
+      oldValue: kwName,
+      newValue: '',
+    });
 
     const updatedRes = await db.query(
       `SELECT kd.id, kd.name, kd.description

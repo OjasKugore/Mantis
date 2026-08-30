@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { getCurrentUser, canUserAccessBug } from '@/lib/services/auth';
+import { recordActivity } from '@/lib/services/audit';
 
 interface RouteParams {
   params: { id: string };
@@ -73,10 +74,13 @@ export async function POST(request: Request, { params }: RouteParams) {
     const targetUserRes = await db.query(`SELECT display_name, email FROM users WHERE id = $1`, [targetUserId]);
     const targetName = targetUserRes.rows[0]?.display_name || targetUserRes.rows[0]?.email || targetUserId;
 
-    await db.query(
-      `INSERT INTO bugs_activity (bug_id, who, field_name, removed, added) VALUES ($1, $2, 'cc', '', $3)`,
-      [bugId, user.id, targetName]
-    );
+    await recordActivity(db, {
+      bugId,
+      whoId: user.id,
+      field: 'cc',
+      oldValue: '',
+      newValue: targetName,
+    });
 
     const res = await db.query(
       `SELECT u.id, u.display_name, u.email, u.avatar_url
@@ -123,10 +127,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     await db.query(`DELETE FROM bug_cc WHERE bug_id = $1 AND user_id = $2`, [bugId, targetUserId]);
 
-    await db.query(
-      `INSERT INTO bugs_activity (bug_id, who, field_name, removed, added) VALUES ($1, $2, 'cc', $3, '')`,
-      [bugId, user.id, targetName]
-    );
+    await recordActivity(db, {
+      bugId,
+      whoId: user.id,
+      field: 'cc',
+      oldValue: targetName,
+      newValue: '',
+    });
 
     const res = await db.query(
       `SELECT u.id, u.display_name, u.email, u.avatar_url
