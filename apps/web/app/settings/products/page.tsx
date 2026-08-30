@@ -203,6 +203,14 @@ function ProductRow({
             </>
           ) : (
             <>
+              <Link
+                href={`/dashboard?tab=readiness&product=${product.id}`}
+                className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary-container/20 transition flex items-center gap-1"
+                title={`Check Release Readiness for ${product.name}`}
+              >
+                <span className="material-symbols-outlined text-[18px] text-primary">verified</span>
+                <span className="hidden sm:inline text-xs font-medium">Readiness</span>
+              </Link>
               <button
                 type="button"
                 onClick={() => setEditing(true)}

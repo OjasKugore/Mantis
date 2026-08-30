@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DependencyGraph } from '@/components/DependencyGraph';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AnalyticsBurndown } from '@/components/AnalyticsBurndown';
@@ -23,14 +23,21 @@ interface BugItem {
   severity: string;
   product_name?: string;
   component_name?: string;
+  reporter_name?: string;
+  assignee_name?: string;
+  created_at: string;
   is_embargoed?: boolean;
   embargo_until?: string;
   cvss_score?: number;
   cvss_severity?: string;
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') as 'queue' | 'graph' | 'analytics' | 'readiness' | null;
+  const initialProd = searchParams.get('product') || 'all';
+
   const { user, quickLogin, logout } = useAuth();
   const profileRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const filterRef = useRef<HTMLDivElement>(null);
@@ -39,7 +46,7 @@ export default function DashboardPage() {
   const [apiOnline, setApiOnline] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics' | 'readiness'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'graph' | 'analytics' | 'readiness'>(initialTab || 'queue');
   const [activeSavedViewName, setActiveSavedViewName] = useState<string | null>(null);
   const [queueViewMode, setQueueViewMode] = useState<'list' | 'kanban'>('list');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
@@ -1034,6 +1041,7 @@ export default function DashboardPage() {
           {activeTab === 'readiness' && (
             <div className="max-w-6xl mx-auto w-full pb-8 animate-fade-in">
               <ReadinessDashboard
+                initialProductId={initialProd}
                 onNavigateToGraph={(bugId) => {
                   setSelectedBugId(bugId);
                   setActiveTab('graph');
@@ -1044,6 +1052,20 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-surface flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }
 

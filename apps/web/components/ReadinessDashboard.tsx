@@ -21,8 +21,14 @@ interface UnresolvedBug {
   is_on_critical_path: boolean;
 }
 
+interface ProductOption {
+  id: number;
+  name: string;
+}
+
 interface ReadinessData {
   milestone: string;
+  productId?: string;
   score: number | null;
   status: 'READY_FOR_RELEASE' | 'NEEDS_ATTENTION' | 'BLOCKED' | 'NO_DEFECTS';
   totalIssues: number;
@@ -33,22 +39,31 @@ interface ReadinessData {
   breakdown: RiskBreakdown[];
   unresolvedBugs: UnresolvedBug[];
   availableMilestones?: string[];
+  availableProducts?: ProductOption[];
 }
 
-export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: (bugId: number) => void }) {
+export function ReadinessDashboard({
+  onNavigateToGraph,
+  initialProductId = 'all',
+}: {
+  onNavigateToGraph?: (bugId: number) => void;
+  initialProductId?: string;
+}) {
   const { user } = useAuth();
   const isDemo = isDemoUser(user);
+  const [productId, setProductId] = useState<string>(initialProductId);
   const [milestone, setMilestone] = useState<string>('all');
   const [data, setData] = useState<ReadinessData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReadiness = async (ms: string) => {
+  const fetchReadiness = async (ms: string, prod: string) => {
     setLoading(true);
     setError(null);
     try {
       const scopeParam = user && !isDemo ? '&scope=user' : '&scope=demo';
-      const res = await fetch(`/api/v1/analytics/readiness?milestone=${encodeURIComponent(ms)}${scopeParam}`);
+      const prodParam = prod !== 'all' ? `&product=${encodeURIComponent(prod)}` : '';
+      const res = await fetch(`/api/v1/analytics/readiness?milestone=${encodeURIComponent(ms)}${prodParam}${scopeParam}`);
       if (!res.ok) throw new Error('Failed to compute readiness score');
       const result = await res.json();
       setData(result);
@@ -67,8 +82,8 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
   }, [isDemo]);
 
   useEffect(() => {
-    fetchReadiness(milestone);
-  }, [milestone, user]);
+    fetchReadiness(milestone, productId);
+  }, [milestone, productId, user]);
 
   const hasDefects = data && data.totalIssues > 0;
   const score = data?.score ?? 0;
@@ -92,55 +107,77 @@ export function ReadinessDashboard({ onNavigateToGraph }: { onNavigateToGraph?: 
 
   return (
     <div className="space-y-6">
-      {/* Header & Milestone Selector */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-surface-container-high/60 border border-outline-variant/30 rounded-2xl backdrop-blur-md">
+      {/* Header & Product / Milestone Selectors */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-5 bg-surface-container-high/60 border border-outline-variant/30 rounded-2xl backdrop-blur-md">
         <div>
           <h2 className="text-lg font-bold text-on-surface flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-2xl">verified</span>
-            Milestone Release Readiness Engine
+            Milestone &amp; Product Release Readiness
           </h2>
           <p className="text-xs text-on-surface-variant mt-1">
-            Algorithmic 0–100 risk calculation powered by Kahn&apos;s Critical Path Method (CPM), CVSS v4.0 severity math, and review flag clearance.
+            Algorithmic 0–100 release risk calculation powered by Kahn&apos;s Critical Path Method (CPM), CVSS v4.0 severity math, and review flag clearance.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-stretch sm:self-auto">
-          <label className="text-xs font-semibold text-on-surface-variant shrink-0 uppercase tracking-wider">
-            Target Release:
-          </label>
-          <select
-            value={milestone}
-            onChange={(e) => setMilestone(e.target.value)}
-            className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-3 py-1.5 text-xs font-bold text-on-surface focus:outline-hidden focus:border-primary shadow-xs"
-          >
-            {isDemo ? (
-              <>
-                <option value="128.0">Firefox 128.0 (Current Sprint)</option>
-                <option value="129.0">Firefox 129.0 (Next Cycle)</option>
-                <option value="130.0">Firefox 130.0 (Backlog)</option>
-                <option value="all">All Release Milestones</option>
-              </>
-            ) : (
-              <>
-                <option value="all">All Release Milestones</option>
-                {data?.availableMilestones && data.availableMilestones.length > 0 ? (
-                  data.availableMilestones.map((ms) => (
-                    <option key={ms} value={ms}>
-                      {ms === '---' ? 'Default Milestone (---)' : `Release Milestone ${ms}`}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="128.0">Release Milestone 128.0</option>
-                    <option value="---">Default Milestone (---)</option>
-                  </>
-                )}
-              </>
-            )}
-          </select>
+        <div className="flex flex-wrap items-center gap-3 self-stretch lg:self-auto">
+          {/* Product Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-on-surface-variant shrink-0 uppercase tracking-wider">
+              Product:
+            </label>
+            <select
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+              className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-3 py-1.5 text-xs font-bold text-on-surface focus:outline-hidden focus:border-primary shadow-xs"
+            >
+              <option value="all">All Products</option>
+              {data?.availableProducts?.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Milestone Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-on-surface-variant shrink-0 uppercase tracking-wider">
+              Release:
+            </label>
+            <select
+              value={milestone}
+              onChange={(e) => setMilestone(e.target.value)}
+              className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-3 py-1.5 text-xs font-bold text-on-surface focus:outline-hidden focus:border-primary shadow-xs"
+            >
+              {isDemo ? (
+                <>
+                  <option value="128.0">Firefox 128.0 (Current Sprint)</option>
+                  <option value="129.0">Firefox 129.0 (Next Cycle)</option>
+                  <option value="130.0">Firefox 130.0 (Backlog)</option>
+                  <option value="all">All Release Milestones</option>
+                </>
+              ) : (
+                <>
+                  <option value="all">All Release Milestones</option>
+                  {data?.availableMilestones && data.availableMilestones.length > 0 ? (
+                    data.availableMilestones.map((ms) => (
+                      <option key={ms} value={ms}>
+                        {ms === '---' ? 'Default Milestone (---)' : `Release Milestone ${ms}`}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="128.0">Release Milestone 128.0</option>
+                      <option value="---">Default Milestone (---)</option>
+                    </>
+                  )}
+                </>
+              )}
+            </select>
+          </div>
 
           <button
-            onClick={() => fetchReadiness(milestone)}
+            onClick={() => fetchReadiness(milestone, productId)}
             className="p-1.5 rounded-xl bg-surface-container-highest/60 hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
             title="Refresh Score"
           >

@@ -42,50 +42,83 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const milestoneId = searchParams.get('milestone') || 'all';
+    const productId = searchParams.get('product') || searchParams.get('productId') || 'all';
     const scope = searchParams.get('scope');
 
     const user = await getCurrentUser();
+    const isDemo = scope === 'demo' || (!scope && !user) || (user && (user.email.endsWith('@mozilla.com') || user.email === 'admin@mantis.local'));
 
-    // 1. Generate sandbox clause for milestone-specific queries (milestoneId is $1, so sandbox starts at $2)
-    const { clause: sandboxClause, params: sandboxParams } = getSandboxFilter(user, scope, 2);
-    const baseParams = [milestoneId, ...sandboxParams];
+    // 1. Fetch available products in this sandbox
+    let prodQuery = `SELECT id, name FROM products`;
+    const prodParams: any[] = [];
+    if (isDemo) {
+      prodQuery += ` WHERE id IN (1, 2, 3) OR LOWER(name) IN ('firefox', 'thunderbird', 'core')`;
+    } else if (user?.team_name) {
+      prodQuery += ` WHERE (classification_id IN (SELECT id FROM classifications WHERE name ILIKE $1) OR id NOT IN (1, 2, 3)) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+      prodParams.push(`%${user.team_name}%`);
+    } else {
+      prodQuery += ` WHERE id NOT IN (1, 2, 3) AND LOWER(name) NOT IN ('firefox', 'thunderbird', 'core')`;
+    }
+    prodQuery += ` ORDER BY name ASC`;
+    const { rows: productRows } = await db.query(prodQuery, prodParams);
+    const availableProducts = productRows.map((r: any) => ({ id: Number(r.id), name: r.name }));
 
-    // 2. Fetch total bugs and unresolved bugs for this milestone in this sandbox
+    // 2. Build sandbox and product filter conditions
+    let pIdx = 2; // $1 is milestoneId
+    let productClause = '';
+    const extraParams: any[] = [];
+
+    if (productId !== 'all') {
+      const pIdNum = parseInt(productId, 10);
+      if (!isNaN(pIdNum)) {
+        productClause = ` AND product_id = $${pIdx++}`;
+        extraParams.push(pIdNum);
+      }
+    }
+
+    const { clause: sandboxClause, params: sandboxParams } = getSandboxFilter(user, scope, pIdx);
+    const baseParams = [milestoneId, ...extraParams, ...sandboxParams];
+
+    const milestoneFilter = `($1 = 'all' OR target_milestone = $1 OR ($1 = '128.0' AND target_milestone IN ('128.0', '---')))`;
+    const bMilestoneFilter = `($1 = 'all' OR b.target_milestone = $1 OR ($1 = '128.0' AND b.target_milestone IN ('128.0', '---')))`;
+    const bProductClause = productClause.replace(/product_id/g, 'b.product_id');
+    const bSandboxClause = sandboxClause.replace(/reporter_id/g, 'b.reporter_id');
+
+    // 3. Fetch total bugs and unresolved bugs for this milestone and product in this sandbox
     const totalRes = await db.query(
-      `SELECT id, status FROM bugs WHERE ($1 = 'all' OR target_milestone = $1 OR ($1 = '128.0' AND target_milestone IN ('128.0', '---')))${sandboxClause}`,
+      `SELECT id, status FROM bugs WHERE ${milestoneFilter}${productClause}${sandboxClause}`,
       baseParams
     );
 
-    const bSandboxClause = sandboxClause.replace(/reporter_id/g, 'b.reporter_id');
     const { rows: unresolvedBugs } = await db.query(
-      `SELECT b.id, b.summary, b.status, b.priority, b.severity, b.cvss_severity, b.cvss_score, b.estimated_time
+      `SELECT b.id, b.summary, b.status, b.priority, b.severity, b.cvss_severity, b.cvss_score, b.estimated_time, b.product_id
        FROM bugs b
-       WHERE ($1 = 'all' OR b.target_milestone = $1 OR ($1 = '128.0' AND b.target_milestone IN ('128.0', '---')))
+       WHERE ${bMilestoneFilter}${bProductClause}
          AND b.status NOT IN ('RESOLVED', 'VERIFIED', 'CLOSED')${bSandboxClause}`,
       baseParams
     );
 
-    // 3. Fetch all dependencies relating to bugs in this milestone and sandbox
+    // 4. Fetch all dependencies relating to bugs in this milestone, product, and sandbox
     const { rows: deps } = await db.query(
       `SELECT blocking_bug_id, blocked_bug_id
        FROM bug_dependencies
-       WHERE blocking_bug_id IN (SELECT id FROM bugs WHERE ($1 = 'all' OR target_milestone = $1 OR ($1 = '128.0' AND target_milestone IN ('128.0', '---')))${sandboxClause})
-          OR blocked_bug_id IN (SELECT id FROM bugs WHERE ($1 = 'all' OR target_milestone = $1 OR ($1 = '128.0' AND target_milestone IN ('128.0', '---')))${sandboxClause})`,
+       WHERE blocking_bug_id IN (SELECT id FROM bugs WHERE ${milestoneFilter}${productClause}${sandboxClause})
+          OR blocked_bug_id IN (SELECT id FROM bugs WHERE ${milestoneFilter}${productClause}${sandboxClause})`,
       baseParams
     );
 
-    // 4. Fetch pending blocking flags ('?') on milestone bugs in this sandbox
+    // 5. Fetch pending blocking flags ('?') on scoped bugs in this sandbox
     const { rows: pendingFlags } = await db.query(
       `SELECT f.id, f.bug_id, ft.name as flag_name
        FROM flags f
        JOIN bugs b ON b.id = f.bug_id
        JOIN flag_types ft ON ft.id = f.type_id
-       WHERE ($1 = 'all' OR b.target_milestone = $1 OR ($1 = '128.0' AND b.target_milestone IN ('128.0', '---')))
+       WHERE ${bMilestoneFilter}${bProductClause}
          AND f.status = '?'${bSandboxClause}`,
       baseParams
     );
 
-    // 5. Compute critical path across milestone bugs
+    // 6. Compute critical path across scoped bugs
     const cpmNodes = unresolvedBugs.map((b: any) => ({
       id: Number(b.id),
       estimatedTime: Number(b.estimated_time) || 1,
@@ -145,11 +178,21 @@ export async function GET(request: Request) {
     const resolvedCount = totalRes.rows.filter((b: any) => ['RESOLVED', 'VERIFIED', 'CLOSED'].includes(b.status)).length;
     const unresolvedCount = unresolvedBugs.length;
 
-    // 6. Fetch all available milestones in this sandbox (starting at $1)
-    const { clause: msClause, params: msParams } = getSandboxFilter(user, scope, 1);
+    // 7. Fetch all available milestones in this sandbox (starting at $1)
+    let msIdx = 1;
+    let msProductClause = '';
+    const msParamsList: any[] = [];
+    if (productId !== 'all') {
+      const pIdNum = parseInt(productId, 10);
+      if (!isNaN(pIdNum)) {
+        msProductClause = ` AND product_id = $${msIdx++}`;
+        msParamsList.push(pIdNum);
+      }
+    }
+    const { clause: msClause, params: msSandboxParams } = getSandboxFilter(user, scope, msIdx);
     const { rows: milestoneRows } = await db.query(
-      `SELECT DISTINCT target_milestone FROM bugs WHERE 1=1${msClause}`,
-      msParams
+      `SELECT DISTINCT target_milestone FROM bugs WHERE 1=1${msProductClause}${msClause}`,
+      [...msParamsList, ...msSandboxParams]
     );
     const availableMilestones = Array.from(
       new Set(milestoneRows.map((r: any) => r.target_milestone).filter(Boolean))
@@ -158,6 +201,7 @@ export async function GET(request: Request) {
     if (totalCount === 0) {
       return NextResponse.json({
         milestone: milestoneId,
+        productId,
         score: null,
         status: 'NO_DEFECTS',
         totalIssues: 0,
@@ -168,6 +212,7 @@ export async function GET(request: Request) {
         breakdown: [],
         unresolvedBugs: [],
         availableMilestones,
+        availableProducts,
       });
     }
 
@@ -177,6 +222,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       milestone: milestoneId,
+      productId,
       score: finalScore,
       status,
       totalIssues: totalCount,
@@ -195,6 +241,7 @@ export async function GET(request: Request) {
         is_on_critical_path: criticalPath.includes(Number(b.id)),
       })),
       availableMilestones,
+      availableProducts,
     });
   } catch (err: any) {
     console.error('Readiness computation error:', err);
