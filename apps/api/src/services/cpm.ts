@@ -10,8 +10,7 @@ export interface GraphEdge {
 }
 
 export function computeCPM(nodes: GraphNode[], edges: GraphEdge[]): number[] {
-  if (nodes.length === 0) return [];
-  if (nodes.length === 1) return [nodes[0].id];
+  if (nodes.length === 0 || edges.length === 0) return [];
 
   // 1. Build adjacency maps
   const outgoing = new Map<number, number[]>();
@@ -54,15 +53,9 @@ export function computeCPM(nodes: GraphNode[], edges: GraphEdge[]): number[] {
   }
 
   // 4. Backtrack from max-EFT sink node to find critical path chain
-  const maxEFT = Math.max(...[...eft.values()]);
-  const sinkEntries = [...eft.entries()].filter(([, v]) => v === maxEFT);
-  if (sinkEntries.length === 0) return [nodes[0].id];
-
-  // If there are no edges in the graph at all, return the node with maximum estimated time
-  if (edges.length === 0) {
-    const maxTimeNode = [...nodes].sort((a, b) => (Number(b.estimatedTime) || 0) - (Number(a.estimatedTime) || 0))[0];
-    return [maxTimeNode.id];
-  }
+  const maxEFT = Math.max(...Array.from(eft.values()));
+  const sinkEntries = Array.from(eft.entries()).filter(([, v]) => v === maxEFT);
+  if (sinkEntries.length === 0) return [];
 
   let current = sinkEntries[0][0];
   const path: number[] = [current];
