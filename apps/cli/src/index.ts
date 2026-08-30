@@ -85,6 +85,7 @@ program
   .description('Alias for `mantis bug list`')
   .option('-s, --status <status>')
   .option('-p, --priority <priority>')
+  .option('-l, --limit <number>', 'Maximum bugs to return', '50')
   .option('--json')
   .action(listBugsCommand);
 

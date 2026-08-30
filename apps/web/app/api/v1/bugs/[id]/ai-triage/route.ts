@@ -7,6 +7,10 @@ interface RouteParams {
   params: { id: string };
 }
 
+export async function GET(request: Request, context: RouteParams) {
+  return POST(request, context);
+}
+
 export async function POST(_request: Request, { params }: RouteParams) {
   try {
     const bugId = parseInt(params.id, 10);

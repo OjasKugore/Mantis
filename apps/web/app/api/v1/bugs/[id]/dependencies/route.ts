@@ -9,14 +9,20 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const blockingId = parseInt(params.id, 10);
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'UNAUTHORIZED', message: 'Must be logged in to modify dependencies' }, { status: 401 });
     }
 
     const body = await request.json().catch(() => ({}));
-    const blockedId = parseInt(body.blocked_bug_id || body.blocks_bug_id || body.blockedId, 10);
+    let blockingId = parseInt(params.id, 10);
+    let blockedId = parseInt(body.blocked_bug_id || body.blocks_bug_id || body.blockedId, 10);
+
+    // If body passed blocking_bug_id, params.id is the blocked bug
+    if (body.blocking_bug_id || body.depends_on || body.depends_on_bug_id) {
+      blockingId = parseInt(body.blocking_bug_id || body.depends_on || body.depends_on_bug_id, 10);
+      blockedId = parseInt(params.id, 10);
+    }
 
     if (!blockingId || !blockedId || isNaN(blockingId) || isNaN(blockedId) || blockingId === blockedId) {
       return NextResponse.json({
