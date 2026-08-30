@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface SavedView {
   id: number;
@@ -60,6 +61,7 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
   const [saveModalOpen, setSaveModalOpen] = useState<boolean>(false);
   const [newViewName, setNewViewName] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
 
   const fetchViews = async () => {
     try {
@@ -76,8 +78,21 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
   };
 
   useEffect(() => {
+    setMounted(true);
     fetchViews();
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && saveModalOpen) {
+        setSaveModalOpen(false);
+      }
+    };
+    if (saveModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveModalOpen]);
 
   const handleSaveCurrentView = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,64 +139,66 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
   if (loading && views.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2.5 overflow-x-auto py-2 px-3 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl text-xs backdrop-blur-sm shadow-xs">
-      <span className="text-on-surface-variant/80 font-semibold flex items-center gap-1.5 shrink-0 uppercase tracking-wider text-[10px] select-none">
-        <span className="material-symbols-outlined text-[15px] text-primary">bookmarks</span>
-        Saved Views:
-      </span>
+    <>
+      <div className="flex items-center gap-2.5 overflow-x-auto py-2 px-3 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl text-xs backdrop-blur-sm shadow-xs">
+        <span className="text-on-surface-variant/80 font-semibold flex items-center gap-1.5 shrink-0 uppercase tracking-wider text-[10px] select-none">
+          <span className="material-symbols-outlined text-[15px] text-primary">bookmarks</span>
+          Saved Views:
+        </span>
 
-      <div className="flex items-center gap-1.5 flex-1 overflow-x-auto no-scrollbar">
-        {views.map((v) => {
-          const cleanName = sanitizeViewName(v.name);
-          const isActive = activeViewName === v.name || activeViewName === cleanName;
-          const { icon, color } = getViewIcon(cleanName, v.query_json);
+        <div className="flex items-center gap-1.5 flex-1 overflow-x-auto no-scrollbar">
+          {views.map((v) => {
+            const cleanName = sanitizeViewName(v.name);
+            const isActive = activeViewName === v.name || activeViewName === cleanName;
+            const { icon, color } = getViewIcon(cleanName, v.query_json);
 
-          return (
-            <button
-              key={v.id}
-              onClick={() => onApplyView(v.query_json as any, cleanName)}
-              className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all shrink-0 cursor-pointer ${
-                isActive
-                  ? 'bg-primary text-on-primary font-semibold shadow-xs'
-                  : 'bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant/30 font-medium'
-              }`}
-            >
-              <span
-                className={`material-symbols-outlined text-[14px] leading-none transition-colors ${
-                  isActive ? 'text-on-primary' : color
+            return (
+              <button
+                key={v.id}
+                onClick={() => onApplyView(v.query_json as any, cleanName)}
+                className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-primary text-on-primary font-semibold shadow-xs'
+                    : 'bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant/30 font-medium'
                 }`}
               >
-                {icon}
-              </span>
-              <span>{cleanName}</span>
-              {!v.is_preset && (
                 <span
-                  onClick={(e) => handleDeleteView(e, v.id)}
-                  className={`opacity-50 hover:opacity-100 hover:text-error rounded-sm p-0.5 ml-0.5 inline-flex items-center justify-center transition-all ${
-                    isActive ? 'hover:bg-white/20 hover:text-white' : 'hover:bg-surface-container-highest'
+                  className={`material-symbols-outlined text-[14px] leading-none transition-colors ${
+                    isActive ? 'text-on-primary' : color
                   }`}
-                  title="Delete saved view"
                 >
-                  <span className="material-symbols-outlined text-[12px] leading-none">close</span>
+                  {icon}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                <span>{cleanName}</span>
+                {!v.is_preset && (
+                  <span
+                    onClick={(e) => handleDeleteView(e, v.id)}
+                    className={`opacity-50 hover:opacity-100 hover:text-error rounded-sm p-0.5 ml-0.5 inline-flex items-center justify-center transition-all ${
+                      isActive ? 'hover:bg-white/20 hover:text-white' : 'hover:bg-surface-container-highest'
+                    }`}
+                    title="Delete saved view"
+                  >
+                    <span className="material-symbols-outlined text-[12px] leading-none">close</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => setSaveModalOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high/80 text-on-surface hover:bg-primary/15 hover:text-primary hover:border-primary/40 transition-all font-semibold text-xs shrink-0 border border-outline-variant/30 shadow-xs cursor-pointer"
+          title="Save current filter combination"
+        >
+          <span className="material-symbols-outlined text-[15px]">bookmark_add</span>
+          <span>Save View</span>
+        </button>
       </div>
 
-      <button
-        onClick={() => setSaveModalOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high/80 text-on-surface hover:bg-primary/15 hover:text-primary hover:border-primary/40 transition-all font-semibold text-xs shrink-0 border border-outline-variant/30 shadow-xs cursor-pointer"
-        title="Save current filter combination"
-      >
-        <span className="material-symbols-outlined text-[15px]">bookmark_add</span>
-        <span>Save View</span>
-      </button>
-
-      {saveModalOpen && (
+      {saveModalOpen && mounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
           onClick={() => setSaveModalOpen(false)}
         >
           <div
@@ -270,8 +287,9 @@ export function SavedViewsBar({ currentFilters, onApplyView, activeViewName }: S
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
