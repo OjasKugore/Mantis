@@ -44,7 +44,7 @@ export default function OnboardingPage() {
     if (!loading) {
       if (!user) {
         router.replace('/login');
-      } else if (isDemoUser(user) || user.onboarded) {
+      } else if (isDemoUser(user) || user.onboarded || Boolean(user.team_name)) {
         router.replace('/dashboard');
       }
     }

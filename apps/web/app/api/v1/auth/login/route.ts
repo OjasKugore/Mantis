@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     const { rows } = await db.query(
-      `SELECT id, email, display_name, username, password_hash, is_admin, avatar_url FROM users WHERE email = $1 AND is_enabled = TRUE`,
+      `SELECT id, email, display_name, username, password_hash, is_admin, avatar_url, onboarded, team_name, priority_rank FROM users WHERE email = $1 AND is_enabled = TRUE`,
       [email.toLowerCase().trim()]
     );
 
@@ -37,13 +37,29 @@ export async function POST(request: Request) {
       [user.id, tokenHash, expiresAt]
     );
 
+    // Fetch user groups
+    let groups: string[] = [];
+    try {
+      const groupRes = await db.query(
+        `SELECT g.name FROM groups g JOIN user_group_map ugm ON ugm.group_id = g.id WHERE ugm.user_id = $1`,
+        [user.id]
+      );
+      groups = groupRes.rows.map((r: any) => r.name);
+    } catch {
+      groups = [];
+    }
+
     const safeUser = {
       id: user.id,
       email: user.email,
       display_name: user.display_name,
       username: user.username,
-      is_admin: user.is_admin,
+      is_admin: Boolean(user.is_admin),
       avatar_url: user.avatar_url,
+      onboarded: Boolean(user.onboarded),
+      team_name: user.team_name || null,
+      priority_rank: user.priority_rank ?? 100,
+      groups,
     };
 
     const response = NextResponse.json({ user: safeUser, token: sessionId });

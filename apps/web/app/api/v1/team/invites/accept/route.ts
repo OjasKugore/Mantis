@@ -45,11 +45,9 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    // Apply admin promotion if requested
+    // Mark user as onboarded and update admin status if promoted
     const promoteAdmin = Boolean(invite.is_admin) || Boolean(user.is_admin);
-    if (promoteAdmin && !user.is_admin) {
-      await db.query(`UPDATE users SET is_admin = TRUE WHERE id = $1`, [user.id]);
-    }
+    await db.query(`UPDATE users SET onboarded = TRUE, is_admin = $1 WHERE id = $2`, [promoteAdmin, user.id]);
 
     // Apply groups
     const assignedGroups = invite.groups || ['dev-team'];
@@ -71,7 +69,7 @@ export async function POST(request: Request) {
 
     // Fetch updated user
     const { rows: updatedUserRows } = await db.query(
-      `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank
+      `SELECT u.id, u.email, u.display_name, u.username, u.is_admin, u.avatar_url, u.priority_rank, u.onboarded, u.team_name
        FROM users u WHERE u.id = $1`,
       [user.id]
     );
@@ -79,12 +77,14 @@ export async function POST(request: Request) {
     const safeUser = {
       ...updatedUserRows[0],
       is_admin: promoteAdmin,
+      onboarded: true,
       groups: assignedGroups,
     };
 
     const response = NextResponse.json({
       message: 'Successfully joined team with assigned roles',
       user: safeUser,
+      redirect: '/dashboard',
     });
 
     // Update signed session cookie
