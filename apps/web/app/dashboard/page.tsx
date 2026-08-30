@@ -280,13 +280,17 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-[20px]">help</span>
             {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Docs &amp; Support</span>}
           </Link>
-          <Link
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group"
-            href="/login"
+          <button
+            type="button"
+            onClick={async () => {
+              await logout();
+              window.location.href = '/login';
+            }}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-variant/20 transition-colors group w-full text-left cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">account_circle</span>
             {sidebarOpen && <span className="font-label-caps text-label-caps uppercase">Switch Account</span>}
-          </Link>
+          </button>
         </div>
       </nav>
 

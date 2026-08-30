@@ -130,14 +130,19 @@ export function ProfileDropdown({ user, triggerRef, onClose, onPersonaSwitch, on
 
       {/* Footer actions */}
       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-        <Link
-          href="/login"
-          onClick={onClose}
+        <button
+          type="button"
+          onClick={async () => {
+            onClose();
+            await onLogout();
+            window.location.href = '/login';
+          }}
           className="text-xs text-slate-600 font-bold hover:text-primary font-label-caps uppercase transition-colors"
         >
           Switch Account
-        </Link>
+        </button>
         <button
+          type="button"
           onClick={() => { onLogout(); onClose(); }}
           className="text-xs text-rose-600 hover:text-rose-700 font-bold font-label-caps uppercase transition-colors flex items-center gap-1"
         >
