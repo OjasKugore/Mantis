@@ -53,8 +53,7 @@ Push a commit with `Fixes #1` in the message to the demo repo and watch Bug #1 a
 Verify every algorithm, security rule, and integration assertion in **under 5 seconds** — no Docker, no database, no configuration:
 
 ```bash
-git clone https://github.com/OjasKugore/clonefest-2.git
-cd clonefest-2
+git clone https://github.com/OjasKugore/Mantis.git
 npm install
 npm test
 ```
@@ -68,8 +67,7 @@ npm test
 The app is a **Next.js fullstack application** — no Docker, no separate backend server needed. It auto-seeds a high-speed in-memory database on first run.
 
 ```bash
-git clone https://github.com/OjasKugore/clonefest-2.git
-cd clonefest-2
+git clone https://github.com/OjasKugore/Mantis.git
 npm install
 npm run dev
 ```
